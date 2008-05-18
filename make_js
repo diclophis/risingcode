@@ -1,0 +1,24 @@
+#!/bin/sh
+
+cd public
+
+cat javascripts/prototype.js > javascripts.js
+echo >> javascripts.js
+cat javascripts/scriptaculous.js >> javascripts.js
+echo >> javascripts.js
+cat javascripts/effects.js >> javascripts.js
+echo >> javascripts.js
+cat javascripts/slider.js >> javascripts.js
+echo >> javascripts.js
+cat javascripts/dragdrop.js >> javascripts.js
+echo >> javascripts.js
+cat javascripts/controls.js >> javascripts.js
+echo >> javascripts.js
+#cat javascripts/glider.js >> javascripts.js
+#echo >> javascripts.js
+cat javascripts/lightbox.js >> javascripts.js
+echo >> javascripts.js
+cat javascripts/behaviour.js >> javascripts.js
+echo >> javascripts.js
+cat javascripts/application.js >> javascripts.js
+echo >> javascripts.js

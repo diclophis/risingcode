@@ -1,0 +1,3 @@
+#!/bin/sh
+
+curl --user diclophis:qwerty -o /tmp/bookmarks.xml -O "https://api.del.icio.us/v1/posts/all"

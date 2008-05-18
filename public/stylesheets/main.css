@@ -1,0 +1,134 @@
+/* RisingCode based on Simpla */  
+
+span.snippet {
+  display: block;
+  overflow: auto;
+  white-space: nowrap;
+  background-color: #000000;
+}
+
+span.snippet p {
+  margin-bottom: 0px;
+  background-color: #000000;
+  font-family: monospace;
+  color: #ffffff;
+  padding: 4px;
+}
+
+.Identifier { color: #00ffff; }
+.OldComment { color: #8080ff; }
+.Comment { color: blue; }
+.Constant, .Constant a { color: #ff6060; }
+.Statement { color: #ffff00; }
+.Special { color: #ff40ff; }
+.PreProc { color: #ff40ff; }
+.Type { color: #00ff00; }
+
+#openid_url {
+  background: url( /images/openid.gif ) no-repeat;
+  background-position: 0 50%;
+  background-color: #fff;
+  padding-left: 18px;
+}
+
+body,div,dl,dt,dd,ul,li,h1,h2,h3,h4,h5,h6,pre,form,fieldset,input,textarea,p,blockquote,th,td { 
+  margin: 0;
+  padding: 0;
+  font-family: sans-serif;
+}
+
+body {
+  width: 850px;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+fieldset,img,abbr,acronym {
+  border: 0;
+}
+
+ul {
+  list-style: none;
+  margin: 0 0 8px 0px;
+}
+
+caption, th {
+  text-align:left;
+}
+
+h1,h2,h3,h4,h5,h6 {
+  font-weight: bold;
+  clear: both;
+}
+
+h1 a {
+  font-variant: small-caps;
+  text-decoration: none;
+}
+
+h2 a {
+  font-variant: small-caps;
+  text-decoration: none;
+}
+
+a {
+  outline: 0;
+}
+
+p {
+  margin: 4px 0 8px 0px;
+}
+
+img {
+  margin: 0.25em;
+}
+
+label {
+  display: block;
+  clear: right;
+}
+
+textarea {
+  width: 99%;
+  height: 480px;
+}
+
+#header {
+  padding: 45px 0 8px 8px; 
+  border-bottom: 2px solid #e0e0e0;
+  width: 843px;
+  background: url(/images/sky.jpg) no-repeat top left;
+}
+
+#header li {
+  float: left;
+  margin: 0 15px 0px 0px;
+}
+
+#content {
+  padding: 1em;
+  width: 820px;
+}
+
+li img {
+  max-width: 800px;
+}
+
+#logo {
+  padding: 90px 0 0 0;
+}
+
+#profiles li {
+  float: left;
+}
+
+#profiles img {
+  width: 100px;
+}
+
+#ads {
+  padding-bottom: 8px;
+}
