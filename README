@@ -3,5 +3,4 @@
 mv boot.rb-dist boot.rb
 Then configure apache...
 
-More later
-
+inspiration for interface: http://binarybonsai.com/archives/2008/02/19/i-named-her-monolith/

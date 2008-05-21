@@ -1,9 +1,5 @@
 #!/usr/bin/ruby
 
-
-def doccom (comment)
-end
-
 #TODO: email posting, comments, openid login with captcha first time test, loading image for gallery
 #upcoming interface, iphone friendly, cronned main search for SF (front page), with expiry query interface
 #me links
@@ -37,6 +33,7 @@ require 'openid'
 require 'openid/store/filesystem'
 require 'openid/consumer'
 require 'openid/extensions/sreg'
+require 'clusterer'
 
 
 #import into this file
@@ -788,6 +785,118 @@ module RisingCode::Controllers
     end
   end
 
+  class EventClusters < R ('/event_clusters')
+    def get
+      @tags = Tag.find_all_by_include_in_header(true)
+#clusters = Clusterer::Clustering.cluster(:hierarchical, results, :no_stem => true, :tokenizer => :simple_ngram_tokenizer){|r|
+#r.title.to_s.gsub(/<\/?[^>]*>/, "") + " " + r.summary.to_s.gsub(/<\/?[^>]*>/, "")}
+=begin
+  clusters.each do |clus|
+    f.write("<li>")
+    f.write("<h4>")
+    clus.centroid.to_a.sort{|a,b| b[1] <=> a[1]}.slice(0,5).each {|w| f.write("#{w[0]} - #{format '%.2f',w[1]}, ")}
+    f.write("</h4>")
+    f.write("<ul>")
+    clus.documents.each do |doc|
+      result = doc.object
+      f.write("<li>")
+      f.write("<span class='title'>")
+      f.write(result.title)
+      f.write("</span>")
+      f.write("<span class='snippet'>")
+      f.write(result.summary)
+
+		algorithm = :hierarchical#:kmeans
+		no_of_clusters = nil
+		no_stem = true
+		tokenizer = :simple_ngram_tokenizer
+		order = "created_at desc"
+		fields = [:stripped_title, :tag_list]
+		maximum_iterations = nil#30
+		refined = true
+
+
+    job_ids = current_person.good_jobs.collect { |job| job.id.to_s }
+
+    #raise job_ids.inspect
+
+    conditions = ["id IN (?)", job_ids]
+
+		h_clusters = Job.cluster(
+			:refined => refined,
+			:maximum_iterations => maximum_iterations,
+			:fields => fields,
+      :conditions => conditions,
+			:order => order, 
+			:algorithm => algorithm,
+			:no_of_clusters => no_of_clusters,
+			:tokenizer_options => {:no_stem => no_stem},
+			:tokenizer => tokenizer
+			)
+
+		@clusters = {} 
+
+  	h_clusters.each { |cluster|
+    	interesting = cluster.centroid.to_a.sort { |a,b|
+				b[1] <=> a[1]
+			}
+		
+			interesting = interesting.slice(0, 3)
+			
+			name = interesting.collect { |a| a[0] }.sort.to_sentence
+			@clusters[name] = []
+
+			cluster.documents.each { |doc|
+				@clusters[name] << doc.object
+			}
+		}
+
+		@clusters = @clusters.sort { |a,b|
+			a[0] <=> b[0]
+		}
+=end
+      @clusters = Hash.new
+      Upcoming::Events.all.each { |date, events|
+        excerpts_for_today = Array.new
+        events.each { |event|
+          excerpts_for_today << event.excerpt + " " + event.description
+        }
+        wang = {}
+        clusters = Clusterer::Clustering.cluster(:kmeans, excerpts_for_today, :no_stem => true, :tokenizer => :simple_ngram_tokenizer)
+
+Camping::Models::Base.logger.debug(clusters.length.inspect)
+        clusters.each { |cluster|
+
+          interesting = cluster.centroid.to_a.sort { |a,b|
+            b[1] <=> a[1]
+          }
+        
+          interesting = interesting.slice(0, 3)
+Camping::Models::Base.logger.debug(interesting.inspect)
+Camping::Models::Base.logger.debug(cluster.documents.first.inspect)
+          
+          name = interesting.collect { |a| a[0] }.sort.to_sentence
+          wang[name] = []
+
+          cluster.documents.each { |doc|
+            wang[name] << doc.object
+          }
+        }
+
+        wang = wang.sort { |a,b|
+          a[0] <=> b[0]
+        }
+
+        @clusters[date] = wang
+#{ |r|
+#            r.title.to_s.gsub(/<\/?[^>]*>/, "") + " " + r.summary.to_s.gsub(/<\/?[^>]*>/, "")
+#        }
+break
+      }
+      render :event_clusters
+    end
+  end
+
   class Index < R('/', '/(articles)', '/([a-zA-Z0-9 ]+)/(\d*)', '/(\d+)/(\d+)/(\d+)', '/(\w+)/(\w+)/(\w+)/([\w-]+)')
     def get(*args)
       @limit = 5
@@ -851,7 +960,6 @@ module RisingCode::Controllers
         :limit => @limit,
         :order => "published_on desc") if @articles.length > 0
       @single = @articles.length == 1
-      doccom %{wang chung what the fuck}
       render :index
     end
   end
@@ -1123,6 +1231,25 @@ module RisingCode::Views
             pageTracker._trackPageview();
           "}
         end
+      }
+    }
+  end
+
+  def event_clusters
+    div {
+      @clusters.each { |date, clusters|
+        ul {
+          li {
+            h2 {
+              date
+            }
+          }
+          clusters.each { |cluster|
+            li {
+              cluster
+            }
+          }
+        }
       }
     }
   end
