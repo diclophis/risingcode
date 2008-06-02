@@ -24,8 +24,7 @@ require 'right_aws'
 
 #import into the system
 require 'camping'
-require 'camping/fastcgi'
-require 'camping/session'
+require 'camping/ar/session'
 require 'acts_as_versioned'
 require 'action_mailer'
 require 'tmail'
@@ -34,7 +33,6 @@ require 'openid/store/filesystem'
 require 'openid/consumer'
 require 'openid/extensions/sreg'
 require 'clusterer'
-
 
 #import into this file
 require '/var/www/risingcode.com/acts_as_taggable'
@@ -95,17 +93,9 @@ class RedCloth
   end
 end
 
-module SessionSupport
-  def self.included(base)
-    base.class_eval do
-      def self.include_session_support
-        true
-      end
-    end
-  end
-end
-
 module RisingCode
+  include Camping::ARSession 
+=begin
   def service(*a)
     session = Camping::Models::Session.persist(@cookies)
     app = self.class.name.gsub(/^(\w+)::.+$/, '\1')
@@ -129,6 +119,7 @@ module RisingCode
     end
     return self
   end
+=end
 
   def log_user_out
     @state.user_id = nil
@@ -180,6 +171,10 @@ module RisingCode
 end
 
 module RisingCode::Models
+  class Base
+    def Base.table_name_prefix
+    end
+  end
   class CreateRisingCode < V 1 
     def self.up
       create_table :sessions, :force => true do |t|
@@ -187,7 +182,7 @@ module RisingCode::Models
         t.column :created_at,  :datetime
         t.column :ivars,       :text
       end
-      create_table :risingcode_articles, :force => true do |t|
+      create_table :articles, :force => true do |t|
         t.column :user_id,  :integer, :null => false
         t.column :title, :string, :limit => 255, :null => false
         t.column :permalink, :string, :limit => 255, :null => false
@@ -207,19 +202,19 @@ module RisingCode::Models
 
   class AddTags < V 2
     def self.up
-      create_table :risingcode_tags, :force => true do |t|
+      create_table :tags, :force => true do |t|
         t.column :name, :string
       end
       
-      create_table :risingcode_taggings, :force => true do |t|
+      create_table :taggings, :force => true do |t|
         t.column :tag_id, :integer
         t.column :taggable_id, :integer
         t.column :taggable_type, :string
         t.column :created_at, :datetime
       end
       
-      add_index :risingcode_taggings, :tag_id
-      add_index :risingcode_taggings, [:taggable_id, :taggable_type]
+      add_index :taggings, :tag_id
+      add_index :taggings, [:taggable_id, :taggable_type]
     end
 
     def self.down
@@ -230,7 +225,7 @@ module RisingCode::Models
 
   class AddImages < V 3
     def self.up
-      create_table :risingcode_images, :force => true do |t|
+      create_table :images, :force => true do |t|
         t.column :user_id,  :integer, :null => false
         t.column :permalink, :string, :null => false
         t.column :created_at, :datetime, :null => false
@@ -238,23 +233,23 @@ module RisingCode::Models
     end
 
     def self.down
-      drop_table :risingcode_images
+      drop_table :images
     end
   end
 
   class AddIncludeInHeaderFlagToTags < V 4
     def self.up
-      add_column :risingcode_tags, :include_in_header, :boolean, :default => false
+      add_column :ags, :include_in_header, :boolean, :default => false
     end
 
     def self.down
-      remove_column :risingcode_tags, :include_in_header
+      remove_column :tags, :include_in_header
     end
   end
 
   class AddUsers < V 5
     def self.up
-      create_table :risingcode_users, :force => true do |t|
+      create_table :users, :force => true do |t|
         t.column :openid_url,  :text
         t.column :openid_attributes, :text, :null => false
         t.column :created_at, :datetime, :null => false
@@ -262,23 +257,23 @@ module RisingCode::Models
     end
 
     def self.down
-      drop_table :risingcode_users
+      drop_table :users
     end
   end
 
   class AddDisplayIdentifierToUsers < V 6
     def self.up
-      add_column :risingcode_users, :display_identifier, :text
+      add_column :users, :display_identifier, :text
     end
 
     def self.down
-      remove_column :risingcode_users, :display_identifier
+      remove_column :users, :display_identifier
     end
   end
 
   class AddComments < V 7
     def self.up
-      create_table :risingcode_comments, :force => true do |t|
+      create_table :comments, :force => true do |t|
         t.column :user_id,  :integer
         t.column :body, :text
         t.column :created_at, :datetime, :null => false
@@ -286,13 +281,13 @@ module RisingCode::Models
     end
 
     def self.down
-      drop_table :risingcode_comments
+      drop_table :comments
     end
   end
 
   class AddArticleIdToComments < V 8
     def self.up
-      add_column :risingcode_comments, :article_id, :integer
+      add_column :comments, :article_id, :integer
     end
 
     def self.down
@@ -301,7 +296,7 @@ module RisingCode::Models
 
   class AddRootToUsers < V 9
     def self.up
-      add_column :risingcode_users, :root, :boolean, :default => false
+      add_column :users, :root, :boolean, :default => false
     end
 
     def self.down
@@ -310,10 +305,10 @@ module RisingCode::Models
 
   class AddMoreOpenIDToUsers < V 10
     def self.up
-      add_column :risingcode_users, :openid_server, :text
-      add_column :risingcode_users, :openid_delegate, :text
-      add_column :risingcode_users, :openid2_provider, :text
-      add_column :risingcode_users, :x_xrds_location, :text
+      add_column :users, :openid_server, :text
+      add_column :users, :openid_delegate, :text
+      add_column :users, :openid2_provider, :text
+      add_column :users, :x_xrds_location, :text
     end
 
     def self.down
@@ -554,7 +549,6 @@ module RisingCode::Controllers
   end
 
   class Login < R("/dashboard/login(.*)")
-    include Camping::Session
     def get(*args)
       begin
         if (@input.has_key?("openid.mode")) then
@@ -586,7 +580,6 @@ module RisingCode::Controllers
   end
 
   class Dashboard < R("/dashboard")
-    include SessionSupport
     def get
         Camping::Models::Base.logger.debug("wang5")
     raise "wtf"
@@ -762,7 +755,6 @@ module RisingCode::Controllers
   end
 
   class DangoTalkReadme < R('/dangotalk/readme')
-    include SessionSupport
     def get
       @tags = Tag.find_all_by_include_in_header(true)
       @state[:read_readme] = true
@@ -771,7 +763,6 @@ module RisingCode::Controllers
   end
 
   class DangoTalkSource < R('/dangotalk/source')
-    include SessionSupport
     def get
       source = "/root/dangotalk-march.tar.gz"
       if @state[:read_readme] then
