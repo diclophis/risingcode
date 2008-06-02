@@ -435,6 +435,7 @@ module ActionMailer
   end
 end
 
+=begin
 module TMail
 
   class HeaderField   # redefine
@@ -475,3 +476,4 @@ module TMail
   end
 
 end
+=end

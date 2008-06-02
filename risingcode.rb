@@ -26,8 +26,8 @@ require 'right_aws'
 require 'camping'
 require 'camping/ar/session'
 require 'acts_as_versioned'
-require 'action_mailer'
-require 'tmail'
+#require 'action_mailer'
+#require 'tmail'
 require 'openid'
 require 'openid/store/filesystem'
 require 'openid/consumer'
@@ -35,12 +35,12 @@ require 'openid/extensions/sreg'
 require 'clusterer'
 
 #import into this file
-require '/var/www/risingcode.com/acts_as_taggable'
-require '/var/www/risingcode.com/tag_list'
-require '/var/www/risingcode.com/delicious'
-require '/var/www/risingcode.com/upcoming'
-require '/var/www/risingcode.com/email_server'
-require '/var/www/risingcode.com/documentation_server'
+require '/var/www/risingcode/acts_as_taggable'
+require '/var/www/risingcode/tag_list'
+require '/var/www/risingcode/delicious'
+#require '/var/www/risingcode/upcoming'
+require '/var/www/risingcode/email_server'
+require '/var/www/risingcode/documentation_server'
 
 Camping.goes :RisingCode
 
@@ -239,7 +239,7 @@ module RisingCode::Models
 
   class AddIncludeInHeaderFlagToTags < V 4
     def self.up
-      add_column :ags, :include_in_header, :boolean, :default => false
+      add_column :tags, :include_in_header, :boolean, :default => false
     end
 
     def self.down
@@ -401,9 +401,6 @@ module RisingCode::Models
   end
 
   class Image < Base
-    @@s3 = ::RightAws::S3.new(AWS_ID, SECRET_KEY, {:multi_thread => true, :port => 80, :protocol => 'http'})
-    @@s3interface = ::RightAws::S3Interface.new(AWS_ID, SECRET_KEY, {:multi_thread => true})
-    @@bucket = @@s3.bucket('risingcode', true)
     validates_presence_of :user_id
 
     def put_key (x_key, blob)
@@ -635,7 +632,7 @@ module RisingCode::Controllers
     def get (event_id = nil, event_name = nil)
       @tags = Tag.find_all_by_include_in_header(true)
       unless event_id.nil?
-        @event = Upcoming::Event.get_info(event_id)
+#        @event = Upcoming::Event.get_info(event_id)
         unless @event.nil?
           @map_url = "http://maps.google.com/maps?q=" + C.escape("#{@event.venue_address}, #{@event.venue_city}, #{@event.venue_state_name}")
           @venue_url = @event.venue_url.length > 0 ? @event.venue_url : "http://upcoming.yahoo.com/event/#{@event.id}"
@@ -774,7 +771,7 @@ module RisingCode::Controllers
     end
   end
 
-  class EventClusters < R ('/event_clusters')
+  class EventClusters < R('/event_clusters')
     def get
       @tags = Tag.find_all_by_include_in_header(true)
 #clusters = Clusterer::Clustering.cluster(:hierarchical, results, :no_stem => true, :tokenizer => :simple_ngram_tokenizer){|r|
@@ -1246,6 +1243,7 @@ module RisingCode::Views
   def events
     div {
       ads
+=begin
       Upcoming::Events.all.each { |date, events|
         ul {
           li {
@@ -1262,6 +1260,7 @@ module RisingCode::Views
           }
         }
       }
+=end
     }
   end
 
@@ -2156,43 +2155,6 @@ You can download the _entire_ source from the link provided below...
   end
 end
 
-if __FILE__ == $0 then
-  daemon = ARGV.shift.intern if ARGV.length > 0
-  drb = "druby://:2527"
-  case daemon
-    when :documentation_client
-      DRb.start_service
-      documentation_server = DRbObject.new(nil, drb)
-      documentation_server.controllers.each { |controller|
-        puts documentation_server.source_for(controller)
-      }
-
-    when :documentation_server
-      DocumentationServer.daemon("risingcode_documentation_server", '/var/www/risingcode.com/boot', drb)
-
-
-    when :email_server
-      EmailServer.daemon("risingcode_email_server", '/var/www/risingcode.com/boot', 2525)
-
-    when :runner
-      require "boot"
-      wang = RedCloth.highlight("puts :wang if :chung")
-      Camping::Models::Base.logger.debug(wang)
-      drb = "druby://:2527"
-      DRb.start_service
-      @@documentation_server = DRbObject.new(nil, drb)
-      wang = @@documentation_server.source_for(RisingCode::Controllers::Login)
-      Camping::Models::Base.logger.debug(wang)
-  else
-    puts "wtf"
-  end
-
-else
-  drb = "druby://:2527"
-  DRb.start_service
-  @@documentation_server = DRbObject.new(nil, drb)
-  require ENV['COMP_ROOT'] + "/boot"
-end
 
 =begin
 []   range specificication (e.g., [a-z] means a letter in the range a to z)
