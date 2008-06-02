@@ -1,7 +1,6 @@
 #!/usr/bin/ruby
 
 require ENV['COMP_ROOT'] + "/risingcode"
+require ENV['COMP_ROOT'] + "/boot"
 
-fast = Camping::FastCGI.new
-fast.mount("/", RisingCode)
-fast.start
+Rack::Handler::FastCGI.run((RisingCode))
