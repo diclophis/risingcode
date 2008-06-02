@@ -401,8 +401,6 @@ module RisingCode::Models
   end
 
   class Image < Base
-    AWS_ID = '1SC4KXT7V1JYK1NDCDR2'
-    SECRET_KEY = 'QEWX0W7qE/X+EUGWISTTtiEBs3FIi8oyBV+3Ie5k'
     @@s3 = ::RightAws::S3.new(AWS_ID, SECRET_KEY, {:multi_thread => true, :port => 80, :protocol => 'http'})
     @@s3interface = ::RightAws::S3Interface.new(AWS_ID, SECRET_KEY, {:multi_thread => true})
     @@bucket = @@s3.bucket('risingcode', true)
