@@ -88,38 +88,9 @@ end
 
 module RisingCode
   include Camping::ARSession 
-=begin
-  def service(*a)
-    session = Camping::Models::Session.persist(@cookies)
-    app = self.class.name.gsub(/^(\w+)::.+$/, '\1')
-    @state = (session[app] ||= Camping::H[])
-    hash_before = Marshal.dump(@state).hash
-    s = super(*a)
-    if @method == "get" and @input.length == 0 and not @env['REQUEST_URI'].include?("dashboard") and not @env['REQUEST_URI'].include?("dangotalk") then
-      cache_directory = "/tmp/cache/risingcode.com/#{@env['REQUEST_URI']}"
-      File.makedirs(cache_directory)
-      cache_filename = "#{cache_directory}/index.html"
-      cache_file = File.new(cache_filename, "w")
-      #cache_file.write(s.body)
-      cache_file.close
-    end
-    if session
-      hash_after = Marshal.dump(@state).hash
-      unless hash_before == hash_after
-          session[app] = @state
-          session.save
-      end
-    end
-    return self
-  end
-=end
-
-  def log_user_out
-    @state.user_id = nil
-  end
 
   def user_logged_in
-    @state.user_id != nil
+    @state.authenticated == true
   end
 
   def view_images
@@ -161,6 +132,10 @@ module RisingCode
   def administering
     @administering
   end
+
+  def display_identifier
+    @@display_identifier
+  end
 end
 
 module RisingCode::Models
@@ -176,7 +151,6 @@ module RisingCode::Models
         t.column :ivars,       :text
       end
       create_table :articles, :force => true do |t|
-        t.column :user_id,  :integer, :null => false
         t.column :title, :string, :limit => 255, :null => false
         t.column :permalink, :string, :limit => 255, :null => false
         t.column :excerpt, :string, :limit => 255
@@ -185,217 +159,51 @@ module RisingCode::Models
         t.column :updated_at, :datetime, :null => false
         t.column :published_on, :datetime, :defaut => nil
       end
-      Article.create_versioned_table
-    end
-    def self.down
-      drop_table :articles
-      Article.drop_versioned_table
-    end
-  end
-
-  class AddTags < V 2
-    def self.up
       create_table :tags, :force => true do |t|
         t.column :name, :string
       end
-      
       create_table :taggings, :force => true do |t|
         t.column :tag_id, :integer
         t.column :taggable_id, :integer
         t.column :taggable_type, :string
         t.column :created_at, :datetime
       end
-      
-      add_index :taggings, :tag_id
-      add_index :taggings, [:taggable_id, :taggable_type]
-    end
-
-    def self.down
-      drop_table :taggings
-      drop_table :tags
-    end
-  end
-
-  class AddImages < V 3
-    def self.up
       create_table :images, :force => true do |t|
-        t.column :user_id,  :integer, :null => false
         t.column :permalink, :string, :null => false
         t.column :created_at, :datetime, :null => false
       end
+      add_column :tags, :include_in_header, :boolean, :default => false
+      add_index :taggings, :tag_id
+      add_index :taggings, [:taggable_id, :taggable_type]
     end
-
     def self.down
+      drop_table :articles
+      drop_table :taggings
+      drop_table :tags
       drop_table :images
     end
   end
 
-  class AddIncludeInHeaderFlagToTags < V 4
-    def self.up
-      add_column :tags, :include_in_header, :boolean, :default => false
-    end
-
-    def self.down
-      remove_column :tags, :include_in_header
-    end
-  end
-
-  class AddUsers < V 5
-    def self.up
-      create_table :users, :force => true do |t|
-        t.column :openid_url,  :text
-        t.column :openid_attributes, :text, :null => false
-        t.column :created_at, :datetime, :null => false
-      end
-    end
-
-    def self.down
-      drop_table :users
-    end
-  end
-
-  class AddDisplayIdentifierToUsers < V 6
-    def self.up
-      add_column :users, :display_identifier, :text
-    end
-
-    def self.down
-      remove_column :users, :display_identifier
-    end
-  end
-
-  class AddComments < V 7
-    def self.up
-      create_table :comments, :force => true do |t|
-        t.column :user_id,  :integer
-        t.column :body, :text
-        t.column :created_at, :datetime, :null => false
-      end
-    end
-
-    def self.down
-      drop_table :comments
-    end
-  end
-
-  class AddArticleIdToComments < V 8
-    def self.up
-      add_column :comments, :article_id, :integer
-    end
-
-    def self.down
-    end
-  end
-
-  class AddRootToUsers < V 9
-    def self.up
-      add_column :users, :root, :boolean, :default => false
-    end
-
-    def self.down
-    end
-  end
-
-  class AddMoreOpenIDToUsers < V 10
-    def self.up
-      add_column :users, :openid_server, :text
-      add_column :users, :openid_delegate, :text
-      add_column :users, :openid2_provider, :text
-      add_column :users, :x_xrds_location, :text
-    end
-
-    def self.down
-    end
-  end
-
-
-  class User < Base
-    @@realm = nil
-    serialize :openid_attributes
-
-    def self.realm
-      "http://" + @@realm
-    end
-
-    def self.realm=(realm)
-      @@realm = realm
-    end
-
-    def self.get_authorized_action_url (openid_url, return_to_url, passthru = nil)
-      @state_holder = Hash.new
-      store = ::OpenID::Store::Filesystem.new("/tmp")
-      openid_consumer = ::OpenID::Consumer.new(@state_holder, store)
-      check_id_request = openid_consumer.begin(openid_url)
-      openid_sreg = ::OpenID::SReg::Request.new(['nickname'])
-      check_id_request.add_extension(openid_sreg)
-      url = check_id_request.redirect_url(self.realm, self.realm + return_to_url)
-      return [@state_holder, url]
-    end
-
-    def self.find_by_openid_url! (current_state, input, action_url) 
-      this_url = self.realm + action_url
-      store = ::OpenID::Store::Filesystem.new("/tmp")
-      openid_consumer = ::OpenID::Consumer.new(current_state, store)
-      openid_response = openid_consumer.complete(input, this_url)
-      if openid_response.status == :success then
-        display_identifier = openid_response.display_identifier
-        identity_url = openid_response.identity_url
-        openid_sreg = ::OpenID::SReg::Response.from_success_response(openid_response)
-        user = User.find(:first, :conditions => ["openid_url = ?", identity_url])
-        user ||= User.new
-        user.root = User.find_by_root(true) == nil
-        user.openid_url = identity_url
-        user.display_identifier = display_identifier
-        user.openid_attributes = openid_sreg
-        user.save!
-        return user
-      else
-        raise "Invalid login"
-      end
-    end
-
-    def nickname
-      unless openid_attributes["nickname"].nil?
-        openid_attributes["nickname"]
-      else
-        openid_url
-      end
-    end
-  end
-
-  class Comment < Base
-    belongs_to :user
-    belongs_to :article
-  end
-
   class Article < Base
-    validates_presence_of :user_id
     validates_presence_of :title, :if => :title
     validates_uniqueness_of :title
     validates_uniqueness_of :permalink
-    acts_as_versioned
+    #acts_as_versioned
     acts_as_taggable
     has_many :comments
     belongs_to :user
 
-    def autopop(user_id, title = nil)
-        Camping::Models::Base.logger.debug("AUTOPOP")
-        Camping::Models::Base.logger.debug(self.inspect)
-      self.user_id = user_id
-      self.published_on = Time.now + 1.hour
+    def autopop(title = nil)
       self.title = title 
-      self.title ||= Time.now.to_f
+      self.published_on = Time.now 
       (1..100).each { |i|
         self.permalink = "/#{published_on.year}/#{published_on.month}/#{published_on.day}/#{i.ordinalize}"
-        Camping::Models::Base.logger.debug(self.inspect)
         break if valid?
       }
     end
   end
 
   class Image < Base
-    validates_presence_of :user_id
-
     def put_key (x_key, blob)
       get_key(x_key).put(blob, 'public-read')
     end
@@ -452,37 +260,6 @@ module RisingCode::Models
     end
   end
 
-  class HeatmapImage
-    def self.create (name)
-      Kernel.srand
-      max_x = 640
-      max_y = 480
-      points = Array.new
-      conf = {
-        'dotimage' => '/var/www/risingcode.com/public/images/bolilla.png',
-        'colorimage' => '/var/www/risingcode.com/public/images/colors.png',
-        'opacity' => "0.50",
-        'dotwidth' => 64
-      }
-      max_x = max_x
-      max_y = max_y
-      halfwidth = conf['dotwidth'] / 2
-      intensity = (100 - (100 / 1).ceil)
-      images = Magick::ImageList.new
-      colored_images = Magick::ImageList.new
-      dots = images.new_image((max_x + halfwidth), (max_y + halfwidth))
-      dot = Magick::Image.read(conf['dotimage']).first.colorize(intensity, intensity, intensity, "white")
-      color = Magick::Image.read(conf['colorimage']).first
-      500.times {
-        x = Kernel.rand(max_x)
-        y = Kernel.rand(max_y)
-        dots.composite!(dot, ((x)-halfwidth),  ((y)-halfwidth), Magick::MultiplyCompositeOp)
-      }
-      (ImageList.new << (ImageList.new << dots.negate << color).fx("v.p{0,u*v.h}")).fx("0.25", ChannelType::AlphaChannel).write(name)
-      return name
-    end
-  end
-
   class Tagging < Base
     belongs_to :tag
     belongs_to :taggable, :polymorphic => true
@@ -517,15 +294,15 @@ module RisingCode::Models
       read_attribute(:count).to_i
     end
   end
-  class CacheObserver < ::Camping::Models::A::Observer
-    observe Article, Comment, Image, Tag
-    def after_save (record)
-      Camping::Models::Base.logger.debug(record.inspect)
-      if File.exists?("/tmp/cache/risingcode.com") then
-        File.rename("/tmp/cache/risingcode.com", "/tmp/cache/risingcode.com.#{Time.now.to_i}")
-      end
-    end
-  end
+#  class CacheObserver < ::Camping::Models::A::Observer
+#    observe Article, Comment, Image, Tag
+#    def after_save (record)
+#      Camping::Models::Base.logger.debug(record.inspect)
+#      if File.exists?("/tmp/cache/risingcode.com") then
+#        File.rename("/tmp/cache/risingcode.com", "/tmp/cache/risingcode.com.#{Time.now.to_i}")
+#      end
+#    end
+#  end
 end
 
 module RisingCode::Controllers
@@ -538,39 +315,37 @@ module RisingCode::Controllers
 
   class Login < R("/dashboard/login(.*)")
     def get(*args)
-      begin
-        if (@input.has_key?("openid.mode")) then
-          user = User.find_by_openid_url!(@state, @input, R(Login, nil))
-          @state.user_id = user.id
+      if (@input.has_key?("openid.mode")) then
+        this_url = @@realm + R(Login, nil)
+        store = ::OpenID::Store::Filesystem.new("/tmp")
+        openid_consumer = ::OpenID::Consumer.new(@state, store)
+        openid_response = openid_consumer.complete(@input, this_url)
+        if openid_response.status == :success then
+          @state.authenticated = true
+          Camping::Models::Base.logger.debug("login ok")
+
           return redirect(R(Dashboard))
-        else
-          raise "Login Required"
         end
-      rescue Exception => e
-        @login_exception = e
-        other_layout {
-          render :login 
-        }
       end
+      other_layout {
+        render :login
+      }
     end
     def post(*args)
-      begin
-        new_state, authorized_action_url = User.get_authorized_action_url(@input.openid_url, R(Login, nil))
-        @state = new_state
-        redirect(authorized_action_url)
-      rescue Exception => e
-        @login_exception = e
-        other_layout {
-          render :login
-        }
+      if @input.identity_url == @@identity_url then
+        store = ::OpenID::Store::Filesystem.new("/tmp")
+        openid_consumer = ::OpenID::Consumer.new(@state, store)
+        check_id_request = openid_consumer.begin(@input.identity_url)
+        openid_sreg = ::OpenID::SReg::Request.new(['nickname'])
+        check_id_request.add_extension(openid_sreg)
+        url = check_id_request.redirect_url(@@realm, @@realm + R(Login, nil))
+        redirect(url)
       end
     end
   end
 
   class Dashboard < R("/dashboard")
     def get
-        Camping::Models::Base.logger.debug("wang5")
-    raise "wtf"
       administer { 
         render :dashboard 
       }
@@ -588,14 +363,6 @@ module RisingCode::Controllers
     def get
       @tags = Tag.find_all_by_include_in_header(true)
       render :about
-    end
-  end
-
-  class OpenID < R('/about/openid')
-    def get
-      other_layout {
-        render :openid
-      }
     end
   end
 
@@ -617,25 +384,6 @@ module RisingCode::Controllers
         }
       else
         args.inspect
-      end
-    end
-  end
-
-  class Events < R('/events', '/event/(\w+)/(.*)')
-    def get (event_id = nil, event_name = nil)
-      @tags = Tag.find_all_by_include_in_header(true)
-      unless event_id.nil?
-#        @event = Upcoming::Event.get_info(event_id)
-        unless @event.nil?
-          @map_url = "http://maps.google.com/maps?q=" + C.escape("#{@event.venue_address}, #{@event.venue_city}, #{@event.venue_state_name}")
-          @venue_url = @event.venue_url.length > 0 ? @event.venue_url : "http://upcoming.yahoo.com/event/#{@event.id}"
-          render :event
-        else
-          @status = 404
-          "event not found"
-        end
-      else
-        render :events
       end
     end
   end
@@ -677,7 +425,7 @@ module RisingCode::Controllers
       end
     end
   end
-
+=begin
   class Comments < R('/comment/(\d+)(.*)')
     def get (article_id, junk = nil)
       article = Article.find(article_id)
@@ -725,7 +473,7 @@ module RisingCode::Controllers
       raise "fail"
     end
   end
-
+=end
 
   class Sources < R('/sources')
     def get
@@ -739,140 +487,6 @@ module RisingCode::Controllers
         @models[model] = model
       }
       render :sources
-    end
-  end
-
-  class DangoTalkReadme < R('/dangotalk/readme')
-    def get
-      @tags = Tag.find_all_by_include_in_header(true)
-      @state[:read_readme] = true
-      render(:dangotalk_readme)
-    end
-  end
-
-  class DangoTalkSource < R('/dangotalk/source')
-    def get
-      source = "/root/dangotalk-march.tar.gz"
-      if @state[:read_readme] then
-        @headers['Content-Type'] = "application/gzip"
-        @headers['Content-Disposition'] = "attachment; filename=dangotalk.tar.gz"
-        @headers['Content-Length'] = File.size(source)
-        File.read(source)
-      else
-        redirect(R(DangoTalkReadme))
-      end
-    end
-  end
-
-  class EventClusters < R('/event_clusters')
-    def get
-      @tags = Tag.find_all_by_include_in_header(true)
-#clusters = Clusterer::Clustering.cluster(:hierarchical, results, :no_stem => true, :tokenizer => :simple_ngram_tokenizer){|r|
-#r.title.to_s.gsub(/<\/?[^>]*>/, "") + " " + r.summary.to_s.gsub(/<\/?[^>]*>/, "")}
-=begin
-  clusters.each do |clus|
-    f.write("<li>")
-    f.write("<h4>")
-    clus.centroid.to_a.sort{|a,b| b[1] <=> a[1]}.slice(0,5).each {|w| f.write("#{w[0]} - #{format '%.2f',w[1]}, ")}
-    f.write("</h4>")
-    f.write("<ul>")
-    clus.documents.each do |doc|
-      result = doc.object
-      f.write("<li>")
-      f.write("<span class='title'>")
-      f.write(result.title)
-      f.write("</span>")
-      f.write("<span class='snippet'>")
-      f.write(result.summary)
-
-		algorithm = :hierarchical#:kmeans
-		no_of_clusters = nil
-		no_stem = true
-		tokenizer = :simple_ngram_tokenizer
-		order = "created_at desc"
-		fields = [:stripped_title, :tag_list]
-		maximum_iterations = nil#30
-		refined = true
-
-
-    job_ids = current_person.good_jobs.collect { |job| job.id.to_s }
-
-    #raise job_ids.inspect
-
-    conditions = ["id IN (?)", job_ids]
-
-		h_clusters = Job.cluster(
-			:refined => refined,
-			:maximum_iterations => maximum_iterations,
-			:fields => fields,
-      :conditions => conditions,
-			:order => order, 
-			:algorithm => algorithm,
-			:no_of_clusters => no_of_clusters,
-			:tokenizer_options => {:no_stem => no_stem},
-			:tokenizer => tokenizer
-			)
-
-		@clusters = {} 
-
-  	h_clusters.each { |cluster|
-    	interesting = cluster.centroid.to_a.sort { |a,b|
-				b[1] <=> a[1]
-			}
-		
-			interesting = interesting.slice(0, 3)
-			
-			name = interesting.collect { |a| a[0] }.sort.to_sentence
-			@clusters[name] = []
-
-			cluster.documents.each { |doc|
-				@clusters[name] << doc.object
-			}
-		}
-
-		@clusters = @clusters.sort { |a,b|
-			a[0] <=> b[0]
-		}
-=end
-      @clusters = Hash.new
-      Upcoming::Events.all.each { |date, events|
-        excerpts_for_today = Array.new
-        events.each { |event|
-          excerpts_for_today << event.excerpt + " " + event.description
-        }
-        wang = {}
-        clusters = Clusterer::Clustering.cluster(:kmeans, excerpts_for_today, :no_stem => true, :tokenizer => :simple_ngram_tokenizer)
-
-Camping::Models::Base.logger.debug(clusters.length.inspect)
-        clusters.each { |cluster|
-
-          interesting = cluster.centroid.to_a.sort { |a,b|
-            b[1] <=> a[1]
-          }
-        
-          interesting = interesting.slice(0, 3)
-Camping::Models::Base.logger.debug(interesting.inspect)
-Camping::Models::Base.logger.debug(cluster.documents.first.inspect)
-          
-          name = interesting.collect { |a| a[0] }.sort.to_sentence
-          wang[name] = []
-
-          cluster.documents.each { |doc|
-            wang[name] << doc.object
-          }
-        }
-
-        wang = wang.sort { |a,b|
-          a[0] <=> b[0]
-        }
-
-        @clusters[date] = wang
-#{ |r|
-#            r.title.to_s.gsub(/<\/?[^>]*>/, "") + " " + r.summary.to_s.gsub(/<\/?[^>]*>/, "")
-#        }
-break
-      }
-      render :event_clusters
     end
   end
 
@@ -940,26 +554,6 @@ break
         :order => "published_on desc") if @articles.length > 0
       @single = @articles.length == 1
       render :index
-    end
-  end
-
-  class Heatmap < R("/heatmap(.*)")
-    def get (junk)
-      created_image_file = false
-      heatmap_id = Time.now.to_i
-      dir = "/tmp/cache/risingcode.com/heatmaps/#{heatmap_id}"
-      File.makedirs(dir)
-      name = "png:#{dir}/index.png"
-      IO.popen("-") { |worker|
-        unless worker
-          created_image_file = HeatmapImage.create(name)
-        else
-          created_image_file = true
-        end
-      }
-      if created_image_file then
-        "<html><body style=\"background:url(/images/stripe.gif)\"><img src=\"/heatmaps/#{heatmap_id}\"/></body></html>"
-      end
     end
   end
 
@@ -1048,7 +642,7 @@ break
           @article = Article.find_by_id(article_id)
         else
           @article = Article.new
-          @article.autopop(@state.user_id)
+          @article.autopop
         end
 
         render :create_or_update_article
@@ -1061,7 +655,7 @@ break
         else
           @article = Article.new
         end
-        @article.user_id = @state.user_id
+        @article.user_id = 1
         @article.title = @input.title
         @article.permalink = @input.permalink
         @article.excerpt = @input.excerpt
@@ -1072,6 +666,7 @@ break
       }
     end
   end
+
   class CreateOrUpdateImage < R('/dashboard/image/(\d*)')
     def get (image_id)
       administer {
@@ -1090,7 +685,6 @@ break
         else
           @image = Image.new
         end
-        @image.user_id = @state.user_id
         unless @input.the_file.is_a?(String) then
           @image.x_put(@input.the_file.tempfile.read)
         end
@@ -1099,7 +693,6 @@ break
       }
     end
   end
-
 end
 
 module RisingCode::Views
@@ -1214,49 +807,6 @@ module RisingCode::Views
     }
   end
 
-  def event_clusters
-    div {
-      @clusters.each { |date, clusters|
-        ul {
-          li {
-            h2 {
-              date
-            }
-          }
-          clusters.each { |cluster|
-            li {
-              cluster
-            }
-          }
-        }
-      }
-    }
-  end
-
-  def events
-    div {
-      ads
-=begin
-      Upcoming::Events.all.each { |date, events|
-        ul {
-          li {
-            h2 {
-              date
-            }
-          }
-          events.each { |event|
-            li {
-              a(:href => R(Events, event.id, event.excerpt)) { 
-                event.excerpt
-              }
-            }
-          }
-        }
-      }
-=end
-    }
-  end
-
   def images
     div {
       ads
@@ -1349,44 +899,6 @@ module RisingCode::Views
     }
   end
 
-  def event
-    div {
-      ads
-      a(:href => "http://upcoming.yahoo.com/event/#{@event.id}", :target => :_blank) {
-        h2 {
-          @event.name
-        }
-      }
-      p {
-        @event.description
-      }
-      ul {
-        li {
-          @event.start_date
-        }
-        li {
-          @event.start_time
-        } if (@event.start_time.length > 0)
-        li {
-          a(:href => @venue_url, :target => :_blank) {
-            @event.venue_name
-          }
-        } if (@event.venue_name.length > 0)
-        li {
-          a(:href => @map_url, :target => :_blank) {
-            "map"
-          }
-          text("...")
-        } if @map_url
-        li {
-          a(:href => @event.url) {
-            "more details"
-          }
-          text("...")
-        } if (@event.url.length > 0)
-      }
-    }
-  end
 
   def about
     div {
@@ -1455,42 +967,6 @@ module RisingCode::Views
           a(:href => "http://slashdot.org/~diclophis", :rel => :me) {
             img(:src => "/images/slashdotlg.gif")
           }
-        }
-      }
-    }
-  end
-
-  def openid
-    div {
-      h1 {
-        "What is OpenID?"
-      }
-      p {
-        "OpenID eliminates the need for multiple usernames across different websites, simplifying your online experience."
-      }
-      p {
-        "You get to choose the OpenID Provider that best meets your needs and most importantly that you trust. At the same time, your OpenID can stay with you, no matter which Provider you move to. And best of all, the OpenID technology is not proprietary and is completely free."
-      }
-      p {
-        "For businesses, this means a lower cost of password and account management, while drawing new web traffic. OpenID lowers user frustration by letting users have control of their login."
-      }
-      p {
-        "For geeks, OpenID is an open, decentralized, free framework for user-centric digital identity. OpenID takes advantage of already existing internet technology (URI, HTTP, SSL, Diffie-Hellman) and realizes that people are already creating identities for themselves whether it be at their blog, photostream, profile page, etc. With OpenID you can easily transform one of these existing URIs into an account which can be used at sites which support OpenID logins."
-      }
-      p {
-        "OpenID is still in the adoption phase and is becoming more and more popular, as large organizations like AOL, Microsoft, Sun, Novell, etc. begin to accept and provide OpenIDs. Today it is estimated that there are over 160-million OpenID enabled URIs with nearly ten-thousand sites supporting OpenID logins."
-      }
-      p {
-        "Please follow the links below for more information:"
-      }
-      a(:href => "http://openid.net") {
-        h2 {
-          "OpenID.net"
-        }
-      }
-      a(:href => "https://pip.verisignlabs.com/") {
-        h2 {
-          "Verisign Labs Personal Identity Provider"
         }
       }
     }
@@ -1775,29 +1251,6 @@ module RisingCode::Views
     }
   end
 
-  def dangotalk_readme
-    div {
-      ads
-      h2 {
-        "DangoTalk"
-      }
-      p {"
-This is my ghetto ass attempt to get VOIP working on the iphone using the official SDK.
-Right now it will connect a call, but no audio is transfered (yet).
-What is left to do? Where do we go from here?
-Well the first step is getting the audio connection to work, I have started to engineer a driver for pjmedia from null_sound.c, but I havnt had much success (yet)!
-You can download the _entire_ source from the link provided below...
-      "}
-      p {
-        "read the README first!"
-      }
-      br
-      a(:href => R(DangoTalkSource)) {
-        "dangotalk.tar.gz"
-      }
-    }
-  end
-
   def index
     div {
       @articles.each_with_index { |article, i|
@@ -1809,9 +1262,7 @@ You can download the _entire_ source from the link provided below...
         ul {
           li {
             h3 {
-              a(:href => article.user.openid_url) {
-                text(article.user.nickname)
-              }
+              text(display_identifier)
               text(" at ")
               text(article.published_on.strftime("%B %d %Y"))
             }
@@ -1836,60 +1287,7 @@ You can download the _entire_ source from the link provided below...
               RedCloth.new(article.body).to_html
             end
           }
-          li {
-            h3{ 
-              a(:href => article.permalink) {
-                text("#{article.comments_count} comments")
-              }
-            }
-          } unless @single
         }
-        if @single
-          h2 {
-            "Comments"
-          } if article.comments.length > 0
-          ul {
-            article.comments.each { |comment|
-              li {
-                h3 {
-                  a(:href => comment.user.openid_url) {
-                    text(comment.user.nickname)
-                  }
-                  text(" at ")
-                  text(comment.created_at.strftime("%B %d %Y"))
-                }
-                p {
-                  text(comment.body)
-                }
-              }
-            }
-          }
-          h2 {
-            "Post a comment"
-          }
-          ul {
-            li {
-              form.comment(:action => R(Comments, article.id, nil), :method => :post) {
-                ul {
-                  li {
-                    label {
-                      a(:href => R(OpenID), :target => :_blank) {
-                        text("OpenID URL")
-                      }
-                    }
-                    input.openid_url!(:type => :text, :name => :openid_url)
-                  }
-                  li {
-                    textarea(:name => :body, :rows => 10, :cols => 10)
-                  }
-                  li {
-                    input(:type => :submit, :value => "go")
-                  }
-                }
-              }
-            }
-          }
-        end
       }
 =begin
       if @use_page_navigation and (@old_ranger or @new_ranger) then
@@ -1932,18 +1330,9 @@ You can download the _entire_ source from the link provided below...
 
   def login
     form(:method => :post) {
-      h1("login")
-      h2 {
-        @login_exception
-      } if @login_exception
       ul {
         li {
-          a(:href => R(OpenID), :target => :_blank) {
-            "OpenID URL"
-          }
-        }
-        li {
-          input.openid_url!(:type => :text, :name => :openid_url)
+          input(:type => :text, :name => :identity_url)
         }
         li {
           input(:type => "submit", :value => "go")
@@ -1954,26 +1343,21 @@ You can download the _entire_ source from the link provided below...
 
   def dashboard
     div {
-              ul {
-                li {
-                  a(:href => R(CreateOrUpdateArticle, nil)) {
-                    text("new article")
-                  }
-                }
-                li {
-                  a(:href => R(CreateOrUpdateTag, nil)) {
-                    text("new tag")
-                  }
-                }
-                li {
-                  a(:href => R(CreateOrUpdateImage, nil)) {
-                    text("new image")
-                  }
-                }
-              }
       ul {
         li {
-          "new things that have happend"
+          a(:href => R(CreateOrUpdateArticle, nil)) {
+            text("new article")
+          }
+        }
+        li {
+          a(:href => R(CreateOrUpdateTag, nil)) {
+            text("new tag")
+          }
+        }
+        li {
+          a(:href => R(CreateOrUpdateImage, nil)) {
+            text("new image")
+          }
         }
       }
     }
@@ -2012,8 +1396,8 @@ You can download the _entire_ source from the link provided below...
             }
           }
           li {
-            input(:type => :submit, :value => "go")
-          } if @articles.length > 0
+            input(:type => :submit, :value => "delete selected articles")
+          } unless @articles.empty?
         }
       }
     }
@@ -2157,7 +1541,6 @@ You can download the _entire_ source from the link provided below...
   end
 end
 
-
 =begin
 []   range specificication (e.g., [a-z] means a letter in the range a to z)
 \w  letter or digit; same as [0-9A-Za-z]
@@ -2176,6 +1559,3 @@ end
 |   either preceding or next expression may match
 ()  grouping
 =end
-#JonBardin
-
-
