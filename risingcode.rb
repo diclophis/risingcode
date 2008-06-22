@@ -1,9 +1,5 @@
 #!/usr/bin/ruby
 
-#TODO: email posting, comments, openid login with captcha first time test, loading image for gallery
-#upcoming interface, iphone friendly, cronned main search for SF (front page), with expiry query interface
-#me links
-
 require 'gserver'
 require 'uri'
 require 'ftools'
@@ -26,8 +22,6 @@ require 'right_aws'
 require 'camping'
 require 'camping/ar/session'
 require 'acts_as_versioned'
-#require 'action_mailer'
-#require 'tmail'
 require 'openid'
 require 'openid/store/filesystem'
 require 'openid/consumer'
@@ -38,7 +32,6 @@ require 'clusterer'
 require '/var/www/risingcode/acts_as_taggable'
 require '/var/www/risingcode/tag_list'
 require '/var/www/risingcode/delicious'
-#require '/var/www/risingcode/upcoming'
 require '/var/www/risingcode/email_server'
 require '/var/www/risingcode/documentation_server'
 
@@ -1526,8 +1519,6 @@ module RisingCode::Views
         "Experience"
       }
       p {
-      }
-      p {
         h3 {
           em {
             "Software Engineer - CIS Data Systems"
@@ -1540,6 +1531,14 @@ module RisingCode::Views
         ul.projects {
           li {
             h5 {
+              "Toll-Free Listing Information System"
+            }
+            p {
+            }
+          }
+          li {
+            h5 {
+#http://en.wikipedia.org/wiki/Click_to_talk
               "Click-to-Talk System"
             }
             p {
@@ -1547,7 +1546,10 @@ module RisingCode::Views
           }
           li {
             h5 {
-              "Toll-Free Hotline System"
+              "Automated Listing Information Hotline"
+            }
+            p {
+              "wang"
             }
           }
         }
