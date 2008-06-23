@@ -24,21 +24,11 @@ span.snippet p {
 .PreProc { color: #ff40ff; }
 .Type { color: #00ff00; }
 
-#openid_url {
-  background: url( /images/openid.gif ) no-repeat;
-  background-position: 0 50%;
-  background-color: #fff;
-  padding-left: 18px;
-}
-
-body,div,dl,dt,dd,ul,li,h1,h2,h3,h4,h5,h6,pre,form,fieldset,input,textarea,p,blockquote,th,td { 
+body {
   margin: 0;
   padding: 0;
-  font-family: sans-serif;
-}
-
-body {
   width: 850px;
+  font-family: sans-serif;
 }
 
 table {
@@ -53,6 +43,12 @@ fieldset,img,abbr,acronym {
 ul {
   list-style: none;
   margin: 0 0 8px 0px;
+  padding: 0;
+}
+
+div, li {
+  margin: 0;
+  padding: 0;
 }
 
 caption, th {
@@ -62,20 +58,17 @@ caption, th {
 h1,h2,h3,h4,h5,h6 {
   font-weight: bold;
   clear: both;
+  margin: 0;
+  padding: 0;
 }
 
-h1 a {
+h1 a, h2 a {
   font-variant: small-caps;
-  text-decoration: none;
-}
-
-h2 a {
-  font-variant: small-caps;
-  text-decoration: none;
 }
 
 a {
   outline: 0;
+  text-decoration: none;
 }
 
 p {

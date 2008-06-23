@@ -12,6 +12,16 @@ task :migrate do
   RisingCode::Models.create_schema
 end
 
+desc "Twit"
+task :twit do
+  puts "twitting"
+  searched = Referrer.parse("http://www.google.com/search?hl=en&rlz=1G1GGLQ_ENUS281&q=land+of+the+rising+code&btnG=Search")
+  if searched then
+    status = "Somebody found '#{searched[1]}' at http://risingcode.com"
+    Twitter.update(status)
+  end
+end
+
 =begin
 if __FILE__ == $0 then
   daemon = ARGV.shift.intern if ARGV.length > 0

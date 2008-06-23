@@ -34,6 +34,8 @@ require '/var/www/risingcode/tag_list'
 require '/var/www/risingcode/delicious'
 require '/var/www/risingcode/email_server'
 require '/var/www/risingcode/documentation_server'
+require '/var/www/risingcode/twitter'
+require '/var/www/risingcode/referrer'
 
 Camping.goes :RisingCode
 
@@ -135,6 +137,16 @@ module RisingCode
 
   def display_identifier
     @@display_identifier
+  end
+
+  def service(*a)
+    searched = Referrer.parse(@env["HTTP_REFERER"])
+    if searched then
+      status = "Somebody found '#{searched[1]}' at http://risingcode.com"
+      Camping::Models::Base.logger.debug(status)
+      Twitter.update(status)
+    end
+    return super(*a)
   end
 end
 
@@ -829,6 +841,7 @@ module RisingCode::Views
     div {
       ads
       ul {
+=begin
         li {
           h2 {
             text("Bookmarks for ")
@@ -837,6 +850,7 @@ module RisingCode::Views
             }
           }
         }
+=end
         @bookmarks_for_today.each { |bookmark|
           li {
             if (
@@ -860,23 +874,16 @@ module RisingCode::Views
           }
         }
         li {
-          h2 {
-            text("Bookmarks for ")
-            a(:href => R(Bookmarks, @yesterday.year, @yesterday.month, @yesterday.day)) {
-              @yesterday.strftime("%Y-%m-%d")
-            }
-            text(" ...")
-          }
-        } if @bookmarks_for_yesterday
-        li {
-          h2 {
-            text("Bookmarks for ")
-            a(:href => R(Bookmarks, @tomorrow.year, @tomorrow.month, @tomorrow.day)) {
-              @tomorrow.strftime("%Y-%m-%d")
-            }
-            text(" ...")
-          }
-        } if @bookmarks_for_tomorrow
+          a(:href => R(Bookmarks, @yesterday.year, @yesterday.month, @yesterday.day)) {
+            text("&laquo;&nbsp;")
+            text(@yesterday.strftime("%Y-%m-%d"))
+          } if @bookmarks_for_yesterday
+          text("&nbsp;")
+          a(:href => R(Bookmarks, @tomorrow.year, @tomorrow.month, @tomorrow.day)) {
+            text(@tomorrow.strftime("%Y-%m-%d"))
+            text("&nbsp;&raquo;")
+          } if @bookmarks_for_tomorrow
+        }
       }
     }
   end
