@@ -323,6 +323,63 @@ module RisingCode::Models
 end
 
 module RisingCode::Controllers
+  class Button < R('/button/(.*)')
+    def get (id)
+      id ||= "GO"
+      label = Draw.new
+      label.fill = "black" 
+      label.stroke = 'none'
+      label.font = "Vera"
+      label.text_antialias(true)
+      label.font_style=Magick::NormalStyle
+      label.font_weight=Magick::BoldWeight
+      label.gravity=Magick::CenterGravity
+      label.text(0,0,id)
+      metrics = label.get_type_metrics(id)
+      width = metrics.width
+      height = metrics.height
+      #return label, width, height
+      #label, width, height = get_label_and_metrics(@input.id, "black", "Vera")
+      width += 16
+      height += 12
+      radius = 4
+      top_grad = GradientFill.new(0, 0, width, 0, "#ffffff", "#cccccc")
+      image_layer_one = Magick::Image.new(width, height, top_grad)
+      gc = Draw.new
+      gc.roundrectangle(0,0,image_layer_one.columns-1, image_layer_one.rows-1, radius, radius)
+      gc.composite(0,0,0,0,image_layer_one,InCompositeOp)
+      new_layer_one = Magick::Image.new(width, height) { self.background_color = "none" }
+      gc.draw(new_layer_one)
+      inner_glow_mask = Magick::Image.new(width, height) { self.background_color = "none" }
+      gc = Draw.new
+      gc.stroke("black")
+      gc.stroke_width(1)
+      gc.fill("white")
+      gc.roundrectangle(1,1,inner_glow_mask.columns - 2, inner_glow_mask.rows - 2, radius, radius)
+      gc.draw(inner_glow_mask)
+      inner_glow_mask = inner_glow_mask.blur_image(0, 1)
+      highlight_gradient = GradientFill.new(0,0,80, 0, "#ffffff", "#e4e4e4")
+      highlight_layer = Magick::Image.new((width - 14).to_i, (height * 0.5).to_i, highlight_gradient)
+      gc = Draw.new
+      gc.roundrectangle(0, 0, highlight_layer.columns - 1, highlight_layer.rows - 1, radius, radius)
+      gc.composite(0,0,0,0,highlight_layer,InCompositeOp)
+      new_highlight_layer = Magick::Image.new(highlight_layer.columns, highlight_layer.rows) { self.background_color = "none" }
+      gc.draw(new_highlight_layer)
+      new_layer_one.composite!(inner_glow_mask, CenterGravity, MultiplyCompositeOp)
+      new_layer_one.composite!(new_highlight_layer, NorthGravity, 4, 3, OverCompositeOp)
+      label.draw(new_layer_one)
+      final_image = new_layer_one
+      blob = final_image.to_blob {
+        self.format = 'GIF'
+        self.quality = 100
+      }
+      #send_data blob, :type => 'image/gif', :disposition => 'inline'
+      @headers["Content-Type"] = "image/gif"
+      @headers["Content-Disposition"] = "inline"
+      return blob
+    end
+  end
+
   class Contact < R("/contact")
     def get
       @tags = Tag.find_all_by_include_in_header(true)
