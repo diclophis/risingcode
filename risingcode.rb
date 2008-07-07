@@ -12,7 +12,6 @@ require 'open3'
 require 'redcloth'
 require 'digest/md5'
 require 'daemons'
-require 'benchmark'
 require 'ruby2ruby'
 require 'drb'
 require 'uuidtools'
@@ -21,12 +20,10 @@ require 'right_aws'
 #import into the system
 require 'camping'
 require 'camping/ar/session'
-require 'acts_as_versioned'
 require 'openid'
 require 'openid/store/filesystem'
 require 'openid/consumer'
 require 'openid/extensions/sreg'
-require 'clusterer'
 
 #import into this file
 require '/var/www/risingcode/acts_as_taggable'
@@ -40,6 +37,7 @@ require '/var/www/risingcode/referrer'
 Camping.goes :RisingCode
 
 class RedCloth
+=begin
   def self.highlight(content)
     now = Digest::MD5.hexdigest(content)
     input_buffer = "/tmp/#{now}.rb"
@@ -54,11 +52,17 @@ class RedCloth
       IO.popen("-") { |worker|
         if worker == nil
           ready = nil
-          cmd = "/var/www/risingcode.com/tohtml #{input_buffer} #{output_buffer}"
+          cmd = "/var/www/risingcode/tohtml #{input_buffer} #{output_buffer}"
+          Camping::Models::Base.logger.debug("cmd=#{cmd.inspect}")
           wang = system(cmd)
+          Camping::Models::Base.logger.debug("wang=#{wang.inspect}")
           xml = File.open(output_buffer)
           doc = REXML::Document.new(xml)
-          code_a = doc.root.elements["//body/p"].to_s.gsub("&#x20;", "&nbsp;").gsub("\n", "")
+          #code_a = (doc.root.elements["//body"].each { |w| .to_s.gsub("&#x20;", "&nbsp;").gsub("\n", "")
+          code_a = ""
+          doc.root.elements["//body"].each { |element| 
+            code_a += element.to_s.gsub("&#x20;", "&nbsp;").gsub("\n", "")
+          }
           cache_content = '<span class="snippet">' + code_a + '</span>'
           cache = File.new(cache_buffer, 'w')
           cache.write(cache_content)
@@ -71,17 +75,19 @@ class RedCloth
             Camping::Models::Base.logger.debug("waiting #{input_buffer}")
             break if (i+=1) > 10
           end
-          Camping::Models::Base.logger.debug("gave up on #{input_buffer}")
+          Camping::Models::Base.logger.debug("done with #{input_buffer}")
           true
         end
       }
     end
     File.open(cache_buffer).readlines.join("").gsub("\n", "")
   end
+=end
   def textile_code(tag, atts, cite, content)
     begin
       Camping::Models::Base.logger.debug("parsing... #{content}")
-      return @@documentation_server.source_for(content.strip.constantize)
+      #return @@documentation_server.source_for(content.strip.constantize)
+      return DocumentationServer::SERVER.source_for(content.strip.constantize)
     rescue Exception => problem
       Camping::Models::Base.logger.debug("#{problem}")
     end
@@ -200,7 +206,6 @@ module RisingCode::Models
     validates_presence_of :title, :if => :title
     validates_uniqueness_of :title
     validates_uniqueness_of :permalink
-    #acts_as_versioned
     acts_as_taggable
     has_many :comments
     belongs_to :user
@@ -322,6 +327,9 @@ module RisingCode::Controllers
     def get
       @tags = Tag.find_all_by_include_in_header(true)
       render :contact
+    end
+    def post
+      
     end
   end
 
@@ -492,11 +500,11 @@ module RisingCode::Controllers
       @tags = Tag.find_all_by_include_in_header(true)
       @controllers = Hash.new
       @models = Hash.new
-      @@documentation_server.controllers.each { |controller|
-        @controllers[controller] = @@documentation_server.source_for(controller)
+      DocumentationServer::SERVER.controllers.each { |controller|
+        @controllers[controller] = DocumentationServer::SERVER.source_for(controller)
       }
-      @@documentation_server.models.each { |model|
-        @models[model] = model
+      DocumentationServer::SERVER.models.each { |model|
+        @models[model] = DocumentationServer::SERVER.source_for(model)
       }
       render :sources
     end
@@ -984,17 +992,14 @@ module RisingCode::Views
       h1 {
         "Jon Bardin"
       }
-      p {
-        "Contact Me"
-      }
     }
     div {
         h2 {
           "Background"
         }
         p {"
-         Developed middleware for legacy and future system interoperation, through the use
-         of standardized data transfer and storage techniques.
+         I am a bleeding edge technology evangelist.
+         I spend my time dabbling in protoypes, widgets, gizmos and automatons.
         "}
     }
     div {
@@ -1014,25 +1019,63 @@ module RisingCode::Views
         ul.projects {
           li {
             h5 {
-              "Toll-Free Listing Information System"
+              "MVC Application Framework (Gears)"
             }
             p {
+              "
+                Used for several products, patterned after several key Rails concepts.
+                Models are implemented through the PDO.
+                Views are rendered through Smarty, with a Tag and Other Helpers library.
+                Controllers follow the ActionController pattern.
+              "
             }
           }
           li {
             h5 {
-#http://en.wikipedia.org/wiki/Click_to_talk
-              "Click-to-Talk System"
+              "Toll-Free Listing Information System (ConnecTel)"
             }
             p {
+              "
+                Built with Gears, Apache, Asterisk and Ruby, this system provides telephony services to real-estate agents.
+                They can manage their listings and settings through the phone or over the web.
+              "
             }
           }
           li {
             h5 {
-              "Automated Listing Information Hotline"
+              "Web/Telephony Communication System (Click-to-Talk)"
             }
             p {
-              "wang"
+              "
+                Extending the framework used for the ConnecTel product, this product allows people to connect in an unique way.
+                A home-buyer is prompted through a online form for their phone number,  upon submission both parties are dialed simultaneously.
+                Upon answering the calls are then connected through this system.
+                During the call, the agent may then send urls to the home-buyer, which are automatically loaded in their web-browser.
+              "
+            }
+          }
+          li {
+            h5 {
+              "Automated Listing Information Hotline (ListingLine)"
+            }
+            p {
+              "
+                This product is a lightweight version of the ConnecTel product.
+                It is integrated into an existing website hosting application, allowing agents to automatically make listing data available over the phone.
+                Voice recordings are generated using text-to-speech technology, through templates defined in a domain specific language.
+              "
+            }
+          }
+          li {
+            h5 {
+              "MLS Aggregation System (IDXPro)"
+            }
+            p {
+              "
+                Built with Gears, this product aggregates over 300 MLS data feeds into a unified search / management interface.
+                Once an agent is authorized for access to a particular MLS, this product allows them to provide a listing search interface to their customers.
+                There is also a very advanced mapping search interface that allows for a unique home searching experience.
+              "
             }
           }
         }
@@ -1053,7 +1096,7 @@ module RisingCode::Views
             p {"
               Developed in C, deployed using CGI on a SunOS based platform.
               Data storage layer is implemented with a MySQL database.
-              A system used by medical students to execute student government posistions.
+              A system used by medical students to execute student government positions.
             "}
           }
           li {
@@ -1547,6 +1590,13 @@ module RisingCode::Views
     }
   end
 end
+
+
+#if __FILE__ == $0
+#  puts "server"
+#  DocumentationServer.daemon(["zap", "-t", "-f"])
+#  DocumentationServer.daemon(["start"])
+#end
 
 =begin
 []   range specificication (e.g., [a-z] means a letter in the range a to z)

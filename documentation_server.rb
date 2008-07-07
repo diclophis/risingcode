@@ -1,32 +1,30 @@
 #JonBardin
 
 class DocumentationServer
-  def self.daemon (name, boot = "boot", drb = nil)
-    Daemons.run_proc(name, {:dir_mode => :system}) do
-      require boot
-      server = self.new
-      DRb.start_service(drb, server)
-      Signal.trap(:KILL) do
-        Camping::Models::Base.logger.debug("killing server")
-      end
-      Signal.trap(:INT) do
-        Camping::Models::Base.logger.debug("interuptng server")
-      end
-      Signal.trap(:TERM) do
-        Camping::Models::Base.logger.debug("terminating server")
-      end
+  URI = "druby://:2527"
+  SERVER = DRbObject.new(nil, URI)
+  def self.daemon (argv)
+    Daemons.run_proc("documentation_server", {:dir_mode => :system, :ARGV => argv}) do
+      require "/var/www/risingcode/boot"
       Camping::Models::Base.logger.debug("starting server")
+      DRb.start_service(URI, self.new)
+#      Signal.trap(:KILL) do
+#        #Camping::Models::Base.logger.debug("killing server")
+#      end
+#      Signal.trap(:INT) do
+#        #Camping::Models::Base.logger.debug("interuptng server")
+#      end
+#      Signal.trap(:TERM) do
+#        #Camping::Models::Base.logger.debug("terminating server")
+#      end
       DRb.thread.join
     end
   end
-
   def initialize
   end
-
   def controllers
     RisingCode::X.r
   end
-
   def models
     models = Array.new
     ObjectSpace.each_object { |object|
@@ -38,13 +36,58 @@ class DocumentationServer
     }
     return models.sort {|a,b| b.to_s <=> a.to_s}
   end
-
   def source_for (class_name)
     if class_name.respond_to? :urls then
       url_string = "< R(" + class_name.urls.collect{|url| "'" + url + "'"}.join(",") + ")"
     else
       url_string = ""
     end
-    return RedCloth.highlight(RubyToRuby.translate(class_name).gsub("doccom", "#").gsub("< nil", url_string))
+    puts class_name
+    if class_name == RisingCode::Models::SchemaInfo or class_name == RisingCode::Controllers::I or class_name == Camping::Models::SchemaInfo then
+        puts "Wtf"
+        return "unknown"
+    else
+      return highlight(RubyToRuby.translate(class_name).gsub("< nil", url_string))
+    end
+  end
+  def highlight(content)
+    now = Digest::MD5.hexdigest(content)
+    input_buffer = "/tmp/#{now}.rb"
+    output_buffer = "/tmp/#{now}.html"
+    cache_buffer = "/tmp/#{now}.cache"
+    unless File.exists?(cache_buffer) 
+      input = File.new(input_buffer, "w")
+      input.write(content)
+      input.close
+      input = nil
+      worker = nil
+      IO.popen("-") { |worker|
+        if worker == nil
+          ready = nil
+          cmd = "/var/www/risingcode/tohtml #{input_buffer} #{output_buffer}"
+          if system(cmd) then
+            xml = File.open(output_buffer)
+            doc = REXML::Document.new(xml)
+            code_a = ""
+            doc.root.elements["//body"].each { |element| 
+              code_a += element.to_s.gsub("&#x20;", "&nbsp;").gsub("\n", "")
+            }
+            cache_content = '<span class="snippet">' + code_a + '</span>'
+            cache = File.new(cache_buffer, 'w')
+            cache.write(cache_content)
+            cache.close
+            cache = nil
+          end
+          Process.exit!(0)
+        else
+          i = 0
+          until ready = IO.select([worker], nil, nil, 1) do
+            break if (i+=1) > 10
+          end
+          true
+        end
+      }
+    end
+    File.open(cache_buffer).readlines.join("").gsub("\n", "")
   end
 end

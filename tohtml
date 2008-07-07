@@ -3,13 +3,15 @@
 #vim --no-fork -n -c ':let html_use_css = 1' -c ':so $VIMRUNTIME/syntax/2html.vim' -c ':file $1' -c ':w!' -c ':qa' -c ':qa' -c ':qa' $2
 #vim -n -c "syntax on" -c ":let html_no_pre = 1" -c ":let use_xhtml = 1" -c ":let html_use_css = 1" -c ":so /usr/share/vim/vim70/syntax/2html.vim" -c ":file $1" -c ":w!" -c ":q!" -c ":q!" $2
 #> /tmp/tohtml.log 2> /tmp/tohtml.log
+# -c ":so /usr/share/vim/vim70/syntax/2html.vim" \
 
 /usr/bin/vim -n \
+ -T "xterm" \
  -c "syntax on" \
  -c ":let html_no_pre = 1" \
  -c ":let use_xhtml = 1" \
  -c ":let html_use_css = 1" \
- -c ":so /usr/share/vim/vim70/syntax/2html.vim" \
+ -c ":so /usr/share/vim/vim71/syntax/2html.vim" \
  -c ":w $2" \
  -c ':q!' \
  -c ':q!' \

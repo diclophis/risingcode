@@ -1,7 +1,6 @@
 require 'rubygems'
 require 'rake'
 require '/var/www/risingcode/risingcode'
-require '/var/www/risingcode/boot'
  
 desc "Default Task"
 task :default => [ :migrate ]
@@ -9,23 +8,21 @@ task :default => [ :migrate ]
 desc "Migrate"
 task :migrate do
   puts "migrating..."
+  require '/var/www/risingcode/boot'
   RisingCode::Models.create_schema
 end
 
-desc "Twit"
-task :twit do
-  puts "twitting"
-  searched = Referrer.parse("http://www.google.com/search?hl=en&rlz=1G1GGLQ_ENUS281&q=land+of+the+rising+code&btnG=Search")
-  if searched then
-    status = "Somebody found '#{searched[1]}' at http://risingcode.com"
-    Twitter.update(status)
-  end
+desc "documentation server"
+task :document do
+  #DocumentationServer.daemon(["stop", "-t"])
+  #DocumentationServer.daemon(["zap", "-t"])
+  DocumentationServer.daemon(["start"])
 end
+
 
 =begin
 if __FILE__ == $0 then
   daemon = ARGV.shift.intern if ARGV.length > 0
-  drb = "druby://:2527"
   case daemon
     when :documentation_client
       DRb.start_service
