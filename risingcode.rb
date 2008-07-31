@@ -763,7 +763,8 @@ module RisingCode::Controllers
           @image = Image.new
         end
         unless @input.the_file.is_a?(String) then
-          @image.x_put(@input.the_file.tempfile.read)
+          @image.x_put(@input.the_file[:tempfile].read)
+          #return @input.the_file.inspect
         end
         @image.save!
         redirect(R(CreateOrUpdateImage, @image.id))
@@ -905,7 +906,43 @@ module RisingCode::Views
   def bookmarks
     div {
       ads
+      h2 {
+        text(Date::DAYNAMES[@today.wday])
+        text(" was ")
+        words = {}
+        word = nil
+        @bookmarks.each { |date, bookmarks|
+          bookmarks.each { |bookmark|
+            words_ = bookmark["excerpt"].split(" ")
+            words_.each { |word|
+              word.gsub!(/([a-zA-Z0-9])\..*/, '\1')
+              words[word] = 0 if words[word].nil?
+              words[word] += 1
+            }
+          }
+        }
+        flex = 0
+        found = []
+
+        until (found.length == (@bookmarks_for_today.length + 1)) do
+          @bookmarks_for_today.each { |bookmark|
+            bookmark["excerpt"].split(" ").each { |word|
+              word.gsub!(/([a-zA-Z0-9])\..*/, '\1')
+              next if word.length < 3
+              next if words[word] > flex
+              next if found.include?(word)
+              text(word)
+              text(" ")
+              found << word
+              break
+            }
+          } 
+          break if ((flex += 1) > 999)
+        end
+      }
+
       ul {
+        bookmarks_nav
 =begin
         li {
           h2 {
@@ -938,6 +975,11 @@ module RisingCode::Views
             }
           }
         }
+      }
+    }
+  end
+
+  def bookmarks_nav
         li {
           a(:href => R(Bookmarks, @yesterday.year, @yesterday.month, @yesterday.day)) {
             text("&laquo;&nbsp;")
@@ -949,8 +991,6 @@ module RisingCode::Views
             text("&nbsp;&raquo;")
           } if @bookmarks_for_tomorrow
         }
-      }
-    }
   end
   
   def ads
