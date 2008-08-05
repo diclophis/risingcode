@@ -16,6 +16,8 @@ require 'ruby2ruby'
 require 'drb'
 require 'uuidtools'
 require 'right_aws'
+require 'linguistics'
+Linguistics::use( :en )
 
 #import into the system
 require 'camping'
@@ -148,7 +150,10 @@ module RisingCode
   def service(*a)
     searched = Referrer.parse(@env["HTTP_REFERER"])
     if searched then
-      status = "Somebody found '#{searched[1]}' at http://risingcode.com"
+      Camping::Models::Base.logger.debug(a.inspect)
+      Camping::Models::Base.logger.debug(self.inspect)
+      Camping::Models::Base.logger.debug(@env.inspect)
+      status = "Somebody found '#{searched[1]}' at http://risingcode.com" + @env["PATH_INFO"]
       Camping::Models::Base.logger.debug(status)
       Twitter.update(status)
     end
@@ -480,6 +485,7 @@ module RisingCode::Controllers
           until @index = @days.index(@today.strftime("%Y-%m-%d")) do
             @today = @today - 24.hours 
           end
+          return redirect(R(Bookmarks, @today.year, @today.month, @today.day))
 
         when 3
           @today = Date.parse(args.join("/")) 
@@ -906,16 +912,18 @@ module RisingCode::Views
   def bookmarks
     div {
       ads
-      h2 {
-        text(Date::DAYNAMES[@today.wday])
-        text(" was ")
+      s = ""
+        s += (Date::DAYNAMES[@today.wday])
+        s += (" was ")
         words = {}
         word = nil
         @bookmarks.each { |date, bookmarks|
           bookmarks.each { |bookmark|
-            words_ = bookmark["excerpt"].split(" ")
+            words_ = bookmark["excerpt"].split(/([^a-zA-Z0-9])/)
             words_.each { |word|
               word.gsub!(/([a-zA-Z0-9])\..*/, '\1')
+              word.gsub!(/([^a-zA-Z0-9])/, '')
+              word.downcase!
               words[word] = 0 if words[word].nil?
               words[word] += 1
             }
@@ -923,26 +931,33 @@ module RisingCode::Views
         }
         flex = 0
         found = []
-
-        until (found.length == (@bookmarks_for_today.length + 1)) do
+        until (found.length == 3) do
           @bookmarks_for_today.each { |bookmark|
-            bookmark["excerpt"].split(" ").each { |word|
+            bookmark["excerpt"].split(/([^a-zA-Z0-9])/).sort_by { rand }.each { |word|
               word.gsub!(/([a-zA-Z0-9])\..*/, '\1')
+              word.gsub!(/([^a-zA-Z0-9])/, '')
+              word.downcase!
               next if word.length < 3
-              next if words[word] > flex
+              next if words[word] > 5
               next if found.include?(word)
-              text(word)
-              text(" ")
+              #s += (word)
+              #s += (" ")
               found << word
               break
             }
           } 
           break if ((flex += 1) > 999)
         end
-      }
-
+      #p {
+        #text(s.en.sentence.object.gloss)
+      #}
       ul {
         bookmarks_nav
+        li {
+          h2 {
+            text(s + found.en.conjunction + " kinda day.")
+          }
+        }
 =begin
         li {
           h2 {
@@ -984,9 +999,13 @@ module RisingCode::Views
           a(:href => R(Bookmarks, @yesterday.year, @yesterday.month, @yesterday.day)) {
             text("&laquo;&nbsp;")
             text(@yesterday.strftime("%Y-%m-%d"))
+            text("&nbsp;|&nbsp;")
           } if @bookmarks_for_yesterday
           text("&nbsp;")
+          text(@today.strftime("%Y-%m-%d"))
+          text("&nbsp;")
           a(:href => R(Bookmarks, @tomorrow.year, @tomorrow.month, @tomorrow.day)) {
+            text("&nbsp;|&nbsp;")
             text(@tomorrow.strftime("%Y-%m-%d"))
             text("&nbsp;&raquo;")
           } if @bookmarks_for_tomorrow
