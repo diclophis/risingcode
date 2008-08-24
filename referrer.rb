@@ -15,7 +15,7 @@ class Referrer
       query = CGI.parse(uri.query)
       SEARCH_PARAMS.each { |host, parameter|
         if uri.host.include?(host.downcase) then
-          return [host, query[parameter]]
+          return [host, query[parameter]] unless query[parameter].blank?
         end
       }
     rescue

@@ -148,13 +148,11 @@ module RisingCode
   end
 
   def service(*a)
+    Camping::Models::Base.logger.debug(a.inspect)
+    Camping::Models::Base.logger.debug(@input.inspect)
     searched = Referrer.parse(@env["HTTP_REFERER"])
     if searched then
-      Camping::Models::Base.logger.debug(a.inspect)
-      Camping::Models::Base.logger.debug(self.inspect)
-      Camping::Models::Base.logger.debug(@env.inspect)
-      status = "Somebody found '#{searched[1]}' at http://risingcode.com" + @env["PATH_INFO"]
-      Camping::Models::Base.logger.debug(status)
+      status = "#{searched[0]} found '#{searched[1]}' at http://risingcode.com" + @env["PATH_INFO"]
       Twitter.update(status)
     end
     return super(*a)
@@ -404,8 +402,6 @@ module RisingCode::Controllers
         openid_response = openid_consumer.complete(@input, this_url)
         if openid_response.status == :success then
           @state.authenticated = true
-          Camping::Models::Base.logger.debug("login ok")
-
           return redirect(R(Dashboard))
         end
       end
@@ -470,6 +466,20 @@ module RisingCode::Controllers
     end
   end
 
+  class BookmarksByTag < R('/bookmarks/tagged/(.*)')
+    def get (tag)
+      @tags = Tag.find_all_by_include_in_header(true)
+      @bookmarks = Delicious::Bookmarks.all(0, 99999)
+      @bookmarks_for_tag = []
+      @bookmarks.each { |date, bookmarks|
+        bookmarks.each { |bookmark|
+          @bookmarks_for_tag << bookmark if bookmark["tag"].include?(tag)
+        }
+      }
+      render :bookmarks_by_tag
+    end
+  end
+
   class Bookmarks < R('/bookmarks', '/bookmarks/(\d+)/(\d+)/(\d+)')
     def get (*args)
       @tags = Tag.find_all_by_include_in_header(true)
@@ -508,8 +518,8 @@ module RisingCode::Controllers
       end
     end
   end
-=begin
   class Comments < R('/comment/(\d+)(.*)')
+=begin
     def get (article_id, junk = nil)
       article = Article.find(article_id)
       unless article.nil?
@@ -539,7 +549,10 @@ module RisingCode::Controllers
       end
       raise "fail"
     end
+=end
     def post (article_id, junk = nil)
+      return @input.inspect
+=begin
       article = Article.find(article_id)
       unless article.nil?
         @state.openid_url = @input.openid_url
@@ -554,9 +567,9 @@ module RisingCode::Controllers
         return redirect(redirect_url)
       end
       raise "fail"
+=end
     end
   end
-=end
 
   class Sources < R('/sources')
     def get
@@ -772,6 +785,7 @@ module RisingCode::Controllers
           @image.x_put(@input.the_file[:tempfile].read)
           #return @input.the_file.inspect
         end
+        @image.user_id = 1
         @image.save!
         redirect(R(CreateOrUpdateImage, @image.id))
       }
@@ -909,6 +923,36 @@ module RisingCode::Views
     }
   end
 
+  def bookmarks_by_tag
+    div {
+      ads
+      ul {
+        @bookmarks_for_tag.each { |bookmark|
+          li {
+            if (
+              bookmark["href"].downcase.include?(".png") or
+              bookmark["href"].downcase.include?(".jpg") or
+              bookmark["href"].downcase.include?(".jpeg") or
+              bookmark["href"].downcase.include?(".jpeg") or
+              bookmark["href"].downcase.include?(".gif")
+            ) then
+              img(:src => bookmark["href"])
+            else
+              a(:href => bookmark["href"]) {
+                bookmark["excerpt"]
+              }
+            end
+            p {
+              ["tag", "extended"].each { |key|
+                text(bookmark[key] + " ")
+              }
+            }
+          }
+        }
+      }
+    }
+  end
+
   def bookmarks
     div {
       ads
@@ -984,8 +1028,11 @@ module RisingCode::Views
               }
             end
             p {
-              ["tag", "extended"].each { |key|
-                text(bookmark[key] + " ")
+              text(bookmark["extended"])
+              bookmark["tag"].split(" ").each { |tag|
+                a(:href => R(BookmarksByTag, tag)) {
+                  text(" " + tag)
+                }
               }
             }
           }
