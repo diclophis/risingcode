@@ -129,3 +129,16 @@ li img {
 #ads {
   padding-bottom: 8px;
 }
+
+p.tagged {
+  font-size: smaller;
+}
+
+div.oembed {
+  clear: both;
+  margin: 0.5em 0 0.5em 0;
+}
+
+div.oembed img {
+  float: left;
+}

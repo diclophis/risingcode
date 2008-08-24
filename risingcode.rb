@@ -35,6 +35,7 @@ require '/var/www/risingcode/email_server'
 require '/var/www/risingcode/documentation_server'
 require '/var/www/risingcode/twitter'
 require '/var/www/risingcode/referrer'
+require '/root/ruby-oembed/lib/oembed'
 
 Camping.goes :RisingCode
 
@@ -89,11 +90,43 @@ class RedCloth
     begin
       Camping::Models::Base.logger.debug("parsing... #{content}")
       #return @@documentation_server.source_for(content.strip.constantize)
-      return DocumentationServer::SERVER.source_for(content.strip.constantize)
+      #return DocumentationServer::SERVER.source_for(content.strip.constantize)
+      return "wtf"
     rescue Exception => problem
       Camping::Models::Base.logger.debug("#{problem}")
     end
   end
+
+  def textile_oembed(tag, atts, cite, content)
+    #return [tag, atts, cite, content].inspect
+    begin
+      OEmbed::Providers.register_all
+      res = OEmbed::Providers::OohEmbed.get(content)
+      case res
+        when OEmbed::Response::Photo
+          return "<div class=\"\oembed\"><a href=\"#{content}\"><img src=\"#{res.url}\"/></a>" + (res.field(:html).nil? ? "" : res.html) + "</div>"
+        when OEmbed::Response::Video
+          return "<div class=\"\oembed\">" + res.html + "</div>"
+        when OEmbed::Response::Link
+          return "<div class=\"\oembed\"><a href=\"#{content}\">#{res.title}</a>" + res.html + "</div>"
+        when OEmbed::Response::Rich
+          return "<div class=\"\oembed\">" + res.html + "</div>"
+      else
+        content
+      end
+      #return res.fields.inspect
+      #unless res.field(:html).nil? then
+      #  return res.field(:html)
+      #else
+      #  content
+      #end
+      return res.html
+    rescue Exception => problem
+      #return problem.inspect
+      return content
+    end
+  end
+
 end
 
 module RisingCode
@@ -617,7 +650,7 @@ module RisingCode::Controllers
           @tag,
           :limit => @limit, 
           :offset => @offset,
-          :conditions => ["permalink like ? and date(published_on) <= ?", @permalink, @now], 
+          :conditions => ["permalink like ? and (date(published_on) <= ?)", @permalink, @now], 
           :order => "published_on desc")
         @current_action = @tag.to_s.intern
         @use_page_navigation = true
@@ -636,7 +669,7 @@ module RisingCode::Controllers
         :all, 
         :limit => @limit, 
         :offset => @offset,
-        :conditions => ["permalink like ? and date(published_on) <= ?", @permalink, @now], 
+        :conditions => ["permalink like ? and (date(published_on) <= ? or ?)", @permalink, @now, user_logged_in], 
         :order => "published_on desc") if @articles.nil?
       @old_ranger = Article.find(
         :first,
@@ -783,7 +816,6 @@ module RisingCode::Controllers
         end
         unless @input.the_file.is_a?(String) then
           @image.x_put(@input.the_file[:tempfile].read)
-          #return @input.the_file.inspect
         end
         @image.user_id = 1
         @image.save!
@@ -942,11 +974,16 @@ module RisingCode::Views
                 bookmark["excerpt"]
               }
             end
-            p {
-              ["tag", "extended"].each { |key|
-                text(bookmark[key] + " ")
+            p.tagged {
+              bookmark["tag"].split(" ").each { |tag|
+                a(:href => R(BookmarksByTag, tag)) {
+                  text("&nbsp;" + tag)
+                }
               }
             }
+            p {
+              text(bookmark["extended"])
+            } unless bookmark["extended"].blank?
           }
         }
       }
@@ -984,17 +1021,12 @@ module RisingCode::Views
               next if word.length < 3
               next if words[word] > 5
               next if found.include?(word)
-              #s += (word)
-              #s += (" ")
               found << word
               break
             }
           } 
           break if ((flex += 1) > 999)
         end
-      #p {
-        #text(s.en.sentence.object.gloss)
-      #}
       ul {
         bookmarks_nav
         li {
@@ -1002,16 +1034,6 @@ module RisingCode::Views
             text(s + found.en.conjunction + " kinda day.")
           }
         }
-=begin
-        li {
-          h2 {
-            text("Bookmarks for ")
-            a(:href => R(Bookmarks, @today.year, @today.month, @today.day)) {
-              @today.strftime("%Y-%m-%d")
-            }
-          }
-        }
-=end
         @bookmarks_for_today.each { |bookmark|
           li {
             if (
@@ -1027,14 +1049,16 @@ module RisingCode::Views
                 bookmark["excerpt"]
               }
             end
-            p {
-              text(bookmark["extended"])
+            p.tagged {
               bookmark["tag"].split(" ").each { |tag|
                 a(:href => R(BookmarksByTag, tag)) {
-                  text(" " + tag)
+                  text("&nbsp;" + tag)
                 }
               }
             }
+            p {
+              text(bookmark["extended"])
+            } unless bookmark["extended"].blank?
           }
         }
       }
@@ -1042,21 +1066,21 @@ module RisingCode::Views
   end
 
   def bookmarks_nav
-        li {
-          a(:href => R(Bookmarks, @yesterday.year, @yesterday.month, @yesterday.day)) {
-            text("&laquo;&nbsp;")
-            text(@yesterday.strftime("%Y-%m-%d"))
-            text("&nbsp;|&nbsp;")
-          } if @bookmarks_for_yesterday
-          text("&nbsp;")
-          text(@today.strftime("%Y-%m-%d"))
-          text("&nbsp;")
-          a(:href => R(Bookmarks, @tomorrow.year, @tomorrow.month, @tomorrow.day)) {
-            text("&nbsp;|&nbsp;")
-            text(@tomorrow.strftime("%Y-%m-%d"))
-            text("&nbsp;&raquo;")
-          } if @bookmarks_for_tomorrow
-        }
+    li {
+      a(:href => R(Bookmarks, @yesterday.year, @yesterday.month, @yesterday.day)) {
+        text("&laquo;&nbsp;")
+        text(@yesterday.strftime("%Y-%m-%d"))
+        text("&nbsp;|&nbsp;")
+      } if @bookmarks_for_yesterday
+      text("&nbsp;")
+      text(@today.strftime("%Y-%m-%d"))
+      text("&nbsp;")
+      a(:href => R(Bookmarks, @tomorrow.year, @tomorrow.month, @tomorrow.day)) {
+        text("&nbsp;|&nbsp;")
+        text(@tomorrow.strftime("%Y-%m-%d"))
+        text("&nbsp;&raquo;")
+      } if @bookmarks_for_tomorrow
+    }
   end
   
   def ads
