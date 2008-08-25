@@ -76,7 +76,7 @@ a {
 }
 
 p {
-  margin: 4px 0 8px 0px;
+  margin: 7px 0 11px 0px;
 }
 
 img {
@@ -140,14 +140,14 @@ p.tagged {
 }
 
 div.oembed {
-  background: url(/images/quotes.gif) no-repeat scroll -180px top;
+  background: url(/images/quotes.gif) no-repeat scroll -150px top;
   position:relative;
-  padding: 20px 0 0 90px;
+  padding: 0px 0 0 0px;
 }
 
 div.oembeded {
-  padding: 0px 90px 40px 0;
-  background: url(/images/quotes.gif) no-repeat scroll 620px bottom;
+  padding: 20px 120px 40px 120px;
+  background: url(/images/quotes.gif) no-repeat scroll 670px bottom;
   position:relative;
 }
 

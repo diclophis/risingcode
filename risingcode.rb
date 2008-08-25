@@ -1467,9 +1467,10 @@ module RisingCode::Views
         ul {
           li {
             h3 {
-              text(display_identifier)
-              text(" at ")
+              #text(display_identifier)
+              text(" on ")
               text(article.published_on.strftime("%B %d %Y"))
+              text(" I wondered... ")
             }
           }
           li {

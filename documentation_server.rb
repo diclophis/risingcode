@@ -47,7 +47,7 @@ class DocumentationServer
         puts "Wtf"
         return "unknown"
     else
-      return highlight(RubyToRuby.translate(class_name).gsub("< nil", url_string))
+      return highlight(RubyToRuby.translate(class_name).gsub("< nil", url_string), "rb")
     end
   end
   def highlight(content, extension)
