@@ -134,11 +134,25 @@ p.tagged {
   font-size: smaller;
 }
 
-div.oembed {
-  clear: both;
-  margin: 0.5em 0 0.5em 0;
+.centered {
+  text-align: center;
+  margin: 0em auto 1em 0;
 }
 
-div.oembed img {
-  float: left;
+div.oembed {
+  background: url(/images/quotes.gif) no-repeat scroll -180px top;
+  position:relative;
+  padding: 20px 0 0 90px;
+}
+
+div.oembeded {
+  padding: 0px 90px 40px 0;
+  background: url(/images/quotes.gif) no-repeat scroll 620px bottom;
+  position:relative;
+}
+
+pre {
+  border: 1px dotted #777777;
+  background-color: #dfdfdf;
+  padding: 0.5em;
 }

@@ -40,90 +40,58 @@ require '/root/ruby-oembed/lib/oembed'
 Camping.goes :RisingCode
 
 class RedCloth
-=begin
-  def self.highlight(content)
-    now = Digest::MD5.hexdigest(content)
-    input_buffer = "/tmp/#{now}.rb"
-    output_buffer = "/tmp/#{now}.html"
-    cache_buffer = "/tmp/#{now}.cache"
-    unless File.exists?(cache_buffer) 
-      input = File.new(input_buffer, "w")
-      input.write(content)
-      input.close
-      input = nil
-      worker = nil
-      IO.popen("-") { |worker|
-        if worker == nil
-          ready = nil
-          cmd = "/var/www/risingcode/tohtml #{input_buffer} #{output_buffer}"
-          Camping::Models::Base.logger.debug("cmd=#{cmd.inspect}")
-          wang = system(cmd)
-          Camping::Models::Base.logger.debug("wang=#{wang.inspect}")
-          xml = File.open(output_buffer)
-          doc = REXML::Document.new(xml)
-          #code_a = (doc.root.elements["//body"].each { |w| .to_s.gsub("&#x20;", "&nbsp;").gsub("\n", "")
-          code_a = ""
-          doc.root.elements["//body"].each { |element| 
-            code_a += element.to_s.gsub("&#x20;", "&nbsp;").gsub("\n", "")
-          }
-          cache_content = '<span class="snippet">' + code_a + '</span>'
-          cache = File.new(cache_buffer, 'w')
-          cache.write(cache_content)
-          cache.close
-          cache = nil
-          Process.exit!(0)
-        else
-          i = 0
-          until ready = IO.select([worker], nil, nil, 1) do
-            Camping::Models::Base.logger.debug("waiting #{input_buffer}")
-            break if (i+=1) > 10
-          end
-          Camping::Models::Base.logger.debug("done with #{input_buffer}")
-          true
-        end
-      }
-    end
-    File.open(cache_buffer).readlines.join("").gsub("\n", "")
-  end
-=end
-  def textile_code(tag, atts, cite, content)
+  def textile_ruby(tag, atts, cite, content)
     begin
-      Camping::Models::Base.logger.debug("parsing... #{content}")
-      #return @@documentation_server.source_for(content.strip.constantize)
-      #return DocumentationServer::SERVER.source_for(content.strip.constantize)
-      return "wtf"
+      return DocumentationServer::SERVER.highlight(content, "rb")
+    rescue Exception => problem
+      Camping::Models::Base.logger.debug("#{problem}")
+    end
+  end
+
+  def textile_css(tag, atts, cite, content)
+    begin
+      return DocumentationServer::SERVER.highlight(content, "css")
     rescue Exception => problem
       Camping::Models::Base.logger.debug("#{problem}")
     end
   end
 
   def textile_oembed(tag, atts, cite, content)
-    #return [tag, atts, cite, content].inspect
     begin
-      OEmbed::Providers.register_all
       res = OEmbed::Providers::OohEmbed.get(content)
       case res
         when OEmbed::Response::Photo
-          return "<div class=\"\oembed\"><a href=\"#{content}\"><img src=\"#{res.url}\"/></a>" + (res.field(:html).nil? ? "" : res.html) + "</div>"
-        when OEmbed::Response::Video
-          return "<div class=\"\oembed\">" + res.html + "</div>"
+          ::Markaby::Builder.new.div(:class => "oembed centered") {
+            div.oembeded {
+              a(:href => content) {
+                img(:src => res.field(:url))
+              }
+              text(res.field(:html))
+            }
+          }
+        when OEmbed::Response::Video, OEmbed::Response::Rich
+          ::Markaby::Builder.new.div(:class => "oembed centered") {
+            div.oembeded {
+              text(res.field(:html))
+            }
+          }
         when OEmbed::Response::Link
-          return "<div class=\"\oembed\"><a href=\"#{content}\">#{res.title}</a>" + res.html + "</div>"
-        when OEmbed::Response::Rich
-          return "<div class=\"\oembed\">" + res.html + "</div>"
+          ::Markaby::Builder.new.div(:class => "oembed") {
+            div.oembeded {
+              a(:href => content) {
+                h4 {
+                  text(res.field(:title))
+                }
+              }
+              text(res.field(:html))
+            }
+          }
       else
         content
       end
-      #return res.fields.inspect
-      #unless res.field(:html).nil? then
-      #  return res.field(:html)
-      #else
-      #  content
-      #end
-      return res.html
     rescue Exception => problem
-      #return problem.inspect
-      return content
+      Camping::Models::Base.logger.debug(problem)
+      content
     end
   end
 

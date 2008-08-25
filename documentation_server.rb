@@ -50,9 +50,9 @@ class DocumentationServer
       return highlight(RubyToRuby.translate(class_name).gsub("< nil", url_string))
     end
   end
-  def highlight(content)
+  def highlight(content, extension)
     now = Digest::MD5.hexdigest(content)
-    input_buffer = "/tmp/#{now}.rb"
+    input_buffer = "/tmp/#{now}.#{extension}"
     output_buffer = "/tmp/#{now}.html"
     cache_buffer = "/tmp/#{now}.cache"
     unless File.exists?(cache_buffer) 
