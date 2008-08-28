@@ -1,6 +1,7 @@
 require 'rubygems'
 require 'rake'
 require '/var/www/risingcode/risingcode'
+require '/var/www/risingcode/boot'
  
 desc "Default Task"
 task :default => [ :migrate ]
@@ -17,6 +18,12 @@ task :document do
   #DocumentationServer.daemon(["stop", "-t"])
   #DocumentationServer.daemon(["zap", "-t"])
   DocumentationServer.daemon(["start"])
+end
+
+desc "grab bookmarks"
+task :bookmarks do
+  cmd = ("curl --user #{Delicious::Bookmarks::USER}:#{Delicious::Bookmarks::PASS} -o /tmp/bookmarks.xml -O \"https://api.del.icio.us/v1/posts/all\"")
+  `#{cmd}`
 end
 
 

@@ -122,85 +122,6 @@ class String
   end
 end
 
-#RedCloth.extend(RisingCodeTags)
-
-=begin
-class RedCloth::TextileDoc
-  def textile_ruby(tag, atts, cite, content)
-    begin
-      return DocumentationServer::SERVER.highlight(content, "rb")
-    rescue Exception => problem
-      Camping::Models::Base.logger.debug("#{problem}")
-    end
-  end
-
-  def textile_css(tag, atts, cite, content)
-    begin
-      h = DocumentationServer::SERVER.highlight(content, "css")
-      j = content.split("\n").length
-      return ::Markaby::Builder.new.table {
-        tr {
-          td.lines {
-            j.times { |i|
-              text("#{i}\n")
-              br
-            }
-          }
-          td {
-            text(h)
-          }
-        }
-      }
-    rescue Exception => problem
-      Camping::Models::Base.logger.debug("#{problem}")
-    end
-  end
-
-  def textile_oembed(tag, atts, cite, content)
-    Camping::Models::Base.logger.debug("oembed exists for? #{content}")
-
-    begin
-      res = OEmbed::Providers::OohEmbed.get(content)
-      case res
-        when OEmbed::Response::Photo
-          ::Markaby::Builder.new.div(:class => "oembed centered") {
-            div.oembeded {
-              a(:href => content) {
-                img(:src => res.field(:url))
-              }
-              text(res.field(:html))
-            }
-          }
-        when OEmbed::Response::Video, OEmbed::Response::Rich
-          ::Markaby::Builder.new.div(:class => "oembed centered") {
-            div.oembeded {
-              text(res.field(:html))
-            }
-          }
-        when OEmbed::Response::Link
-          ::Markaby::Builder.new.div(:class => "oembed") {
-            div.oembeded {
-              a(:href => content) {
-                h4 {
-                  text(res.field(:title))
-                }
-              }
-              text(res.field(:html))
-            }
-          }
-      else
-        content
-      end
-    rescue Exception => problem
-      #Camping::Models::Base.logger.debug(problem)
-      #Camping::Models::Base.logger.debug(problem.backtrace.join("\n"))
-      content
-    end
-  end
-
-end
-=end
-
 module RisingCode
 
   include Camping::Session 
@@ -253,10 +174,7 @@ module RisingCode
     @@display_identifier
   end
 
-=begin
   def service(*a)
-    Camping::Models::Base.logger.debug(a.inspect)
-    Camping::Models::Base.logger.debug(@input.inspect)
     searched = Referrer.parse(@env["HTTP_REFERER"])
     if searched then
       status = "#{searched[0]} found '#{searched[1]}' at http://risingcode.com" + @env["PATH_INFO"]
@@ -264,35 +182,6 @@ module RisingCode
     end
     return super(*a)
   end
-=end
-
-    # This <tt>service</tt> method, when mixed into controllers, intercepts requests
-    # and wraps them with code to start and close the session. If a session isn't found
-    # in the database it is created. The <tt>@state</tt> variable is set and if it changes,
-    # it is saved back into the database.
-=begin
-    def service(*a)
-Camping::Models::Base.logger.debug("begin")
-        session = Camping::Models::Session.persist @cookies
-        app = self.class.name.gsub(/^(\w+)::.+$/, '\1')
-        @state = (session[app] ||= Camping::H[])
-        hash_before = Marshal.dump(@state).hash
-        return super(*a)
-    ensure
-Camping::Models::Base.logger.debug("ensure")
-        if session
-Camping::Models::Base.logger.debug("has session")
-#            hash_after = Marshal.dump(@state).hash
-#            unless hash_before == hash_after
-                @state.chung = Time.now
-Camping::Models::Base.logger.debug("has error #{session.inspect}")
-                session[app] = @state
-                session.save!
-#            end
-        end
-    end
-=end
-
 end
 
 module RisingCode::Models
@@ -1076,7 +965,7 @@ module RisingCode::Views
       ul {
         @bookmarks_for_tag.each { |bookmark|
           li {
-            if ((oembed = "oembed. #{bookmark["href"]}".textlilize) == bookmark["href"]) then
+            if ((oembed = "oembed. #{bookmark["href"]}".textilize) == bookmark["href"]) then
               if (
                 bookmark["href"].downcase.include?(".png") or
                 bookmark["href"].downcase.include?(".jpg") or
@@ -1091,7 +980,7 @@ module RisingCode::Views
                 }
               end
             else
-              text("oembed. #{bookmark["href"]}")
+              text(oembed)
             end
             p.tagged {
               bookmark["tag"].split(" ").each { |tag|
@@ -1617,7 +1506,9 @@ module RisingCode::Views
   end
 
   def message
-=begin
+    flickr = nil
+    wikipedia = nil
+    youtube = nil
     div {
       fetched = Fast.fetch("http://api.flickr.com/services/feeds/photos_public.gne?tags=#{@tag}&lang=en-us&format=rss_200")
       fetched = nil if fetched.blank?
@@ -1626,12 +1517,13 @@ module RisingCode::Views
         event = nil
         doc.elements.each('/rss/channel/item') { |el|
           el.elements.each('link') { |li|
-            text(RedCloth.new("oembed. #{li.text}").to_html)
+            flickr = "oembed. #{li.text}"
+            text(flickr.textilize)
           }
           break
         }
       end
-      text(RedCloth.new("oembed. http://en.wikipedia.org/wiki/#{@tag}").to_html)
+      text(("oembed. http://en.wikipedia.org/wiki/#{@tag}").textilize)
       fetched = Fast.fetch("http://www.vimeo.com/tag:#{@tag}/rss")
       fetched = nil if fetched.blank?
       if fetched and fetched.length > 0 then
@@ -1640,7 +1532,8 @@ module RisingCode::Views
         event = nil
         doc.elements.each('/rss/channel/item') { |el|
           el.elements.each('link') { |li|
-            text(RedCloth.new("oembed. #{li.text}").to_html)
+            wikipedia = "oembed. #{li.text}"
+            text(wikipedia.textilize)
           }
           break
         }
@@ -1652,7 +1545,7 @@ module RisingCode::Views
         event = nil
         doc.elements.each('/rss/channel/item') { |el|
           el.elements.each('link') { |li|
-            text(RedCloth.new("oembed. #{li.text.gsub("?v", "watch?v")}").to_html)
+            text(("oembed. #{li.text.gsub("?v", "watch?v")}").textilize)
           }
           break
         }
@@ -1664,7 +1557,7 @@ module RisingCode::Views
         event = nil
         doc.elements.each('/rss/channel/item') { |el|
           el.elements.each('link') { |li|
-            text(RedCloth.new("oembed. #{li.text}").to_html)
+            text(("oembed. #{li.text}").textilize)
           }
           break
         }
@@ -1675,7 +1568,6 @@ module RisingCode::Views
         }
       }
     }
-=end
   end
 
   def index
@@ -1712,14 +1604,8 @@ module RisingCode::Views
             if @single and not article.excerpt.blank? then
               text(article.excerpt.textilize)
               text(article.body.textilize)
-              #text(RedCloth.new(article.excerpt).extend(::RisingCodeTags).to_html + RedCloth.new(article.body).to_html)
-              
             elsif not @single and not article.excerpt.blank? then
               text(article.excerpt.textilize)
-              #r = RedCloth.new(article.excerpt)
-              #r.extend(RisingCodeTags)
-              #r.to_html
-              #text("w")
             else
               text(article.body.textilize)
             end
@@ -1962,6 +1848,9 @@ module RisingCode::Views
             label(:for => :permalink) {
               text("permalink")
             }
+          }
+          li {
+            img(:src => @image.icon_permalink)
           }
           li {
             label(:for => :file) {

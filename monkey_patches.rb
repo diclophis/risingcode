@@ -21,16 +21,48 @@ class RisingCode::Controllers::NotFound
   end
 end
 =end
+require 'markaby'
 
 module RisingCode
   module Base
     def r404(p=env.PATH)
+      "Lost?"
+=begin
+      return ::Markaby::Builder.new.xhtml_transitional {
+        head {
+          title {
+            "wtf"
+          }
+        }
+        body {
+          h1 {
+            "Lost?"
+          }
+        }
+      }
+=end
+=begin
+
       #r(404, "#{p} not found")
       @status = 404
       @tags = RisingCode::Models::Tag.find_all_by_include_in_header(true)
+      return ::Markaby::Builder.new.table {
+        tr {
+          td.lines {
+            j.times { |i|
+              text("#{i}\n")
+              br
+            }
+          }
+          td {
+            text(h)
+          }
+        }
+      }
       #h1 {
         "Lost?"
       #}
+=end
     end
   end
 end
