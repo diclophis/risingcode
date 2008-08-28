@@ -13,6 +13,7 @@ span.snippet {
   font-family: monospace;
   color: #ffffff;
   padding: 4px;
+  border: 1px solid #777777;
 }
 
 .Identifier { color: #00ffff; }
@@ -32,8 +33,18 @@ body {
 }
 
 table {
+  width: 100%;
   border-collapse: collapse;
   border-spacing: 0;
+}
+
+
+td, tr {
+  border-collapse: collapse;
+  border-spacing: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
 fieldset,img,abbr,acronym {
@@ -140,19 +151,57 @@ p.tagged {
 }
 
 div.oembed {
-  background: url(/images/quotes.gif) no-repeat scroll -150px top;
+  background: url(/images/gray_quotes.png) no-repeat scroll -150px top;
   position:relative;
   padding: 0px 0 0 0px;
 }
 
 div.oembeded {
   padding: 20px 120px 40px 120px;
-  background: url(/images/quotes.gif) no-repeat scroll 670px bottom;
+  background: url(/images/gray_quotes.png) no-repeat scroll 670px bottom;
   position:relative;
 }
 
+
 pre {
-  border: 1px dotted #777777;
+  border: 2px inset #b2b2b2;
+  padding: 2px;
+}
+
+/*
+td pre {
+  border: 1px solid #777777;
+  border-top: 1px solid #777777;
+  border-bottom: 1px solid #777777;
+  border-left: 1px solid #777777;
   background-color: #dfdfdf;
-  padding: 0.5em;
+  margin: 0;
+  padding: 2px;
+}
+*/
+
+/*
+iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+*/
+/*
+.rownumber {
+  margin: 0px;
+  padding: 0px 20px 0px 1px;
+  background-color: #000000;
+  font-family: monospace;
+  color: #ffffff;
+  border: 0px;
+}
+*/
+td.lines {
+  width: 1%;
+  background-color: #e0e0e0;
+  color: blue;
+  font-family: monospace;
+  padding: 0 0.5em 0 0.5em;
+  text-align: right;
 }

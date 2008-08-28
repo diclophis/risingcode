@@ -28,9 +28,9 @@ module RisingCode
       #r(404, "#{p} not found")
       @status = 404
       @tags = RisingCode::Models::Tag.find_all_by_include_in_header(true)
-      h1 {
+      #h1 {
         "Lost?"
-      }
+      #}
     end
   end
 end
