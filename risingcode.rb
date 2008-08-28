@@ -41,11 +41,43 @@ require '/root/ruby-oembed/lib/oembed'
 Camping.goes :RisingCode
 
 module RisingCodeTags
+  def hard_breaks; false; end
+  def css(opts)
+    content = opts[:text]
+    begin
+      h = DocumentationServer::SERVER.highlight(content, "css")
+      j = content.split("\n").length
+      return ::Markaby::Builder.new.table {
+        tr {
+          td.lines {
+            j.times { |i|
+              text("#{i}\n")
+              br
+            }
+          }
+          td {
+            text(h)
+          }
+        }
+      }
+    rescue Exception => problem
+      Camping::Models::Base.logger.debug("#{problem}")
+      problem.inspect
+    end
+  end
+  def ruby(opts)
+    Camping::Models::Base.logger.debug("#{opts.inspect}")
+    content = opts[:text]
+    begin
+      return DocumentationServer::SERVER.highlight(content, "rb")
+    rescue Exception => problem
+      Camping::Models::Base.logger.debug("#{problem}")
+      problem.inspect
+    end
+  end
   def oembed(opts)
     content = opts[:text]
-
     Camping::Models::Base.logger.debug("oembed exists for? #{content}")
-
     begin
       res = OEmbed::Providers::OohEmbed.get(content)
       case res
@@ -1689,8 +1721,7 @@ module RisingCode::Views
               #r.to_html
               #text("w")
             else
-              "wtf"
-              #RedCloth.new(article.body).to_html
+              text(article.body.textilize)
             end
           }
         }
