@@ -40,6 +40,59 @@ require '/root/ruby-oembed/lib/oembed'
 
 Camping.goes :RisingCode
 
+module RisingCodeTags
+  def oembed(opts)
+    content = opts[:text]
+
+    Camping::Models::Base.logger.debug("oembed exists for? #{content}")
+
+    begin
+      res = OEmbed::Providers::OohEmbed.get(content)
+      case res
+        when OEmbed::Response::Photo
+          ::Markaby::Builder.new.div(:class => "oembed centered") {
+            div.oembeded {
+              a(:href => content) {
+                img(:src => res.field(:url))
+              }
+              text(res.field(:html))
+            }
+          }
+        when OEmbed::Response::Video, OEmbed::Response::Rich
+          ::Markaby::Builder.new.div(:class => "oembed centered") {
+            div.oembeded {
+              text(res.field(:html))
+            }
+          }
+        when OEmbed::Response::Link
+          ::Markaby::Builder.new.div(:class => "oembed") {
+            div.oembeded {
+              a(:href => content) {
+                h4 {
+                  text(res.field(:title))
+                }
+              }
+              text(res.field(:html))
+            }
+          }
+      else
+        content
+      end
+    rescue Exception => problem
+      content
+    end
+  end
+end
+
+class String
+  def textilize
+    RedCloth.new(self).extend(::RisingCodeTags).to_html
+  end
+end
+
+#RedCloth.extend(RisingCodeTags)
+
+=begin
 class RedCloth::TextileDoc
   def textile_ruby(tag, atts, cite, content)
     begin
@@ -114,6 +167,7 @@ class RedCloth::TextileDoc
   end
 
 end
+=end
 
 module RisingCode
 
@@ -450,8 +504,7 @@ module RisingCode::Controllers
         store = ::OpenID::Store::Filesystem.new("/tmp")
         openid_consumer = ::OpenID::Consumer.new(@state, store)
         openid_response = openid_consumer.complete(@input, this_url)
-        Camping::Models::Base.logger.debug("before #{openid_response.inspect}")
-        if openid_response.status == :success then
+        if openid_response.status == :success and openid_response.identity_url == "http://diclophis.pip.verisignlabs.com/" then
           @state.authenticated = true
           return redirect(R(Dashboard))
         end
@@ -811,7 +864,7 @@ module RisingCode::Controllers
         else
           @article = Article.new
         end
-        @article.user_id = 1
+        #@article.user_id = 1
         @article.title = @input.title
         @article.permalink = @input.permalink
         @article.excerpt = @input.excerpt
@@ -844,7 +897,7 @@ module RisingCode::Controllers
         unless @input.the_file.is_a?(String) then
           @image.x_put(@input.the_file[:tempfile].read)
         end
-        @image.user_id = 1
+        #@image.user_id = 1
         @image.save!
         redirect(R(CreateOrUpdateImage, @image.id))
       }
@@ -991,7 +1044,7 @@ module RisingCode::Views
       ul {
         @bookmarks_for_tag.each { |bookmark|
           li {
-            if ((oembed = RedCloth.new("oembed. #{bookmark["href"]}").to_html) == bookmark["href"]) then
+            if ((oembed = "oembed. #{bookmark["href"]}".textlilize) == bookmark["href"]) then
               if (
                 bookmark["href"].downcase.include?(".png") or
                 bookmark["href"].downcase.include?(".jpg") or
@@ -1006,7 +1059,7 @@ module RisingCode::Views
                 }
               end
             else
-              text(RedCloth.new("oembed. #{bookmark["href"]}").to_html)
+              text("oembed. #{bookmark["href"]}")
             end
             p.tagged {
               bookmark["tag"].split(" ").each { |tag|
@@ -1075,7 +1128,7 @@ module RisingCode::Views
         }
         @bookmarks_for_today.each { |bookmark|
           li {
-            if ((oembed = RedCloth.new("oembed. #{bookmark["href"]}").to_html) == bookmark["href"]) then
+            if ((oembed = "oembed. #{bookmark["href"]}".textilize) == bookmark["href"]) then
               if (
                 bookmark["href"].downcase.include?(".png") or
                 bookmark["href"].downcase.include?(".jpg") or
@@ -1532,6 +1585,7 @@ module RisingCode::Views
   end
 
   def message
+=begin
     div {
       fetched = Fast.fetch("http://api.flickr.com/services/feeds/photos_public.gne?tags=#{@tag}&lang=en-us&format=rss_200")
       fetched = nil if fetched.blank?
@@ -1589,6 +1643,7 @@ module RisingCode::Views
         }
       }
     }
+=end
   end
 
   def index
@@ -1623,11 +1678,19 @@ module RisingCode::Views
           } if article.tags.length > 0
           li {
             if @single and not article.excerpt.blank? then
-              RedCloth.new(article.excerpt).to_html + RedCloth.new(article.body).to_html
+              text(article.excerpt.textilize)
+              text(article.body.textilize)
+              #text(RedCloth.new(article.excerpt).extend(::RisingCodeTags).to_html + RedCloth.new(article.body).to_html)
+              
             elsif not @single and not article.excerpt.blank? then
-              RedCloth.new(article.excerpt).to_html
+              text(article.excerpt.textilize)
+              #r = RedCloth.new(article.excerpt)
+              #r.extend(RisingCodeTags)
+              #r.to_html
+              #text("w")
             else
-              RedCloth.new(article.body).to_html
+              "wtf"
+              #RedCloth.new(article.body).to_html
             end
           }
         }
