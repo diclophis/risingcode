@@ -26,6 +26,7 @@ require 'markaby'
 module RisingCode
   module Base
     def r404(p=env.PATH)
+      @status = 404
       "Lost?"
 =begin
       return ::Markaby::Builder.new.xhtml_transitional {
@@ -64,5 +65,14 @@ module RisingCode
       #}
 =end
     end
+  end
+end
+
+class Array
+  def at_center
+    (length / 2).round
+  end
+  def center
+    self[at_center]
   end
 end

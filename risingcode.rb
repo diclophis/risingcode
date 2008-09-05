@@ -956,7 +956,6 @@ module RisingCode::Views
       ads
       s = ""
         s += (Date::DAYNAMES[@today.wday])
-        s += (" was ")
         words = {}
         word = nil
         @bookmarks.each { |date, bookmarks|
@@ -979,20 +978,29 @@ module RisingCode::Views
               word.gsub!(/([a-zA-Z0-9])\..*/, '\1')
               word.gsub!(/([^a-zA-Z0-9])/, '')
               word.downcase!
-              next if word.length < 3
-              next if words[word] > 5
+              next if word.length < 6
+              next if words[word] > 11
               next if found.include?(word)
               found << word
               break
             }
           } 
-          break if ((flex += 1) > 999)
+          break if ((flex += 1) > 4)
         end
+        #found[found.length] = "#{found.first} #{found.middle} #{found.last} kinda"
+        #case found.length
       ul {
         bookmarks_nav
         li {
           h2 {
-            text(s + found.en.conjunction + " kinda day.")
+            #text(found.join("+"))
+            if found.at_center > 1 then
+              text(s + " started with #{found.first}, featured a #{found.center} flavoured lunch, ended in a #{found.last} afternoon")
+            elsif found.at_center == 1 then
+              text(s + " was a half #{found.first} and half #{found.last} kinda day")
+            else
+              text(s + " was a whole lotta #{found.first || :nothing}")
+            end
           }
         }
         @bookmarks_for_today.each { |bookmark|
@@ -1526,6 +1534,7 @@ module RisingCode::Views
             h3 {
               text(" on ")
               text(article.published_on.strftime("%B %d %Y"))
+              text(" I wondered... ")
             }
           }
           li {
