@@ -17,6 +17,7 @@ require 'drb'
 require 'uuidtools'
 require 'right_aws'
 require 'linguistics'
+require 'hpricot'
 Linguistics::use( :en )
 
 #import into the system
@@ -66,7 +67,6 @@ module RisingCodeTags
     end
   end
   def ruby(opts)
-    Camping::Models::Base.logger.debug("#{opts.inspect}")
     content = opts[:text]
     begin
       return DocumentationServer::SERVER.highlight(content, "rb")
@@ -77,7 +77,6 @@ module RisingCodeTags
   end
   def oembed(opts)
     content = opts[:text]
-    Camping::Models::Base.logger.debug("oembed exists for? #{content}")
     begin
       res = OEmbed::Providers::OohEmbed.get(content)
       case res
@@ -94,6 +93,9 @@ module RisingCodeTags
           ::Markaby::Builder.new.div(:class => "oembed centered") {
             div.oembeded {
               text(res.field(:html))
+              #div.provider {
+              #  text(res.field(:provider_name))
+              #}
             }
           }
         when OEmbed::Response::Link
@@ -123,37 +125,29 @@ class String
 end
 
 module RisingCode
-
   include Camping::Session 
-
   def user_logged_in
     @state.authenticated == true
   end
-
   def view_images
     @viewing_images = true
     yield
   end
-
   def other_layout
     @content_class = "other"
     @no_header = true
     @no_sidebar = true
     yield
   end
-
   def no_sidebar
     @no_sidebar
   end
-
   def no_header
     @no_header
   end
-
   def viewing_images
     @viewing_images
   end
-
   def administer (current_action = nil)
     if user_logged_in then 
       @administering = true
@@ -165,15 +159,12 @@ module RisingCode
       redirect(R(Controllers::Login, nil))
     end
   end
-
   def administering
     @administering
   end
-
   def display_identifier
     @@display_identifier
   end
-
   def service(*a)
     searched = Referrer.parse(@env["HTTP_REFERER"])
     if searched then
@@ -229,7 +220,6 @@ module RisingCode::Models
       drop_table :images
     end
   end
-
   class Article < Base
     validates_presence_of :title, :if => :title
     validates_uniqueness_of :title
@@ -247,32 +237,25 @@ module RisingCode::Models
       }
     end
   end
-
   class Image < Base
     def put_key (x_key, blob)
       get_key(x_key).put(blob, 'public-read')
     end
-
     def get_key (x_key)
       RightAws::S3::Key.create(@@bucket, self.permalink + "_" + x_key.to_s)
     end
-
     def public_link(x_key = :main)
       get_key(x_key).public_link
     end
-
     def thumb_permalink
       public_link(:thumb)
     end
-
     def full_permalink
       public_link(:main)
     end
-    
     def icon_permalink
       public_link(:icon)
     end
-
     def x_put (blob)
       self.permalink = UUID.random_create.to_s if self.permalink.blank?
       imgs = Magick::Image.from_blob(blob)
@@ -304,37 +287,30 @@ module RisingCode::Models
       }
     end
   end
-
   class Tagging < Base
     belongs_to :tag
     belongs_to :taggable, :polymorphic => true
-    
     def after_destroy
       if Tag.destroy_unused and tag.taggings.count.zero?
         tag.destroy
       end
     end
   end
-
   class Tag < Base
     has_many :taggings
     validates_presence_of :name
     validates_uniqueness_of :name
     cattr_accessor :destroy_unused
     self.destroy_unused = false
-    
     def self.find_or_create_with_like_by_name(name)
       find(:first, :conditions => ["name LIKE ?", name]) || create(:name => name)
     end
-    
     def ==(object)
       super || (object.is_a?(Tag) && name == object.name)
     end
-    
     def to_s
       name
     end
-    
     def count
       read_attribute(:count).to_i
     end
@@ -366,8 +342,6 @@ module RisingCode::Controllers
       metrics = label.get_type_metrics(id)
       width = metrics.width
       height = metrics.height
-      #return label, width, height
-      #label, width, height = get_label_and_metrics(@input.id, "black", "Vera")
       width += 16
       height += 12
       radius = 4
@@ -401,13 +375,11 @@ module RisingCode::Controllers
         self.format = 'GIF'
         self.quality = 100
       }
-      #send_data blob, :type => 'image/gif', :disposition => 'inline'
       @headers["Content-Type"] = "image/gif"
       @headers["Content-Disposition"] = "inline"
       return blob
     end
   end
-
   class Contact < R("/contact")
     def get
       @tags = Tag.find_all_by_include_in_header(true)
@@ -417,7 +389,6 @@ module RisingCode::Controllers
       
     end
   end
-
   class Login < R("/dashboard/login(.*)")
     def get(*args)
       if (@input.has_key?("openid.mode")) then
@@ -446,7 +417,6 @@ module RisingCode::Controllers
       end
     end
   end
-
   class Dashboard < R("/dashboard")
     def get
       administer { 
@@ -454,21 +424,18 @@ module RisingCode::Controllers
       }
     end
   end
-
   class Logout < R("/dashboard/logout")
     def get
       log_user_out
       redirect R(Index)
     end
   end
-
   class About < R('/about')
     def get
       @tags = Tag.find_all_by_include_in_header(true)
       render :about
     end
   end
-
   class Resume < R('/about/resume')
     def get
       other_layout {
@@ -476,7 +443,6 @@ module RisingCode::Controllers
       }
     end
   end
-
   class Images < R('/images/', '/images/public/([a-zA-Z0-9\-]+).png', '/images/([a-zA-Z0-9\-]+)/(\d*)')
     def get (*args)
       if args.length == 0 then
@@ -490,7 +456,6 @@ module RisingCode::Controllers
       end
     end
   end
-
   class Learn < R('/learn/about/(.*)')
     def get (tag)
       @tag = tag
@@ -498,7 +463,6 @@ module RisingCode::Controllers
       render :message
     end
   end
-
   class BookmarksByTag < R('/bookmarks/tagged/(.*)')
     def get (tag)
       @tag = tag
@@ -513,7 +477,6 @@ module RisingCode::Controllers
       render :bookmarks_by_tag
     end
   end
-
   class Bookmarks < R('/bookmarks', '/bookmarks/(\d+)/(\d+)/(\d+)')
     def get (*args)
       @tags = Tag.find_all_by_include_in_header(true)
@@ -604,7 +567,6 @@ module RisingCode::Controllers
 =end
     end
   end
-
   class Sources < R('/sources')
     def get
       @tags = Tag.find_all_by_include_in_header(true)
@@ -619,7 +581,6 @@ module RisingCode::Controllers
       render :sources
     end
   end
-
   class Index < R('/', '/(articles)', '/([a-zA-Z0-9 ]+)/(\d*)', '/(\d+)/(\d+)/(\d+)', '/(\w+)/(\w+)/(\w+)/([\w-]+)')
     def get(*args)
       @limit = 5
@@ -686,7 +647,6 @@ module RisingCode::Controllers
       render :index
     end
   end
-
   class RetrieveArticles < R("/dashboard/articles")
     def get
       administer { 
@@ -702,7 +662,6 @@ module RisingCode::Controllers
       redirect(R(RetrieveArticles))
     end
   end
-
   class RetrieveImages < R("/dashboard/images")
     def get
       administer { 
@@ -718,7 +677,6 @@ module RisingCode::Controllers
       redirect(R(RetrieveImages))
     end
   end
-
   class RetrieveTags < R("/dashboard/tags")
     def get
       administer { 
@@ -734,7 +692,6 @@ module RisingCode::Controllers
       redirect(R(RetrieveTags))
     end
   end
-
   class CreateOrUpdateTag < R('/dashboard/tag/(\d*)')
     def get (tag_id)
       administer {
@@ -764,7 +721,6 @@ module RisingCode::Controllers
       }
     end
   end
-
   class CreateOrUpdateArticle < R('/dashboard/article/(\d*)')
     def get (article_id)
       administer {
@@ -785,7 +741,6 @@ module RisingCode::Controllers
         else
           @article = Article.new
         end
-        #@article.user_id = 1
         @article.title = @input.title
         @article.permalink = @input.permalink
         @article.excerpt = @input.excerpt
@@ -796,7 +751,6 @@ module RisingCode::Controllers
       }
     end
   end
-
   class CreateOrUpdateImage < R('/dashboard/image/(\d*)')
     def get (image_id)
       administer {
@@ -818,14 +772,12 @@ module RisingCode::Controllers
         unless @input.the_file.is_a?(String) then
           @image.x_put(@input.the_file[:tempfile].read)
         end
-        #@image.user_id = 1
         @image.save!
         redirect(R(CreateOrUpdateImage, @image.id))
       }
     end
   end
 end
-
 module RisingCode::Views
   def contact
     form(:action => R(Contact), :method => :post) {
@@ -836,7 +788,6 @@ module RisingCode::Views
       input(:type => "submit", :value => "go")
     }
   end
-
   def layout
     xhtml_transitional {
       head {
@@ -940,7 +891,6 @@ module RisingCode::Views
       }
     }
   end
-
   def images
     div {
       ads
@@ -958,7 +908,6 @@ module RisingCode::Views
       }
     }
   end
-
   def bookmarks_by_tag
     div {
       ads
@@ -1002,7 +951,6 @@ module RisingCode::Views
       }
     }
   end
-
   def bookmarks
     div {
       ads
@@ -1081,7 +1029,6 @@ module RisingCode::Views
       }
     }
   end
-
   def bookmarks_nav
     li {
       a(:href => R(Bookmarks, @yesterday.year, @yesterday.month, @yesterday.day)) {
@@ -1099,7 +1046,6 @@ module RisingCode::Views
       } if @bookmarks_for_tomorrow
     }
   end
-  
   def ads
     p.ads! {
       text('
@@ -1117,8 +1063,6 @@ module RisingCode::Views
       ')
     }
   end
-
-
   def about
     div {
       ads
@@ -1190,7 +1134,6 @@ module RisingCode::Views
       }
     }
   end
-
   def resume
     div {
       h1 {
@@ -1446,7 +1389,6 @@ module RisingCode::Views
       }
     }
   end
-
   def sources
     ul {
       li {
@@ -1456,9 +1398,6 @@ module RisingCode::Views
         ul {
           @controllers.each { |controller, source|
             li {
-              #h3 {
-              #  controller
-              #}
               text(source)
             }
           }
@@ -1471,9 +1410,6 @@ module RisingCode::Views
         ul {
           @models.each { |model, source|
             li {
-              #h3 {
-              #  model
-              #}
               text(source)
             }
           }
@@ -1481,7 +1417,6 @@ module RisingCode::Views
       }
     }
   end
-
   def timecard
     div {
       table {
@@ -1504,7 +1439,6 @@ module RisingCode::Views
       }
     }
   end
-
   def message
     flickr = nil
     wikipedia = nil
@@ -1523,11 +1457,19 @@ module RisingCode::Views
           break
         }
       end
-      text(("oembed. http://en.wikipedia.org/wiki/#{@tag}").textilize)
+      fetched = Fast.fetch("http://en.wikipedia.org/wiki/Special:Search/#{@tag}")
+      fetched = nil if fetched.blank?
+      if fetched then
+        doc = Hpricot(fetched)
+        event = nil
+        (doc / "ul.mw-search-results li").each { |el|
+          text("oembed. http://en.wikipedia.org#{el.children[0].attributes['href']}".textilize)
+          break
+        }
+      end
       fetched = Fast.fetch("http://www.vimeo.com/tag:#{@tag}/rss")
       fetched = nil if fetched.blank?
       if fetched and fetched.length > 0 then
-        Camping::Models::Base.logger.debug(fetched.length)
         doc = ::REXML::Document.new(fetched)
         event = nil
         doc.elements.each('/rss/channel/item') { |el|
@@ -1569,7 +1511,6 @@ module RisingCode::Views
       }
     }
   end
-
   def index
     div {
       @articles.each_with_index { |article, i|
@@ -1583,10 +1524,8 @@ module RisingCode::Views
           }
           li {
             h3 {
-              #text(display_identifier)
               text(" on ")
               text(article.published_on.strftime("%B %d %Y"))
-              text(" I wondered... ")
             }
           }
           li {
@@ -1612,25 +1551,6 @@ module RisingCode::Views
           }
         }
       }
-=begin
-      if @use_page_navigation and (@old_ranger or @new_ranger) then
-        h2 {
-          "More articles numbered"
-        }
-        ul.rangers_list {
-          li {
-            a(:href => R(Index, @older_articles)) {
-              @older_articles
-            }
-          } if @old_ranger
-          li {
-            a(:href => R(Index, @newer_articles)) {
-              @newer_articles
-            }
-          } if @new_ranger
-        }
-      end
-=end
       if @use_date_navigation and (@old_ranger or @new_ranger) then
         h2 {
           "More articles dated"
@@ -1650,7 +1570,6 @@ module RisingCode::Views
       end
     }
   end
-
   def login
     form(:method => :post) {
       ul {
@@ -1663,7 +1582,6 @@ module RisingCode::Views
       }
     }
   end
-
   def dashboard
     div {
       ul {
@@ -1685,7 +1603,6 @@ module RisingCode::Views
       }
     }
   end
-
   def list_tags
     div {
       form(:method => :post, :enctype => "multipart/form-data") {
@@ -1705,7 +1622,6 @@ module RisingCode::Views
       }
     }
   end
-
   def list_articles
     div {
       form(:method => :post, :enctype => "multipart/form-data") {
@@ -1725,7 +1641,6 @@ module RisingCode::Views
       }
     }
   end
-
   def articles
     div {
       ul {
@@ -1739,7 +1654,6 @@ module RisingCode::Views
       }
     }
   end
-
   def list_images
     div {
       form(:method => :post, :enctype => "multipart/form-data") {
@@ -1762,7 +1676,6 @@ module RisingCode::Views
       }
     }
   end
-
   def create_or_update_article
     div {
       form(:method => :post) {
@@ -1814,7 +1727,6 @@ module RisingCode::Views
       }
     }
   end
-
   def create_or_update_tag
     div {
       form(:method => :post, :enctype => "multipart/form-data") {
@@ -1839,7 +1751,6 @@ module RisingCode::Views
       }
     }
   end
-
   def create_or_update_image
     div {
       form(:method => :post, :enctype => "multipart/form-data") {
@@ -1866,13 +1777,6 @@ module RisingCode::Views
     }
   end
 end
-
-
-#if __FILE__ == $0
-#  puts "server"
-#  DocumentationServer.daemon(["zap", "-t", "-f"])
-#  DocumentationServer.daemon(["start"])
-#end
 
 =begin
 []   range specificication (e.g., [a-z] means a letter in the range a to z)
