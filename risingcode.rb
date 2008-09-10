@@ -21,6 +21,7 @@ require 'hpricot'
 Linguistics::use( :en )
 
 #import into the system
+require 'rack'
 require 'camping'
 require 'camping/session'
 require 'openid'
@@ -93,9 +94,6 @@ module RisingCodeTags
           ::Markaby::Builder.new.div(:class => "oembed centered") {
             div.oembeded {
               text(res.field(:html))
-              #div.provider {
-              #  text(res.field(:provider_name))
-              #}
             }
           }
         when OEmbed::Response::Link
@@ -1468,16 +1466,23 @@ module RisingCode::Views
       fetched = Fast.fetch("http://en.wikipedia.org/wiki/Special:Search/#{@tag}")
       fetched = nil if fetched.blank?
       if fetched then
+#Camping::Models::Base.logger.debug(fetched.slice(0, 100))
         doc = Hpricot(fetched)
-        event = nil
+        (doc / "li#ca-nstab-main").each { |el|
+          text("oembed. http://en.wikipedia.org#{el.children[0].attributes['href']}".textilize)
+          break
+        }
         (doc / "ul.mw-search-results li").each { |el|
           text("oembed. http://en.wikipedia.org#{el.children[0].attributes['href']}".textilize)
           break
         }
       end
+=begin
       fetched = Fast.fetch("http://www.vimeo.com/tag:#{@tag}/rss")
       fetched = nil if fetched.blank?
-      if fetched and fetched.length > 0 then
+      Camping::Models::Base.logger.debug("#{fetched.length} wang chung")
+      Camping::Models::Base.logger.debug("#{fetched.readlines.join} wang chung")
+      if fetched and fetched.length > 2 then
         doc = ::REXML::Document.new(fetched)
         event = nil
         doc.elements.each('/rss/channel/item') { |el|
@@ -1512,6 +1517,7 @@ module RisingCode::Views
           break
         }
       end
+=end
       p {
         a(:href => "http://delicious.com/tag/#{@tag}") {
           text("more about #{@tag}")

@@ -26,6 +26,11 @@ task :bookmarks do
   `#{cmd}`
 end
 
+desc "flush cache"
+task :flush do
+  MemCache.new("localhost:11211", :namespace => "openuri").flush_all
+end
+
 
 =begin
 if __FILE__ == $0 then
