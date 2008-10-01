@@ -166,8 +166,8 @@ module RisingCode
   def service(*a)
     searched = Referrer.parse(@env["HTTP_REFERER"])
     if searched then
-      status = "#{searched[0]} found '#{searched[1]}' at http://risingcode.com" + @env["PATH_INFO"]
-      Twitter.update(status)
+      #status = "#{searched[0]} found '#{searched[1]}' at http://risingcode.com" + @env["PATH_INFO"]
+      #Twitter.update(status)
     end
     return super(*a)
   end
@@ -289,7 +289,7 @@ module RisingCode::Models
     belongs_to :tag
     belongs_to :taggable, :polymorphic => true
     def after_destroy
-      if Tag.destroy_unused and tag.taggings.count.zero?
+      if Tag.destroy_unused and tag.taggings.count.zero? then
         tag.destroy
       end
     end
@@ -1777,7 +1777,7 @@ module RisingCode::Views
           }
           li {
             img(:src => @image.icon_permalink)
-          }
+          } unless @image.new_record?
           li {
             label(:for => :file) {
               text("file")

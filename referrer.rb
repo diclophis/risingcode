@@ -3,7 +3,6 @@ class Referrer
     'AltaVista' => 'q',
     'Ask' => 'q',
     'Google' => 'q',
-    'Live' => 'q',
     'Lycos' => 'query',
     'MSN' => 'q',
     'Yahoo' => 'p',
