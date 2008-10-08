@@ -9,6 +9,7 @@ module Fast
     if Cache.enabled? and Cache::alive?
       begin
         response = Cache::get("fast" + url)
+Camping::Models::Base.logger.debug("cached #{url}")
       rescue
         response = nil
       end
@@ -17,6 +18,7 @@ module Fast
       res = Net::HTTP.start(uri.host, uri.port) do |http|
         http.get(uri.request_uri)
       end
+Camping::Models::Base.logger.debug("fetched #{url}")
 #Camping::Models::Base.logger.debug("fetched #{res.inspect}")
       case res
         when Net::HTTPRedirection
@@ -95,7 +97,7 @@ module Fast
             
       # How long your caches will be kept for (in seconds)
       def expiry
-        @expiry ||= 60 * 60 * 24
+        @expiry ||= 60 * 60 * 24 * 30
         #@expiry ||= 0
       end
       

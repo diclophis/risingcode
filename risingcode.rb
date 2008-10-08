@@ -79,38 +79,42 @@ module RisingCodeTags
   def oembed(opts)
     content = opts[:text]
     begin
-      res = OEmbed::Providers::OohEmbed.get(content)
-      case res
-        when OEmbed::Response::Photo
-          ::Markaby::Builder.new.div(:class => "oembed centered") {
-            div.oembeded {
-              a(:href => content) {
-                img(:src => res.field(:url))
-              }
-              text(res.field(:html))
-            }
-          }
-        when OEmbed::Response::Video, OEmbed::Response::Rich
-          ::Markaby::Builder.new.div(:class => "oembed centered") {
-            div.oembeded {
-              text(res.field(:html))
-            }
-          }
-        when OEmbed::Response::Link
-          ::Markaby::Builder.new.div(:class => "oembed") {
-            div.oembeded {
-              a(:href => content) {
-                h4 {
-                  text(res.field(:title))
+      Timeout::timeout(1) do
+        res = OEmbed::Providers::OohEmbed.get(content)
+        case res
+          when OEmbed::Response::Photo
+            ::Markaby::Builder.new.div(:class => "oembed centered") {
+              div.oembeded {
+                a(:href => content) {
+                  img(:src => res.field(:url))
                 }
+                text(res.field(:html))
               }
-              text(res.field(:html))
             }
-          }
-      else
-        content
+          when OEmbed::Response::Video, OEmbed::Response::Rich
+            ::Markaby::Builder.new.div(:class => "oembed centered") {
+              div.oembeded {
+                text(res.field(:html))
+              }
+            }
+          when OEmbed::Response::Link
+            ::Markaby::Builder.new.div(:class => "oembed") {
+              div.oembeded {
+                a(:href => content) {
+                  h4 {
+                    text(res.field(:title))
+                  }
+                }
+                text(res.field(:html))
+              }
+            }
+        else
+          content
+        end
       end
     rescue Exception => problem
+      #Camping::Models::Base.logger.debug("#{problem.inspect}")
+      #Camping::Models::Base.logger.debug(problem.backtrace.join("\n"))
       content
     end
   end
