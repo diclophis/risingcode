@@ -4,9 +4,10 @@ class DocumentationServer
   URI = "druby://:2527"
   SERVER = DRbObject.new(nil, URI)
   def self.daemon (argv)
+    #Daemons.run_proc("documentation_server", {:ontop => true, :dir_mode => :system, :ARGV => argv}) do
     Daemons.run_proc("documentation_server", {:dir_mode => :system, :ARGV => argv}) do
       require "/var/www/risingcode/boot"
-      Camping::Models::Base.logger.debug("starting server")
+      #Camping::Models::Base.logger.debug("starting server")
       DRb.start_service(URI, self.new)
 #      Signal.trap(:KILL) do
 #        #Camping::Models::Base.logger.debug("killing server")

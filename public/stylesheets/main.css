@@ -1,21 +1,6 @@
 /* RisingCode based on Simpla */  
 
-span.snippet {
-  display: block;
-  overflow: auto;
-  white-space: nowrap;
-  background-color: #000000;
-}
-
-span.snippet {
-  margin-bottom: 0px;
-  background-color: #000000;
-  font-family: monospace;
-  color: #ffffff;
-  padding: 4px;
-  border: 1px solid #777777;
-}
-
+span.snippet { display: block; overflow: auto; white-space: nowrap; background-color: #000000; font-family: monospace; color: #ffffff; padding: 4px; border: 1px solid #777777; }
 .Identifier { color: #00ffff; }
 .OldComment { color: #8080ff; }
 .Comment { color: blue; }
@@ -24,27 +9,15 @@ span.snippet {
 .Special { color: #ff40ff; }
 .PreProc { color: #ff40ff; }
 .Type { color: #00ff00; }
+table { table-layout: fixed; width: 805px; border-collapse: collapse; border-spacing: 0; }
+td, tr { border-collapse: collapse; border-spacing: 0; margin: 0; padding: 0; border: 0; }
+td.lines { vertical-align: top; width: 1%; background-color: #e0e0e0; color: blue; font-family: monospace; padding: 0.5em 0.5em 0 0.5em; text-align: right; }
 
 body {
   margin: 0;
   padding: 0;
   width: 850px;
   font-family: sans-serif;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  border-spacing: 0;
-}
-
-
-td, tr {
-  border-collapse: collapse;
-  border-spacing: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
 }
 
 fieldset,img,abbr,acronym {
@@ -197,11 +170,32 @@ iframe {
   border: 0px;
 }
 */
-td.lines {
-  width: 1%;
-  background-color: #e0e0e0;
-  color: blue;
-  font-family: monospace;
-  padding: 0 0.5em 0 0.5em;
-  text-align: right;
+
+
+div.experience h3 {
+  display: inline;
+  clear: none;
+}
+
+div.experience h4 {
+  display: inline;
+  font-size: smaller;
+  margin-left: 1em;
+}
+
+div.experience hr {
+  border: 2px solid black;
+  clear: both;
+}
+
+ul.projects {
+  margin: 1em;
+}
+
+ul.projects li {
+  list-style: circle;
+}
+
+ul.projects p {
+  margin: 0.5em 0 1em 1em;
 }

@@ -17,7 +17,7 @@ desc "documentation server"
 task :document do
   #DocumentationServer.daemon(["stop", "-t"])
   #DocumentationServer.daemon(["zap", "-t"])
-  DocumentationServer.daemon(["start"])
+  DocumentationServer.daemon(["start", "-f"])
 end
 
 desc "grab bookmarks"

@@ -68,6 +68,7 @@ module RisingCodeTags
     end
   end
   def ruby(opts)
+    Camping::Models::Base.logger.debug("#{opts.inspect}")
     content = opts[:text]
     begin
       return DocumentationServer::SERVER.highlight(content, "rb")
@@ -122,7 +123,7 @@ end
 
 class String
   def textilize
-    RedCloth.new(self).extend(::RisingCodeTags).to_html
+    RedCloth.new(self, [:no_span_caps]).extend(::RisingCodeTags).to_html(:ruby)
   end
 end
 
@@ -1151,17 +1152,55 @@ module RisingCode::Views
       }
     }
     div {
+=begin
         h2 {
           "Background"
         }
+=end
         p {"
          I am a bleeding edge technology evangelist.
          I spend my time dabbling in protoypes, widgets, gizmos and automatons.
         "}
     }
-    div {
-      h2 {
-        "Experience"
+    div.experience {
+      p {
+        h3 {
+          em {
+            "Software Engineer - Timebridge"
+          }
+        }
+        h4 {
+          "July 2008 - October 2008, San Francisco, CA"
+        }
+        hr
+        ul.projects {
+          li {
+            h5 {
+              "Mobile Application Interface"
+            }
+            p {"
+              Lead the development of a mobile interface to the primary web application.
+              With this new feature, people are now able to view and interact with the system in a simplified and fast way.
+            "}
+          }
+          li {
+            h5 {
+              "Daily Email Notification System"
+            }
+            p {"
+              Designed to enhance the user experience by providing a summary of the users meetings for the given day.
+              In conjunction to the meeting time and location data, the attendees were linked to a profiling application allowing for research of the person before the meeting.
+            "}
+          }
+          li {
+            h5 {
+              "Rails Application Maintenance"
+            }
+            p {"
+              Throughout my employment I was tasked with fixing many existing bugs within the web application.
+            "}
+          }
+        }
       }
       p {
         h3 {
@@ -1170,7 +1209,7 @@ module RisingCode::Views
           }
         }
         h4 {
-          "September 2005 - Current, Oakland, CA"
+          "September 2005 - July 2008, Oakland, CA"
         }
         hr
         ul.projects {
@@ -1239,7 +1278,7 @@ module RisingCode::Views
       }
       p {
         h3 {
-          "Software Engineer - USF College of Medicine"
+          "Junior Software Engineer - USF College of Medicine"
         }
         h4 {
           "June 2001 - May 2005, Tampa, FL"
@@ -1288,7 +1327,7 @@ module RisingCode::Views
       }
       p {
         h3 {
-          "Software Engineer - ImageLinks"
+          "Junior Software Engineer - ImageLinks"
         }
         h4 {
           "Dec 1999 - August 2000, Melbourne, FL"
@@ -1326,7 +1365,7 @@ module RisingCode::Views
       }
       p {
         h3 {
-          "Software Engineer - XL Vision"
+          "Junior Software Engineer - XL Vision"
         }
         h4 {
           "April 2000 - August 2000, Vero, FL"
@@ -1368,7 +1407,8 @@ module RisingCode::Views
         h4 {
           "May 1998 - May 1999, Suntree, FL"
         }
-        ul {
+        hr
+        ul.projects {
           li {
             h5 {
               "Commercial/Residential AutoCAD Drafting"
@@ -1393,6 +1433,94 @@ module RisingCode::Views
             }
             p {"
               3 computers, in 2 separate rooms, SMB based file sharing.
+            "}
+          }
+        }
+      }
+      p {
+        h3 {
+          em {
+            "Open Source Software Engineer"
+          }
+        }
+        h4 {
+          "December 2000 - Present, San Francisco, CA"
+        }
+        hr
+        ul.projects {
+          li {
+            h5 {
+              a(:href => "http://centerology.com") {
+                "Centerology.com"
+              }
+            }
+            p {"
+              Social Image Bookmarking System
+            "}
+          }
+          li {
+            h5 {
+              a(:href => "http://risingcode.com") {
+                "RisingCode.com"
+              }
+            }
+            p {"
+               Personal blog built using ruby+camping 
+            "}
+          }
+          li {
+            h5 {
+              "ProjectWiki"
+            }
+            p {"
+               A server-side savable TiddlyWiki
+            "}
+          }
+          li {
+            h5 {
+              "MyRingr"
+            }
+            p {"
+               A web/telephony integration framework
+            "}
+          }
+          li {
+            h5 {
+              "Mandelbrot Set Generator"
+            }
+            p {"
+               C++ Generator + OpenLayers Web Interface
+            "}
+          }
+          li {
+            h5 {
+              "Heatmap Image Generator"
+            }
+            p {"
+               C++ Mandelbrot Set Generator + OpenLayers Web Interface
+            "}
+          }
+          li {
+            h5 {
+              "Word Search Puzzle generator"
+            }
+            p {"
+            "}
+          }
+          li {
+            h5 {
+              "SiG Reloaded"
+            }
+            p {"
+              PHP5 Web Application Framework
+            "}
+          }
+          li {
+            h5 {
+              "SiG Information Generator"
+            }
+            p {"
+              PHP4 Web Application Framework
             "}
           }
         }
