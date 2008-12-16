@@ -1,6 +1,9 @@
-/* RisingCode based on Simpla */  
+/* Edited with EditCSS */
+/**** LINK-tag style sheet main.css ****/
 
-span.snippet { display: block; overflow: auto; white-space: nowrap; background-color: #000000; font-family: monospace; color: #ffffff; padding: 4px; border: 1px solid #777777; }
+/* RisingCode based on Simpla */  
+* { margin:0; padding:0;}
+span.snippet { display: block; overflow: auto; white-space: nowrap; background-color: #000000; font-family: monospace; color: #ffffff; padding: 4px; border: 1px solid #777777; font-size: 1.3em;}
 .Identifier { color: #00ffff; }
 .OldComment { color: #8080ff; }
 .Comment { color: blue; }
@@ -9,15 +12,16 @@ span.snippet { display: block; overflow: auto; white-space: nowrap; background-c
 .Special { color: #ff40ff; }
 .PreProc { color: #ff40ff; }
 .Type { color: #00ff00; }
-table { table-layout: fixed; width: 805px; border-collapse: collapse; border-spacing: 0; }
+table { table-layout: fixed; border-collapse: collapse; border-spacing: 0; }
 td, tr { border-collapse: collapse; border-spacing: 0; margin: 0; padding: 0; border: 0; }
-td.lines { vertical-align: top; width: 1%; background-color: #e0e0e0; color: blue; font-family: monospace; padding: 0.5em 0.5em 0 0.5em; text-align: right; }
+td.lines { vertical-align: top; width: 1%; background-color: #e0e0e0; color: blue; font-family: monospace; padding: 0.5em 0.5em 0 0.5em; text-align: right; font-size: 1.3em;}
 
 body {
   margin: 0;
   padding: 0;
   width: 850px;
-  font-family: sans-serif;
+  font-size: 62.5%;
+  font-family: Lucida Sans Unicode, Lucida Grande, sans-serif;
 }
 
 fieldset,img,abbr,acronym {
@@ -51,8 +55,14 @@ h1,h2,h3,h4,h5,h6 {
 }
 
 h1 a, h2 a {
-  font-variant: small-caps;
+color: #646463;
 }
+/* #646463 */
+h1 {  font-size: 1.8em; color: #333; }
+h2 {  font-size: 1.6em; color: #555; border-bottom: 1px solid #ccc; }
+h3 {  font-size: 1.3em; color: #777; }
+h4 {  font-size: 1.1em; color: #999; }
+h5 {  font-size: 0.9em; color: #aaa; }
 
 a {
   outline: 0;
@@ -61,6 +71,7 @@ a {
 
 p {
   margin: 7px 0 11px 0px;
+font-size: 1.1em;
 }
 
 img {
@@ -78,28 +89,42 @@ textarea {
 }
 
 #header {
-  padding: 45px 0 8px 8px; 
-  border-bottom: 2px solid #e0e0e0;
-  width: 843px;
-  background: url(/images/sky.jpg) no-repeat top left;
+  width: 175px;
+  height: 400px;
+  float: left;
+  padding: 10px;
+  margin: 180px 0 0 0;
 }
+
+#header h1 { background: url('http://jefte.net/images/lorc/lorc_bullet.png') no-repeat 0 0;  height: 40px; padding: 10px 0 0 36px;}
 
 #header li {
   float: left;
-  margin: 0 15px 0px 0px;
+  margin: 0px;
+  height: 40px; 
+  margin: 0 0 15px 0;
+}
+
+#header li.active a {
+  text-decoration: underline;
 }
 
 #content {
   padding: 1em;
-  width: 820px;
+  width: 700px;
+  float: left;
+  display: block; 
+  background: white;
+  border: 1px solid #999;
+  margin: 69px 0 0 0;
 }
 
 li img {
-  max-width: 800px;
+  max-width: 470px;
 }
 
 #logo {
-  padding: 90px 0 0 0;
+  padding: 0 0 0 0;
 }
 
 #profiles li {
@@ -124,17 +149,16 @@ p.tagged {
 }
 
 div.oembed {
-  background: url(/images/gray_quotes.png) no-repeat scroll -150px top;
+  background: url(/images/gray_quotes.png) no-repeat scroll -180px top;
   position:relative;
   padding: 0px 0 0 0px;
 }
 
 div.oembeded {
-  padding: 20px 120px 40px 120px;
-  background: url(/images/gray_quotes.png) no-repeat scroll 670px bottom;
+  padding: 20px 90px 40px 90px;
+  background: url(/images/gray_quotes.png) no-repeat scroll 580px bottom;
   position:relative;
 }
-
 
 pre {
   border: 2px inset #b2b2b2;
@@ -199,3 +223,6 @@ ul.projects li {
 ul.projects p {
   margin: 0.5em 0 1em 1em;
 }
+
+#wrap { float: left; background: #ccc; width: 1000px; background: url('http://jefte.net/images/lorc/bg.gif') no-repeat;}
+table { width: 100%; font-size: 1.0em;}

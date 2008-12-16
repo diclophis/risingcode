@@ -6,6 +6,7 @@ module Fast
 #Camping::Models::Base.logger.debug(url.inspect)
 #Camping::Models::Base.logger.debug(recursed.inspect)
     uri = URI.parse(url)
+Camping::Models::Base.logger.debug("fetching #{url}")
     if Cache.enabled? and Cache::alive?
       begin
         response = Cache::get("fast" + url)
@@ -18,7 +19,6 @@ Camping::Models::Base.logger.debug("cached #{url}")
       res = Net::HTTP.start(uri.host, uri.port) do |http|
         http.get(uri.request_uri)
       end
-Camping::Models::Base.logger.debug("fetched #{url}")
 #Camping::Models::Base.logger.debug("fetched #{res.inspect}")
       case res
         when Net::HTTPRedirection

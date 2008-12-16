@@ -18,6 +18,7 @@ require 'uuidtools'
 require 'right_aws'
 require 'linguistics'
 require 'hpricot'
+require 'plist'
 Linguistics::use( :en )
 
 #import into the system
@@ -45,6 +46,7 @@ Camping.goes :RisingCode
 module RisingCodeTags
   def hard_breaks; false; end
   def css(opts)
+#Camping::Models::Base.logger.debug("css. opts = #{opts.inspect}")
     content = opts[:text]
     begin
       h = DocumentationServer::SERVER.highlight(content, "css")
@@ -63,24 +65,25 @@ module RisingCodeTags
         }
       }
     rescue Exception => problem
-      Camping::Models::Base.logger.debug("#{problem}")
+#Camping::Models::Base.logger.debug("css. problem #{problem}")
       problem.inspect
     end
   end
   def ruby(opts)
-    Camping::Models::Base.logger.debug("#{opts.inspect}")
+#Camping::Models::Base.logger.debug("ruby. opts = #{opts.inspect}")
     content = opts[:text]
     begin
       return DocumentationServer::SERVER.highlight(content, "rb")
     rescue Exception => problem
-      Camping::Models::Base.logger.debug("#{problem}")
+#Camping::Models::Base.logger.debug("ruby problem #{problem}")
       problem.inspect
     end
   end
   def oembed(opts)
+#Camping::Models::Base.logger.debug("oembed. opts = #{opts.inspect}")
     content = opts[:text]
     begin
-      Timeout::timeout(1) do
+      Timeout::timeout(3) do
         res = OEmbed::Providers::OohEmbed.get(content)
         case res
           when OEmbed::Response::Photo
@@ -114,8 +117,9 @@ module RisingCodeTags
         end
       end
     rescue Exception => problem
-      #Camping::Models::Base.logger.debug("#{problem.inspect}")
-      #Camping::Models::Base.logger.debug(problem.backtrace.join("\n"))
+#      Camping::Models::Base.logger.debug("wang chung")
+#      Camping::Models::Base.logger.debug("#{problem.inspect}")
+#      Camping::Models::Base.logger.debug(problem.backtrace.join("\n"))
       content
     end
   end
@@ -123,7 +127,10 @@ end
 
 class String
   def textilize
-    RedCloth.new(self, [:no_span_caps]).extend(::RisingCodeTags).to_html(:ruby)
+#Camping::Models::Base.logger.debug("AAA")
+    wang = RedCloth.new(self, [:no_span_caps]).extend(::RisingCodeTags).to_html(:ruby)
+#Camping::Models::Base.logger.debug("BBB")
+    wang
   end
 end
 
@@ -330,9 +337,100 @@ module RisingCode::Models
 end
 
 module RisingCode::Controllers
+  class States < R('/states')
+    def get
+      states = [
+        "alabama",
+        "alaska",
+        "arizona",
+        "arkansas",
+        "california",
+        "colorado",
+        "connecticut",
+        "washington dc",
+        "delaware",
+        "florida",
+        "georgia",
+        "hawaii",
+        "idaho",
+        "illinois",
+        "indiana",
+        "iowa",
+        "kansas",
+        "kentucky",
+        "louisiana",
+        "maine",
+        "maryland",
+        "massachusetts",
+        "michigan",
+        "minnesota",
+        "mississippi",
+        "missouri",
+        "montana",
+        "nebraska",
+        "nevada",
+        "new hampshire",
+        "new jersey",
+        "new york",
+        "north carolina",
+        "north dakota",
+        "ohio",
+        "oklahoma",
+        "oregon",
+        "pennsylvania",
+        "rhode island",
+        "south carolina",
+        "south dakota",
+        "states",
+        "tennessee",
+        "texas",
+        "utah",
+        "vermont",
+        "virginia",
+        "washington",
+        "west virginia",
+        "wisconsin",
+        "wyoming"
+      ]
+
+      data = {}
+      states.each { |state|
+        begin
+          Timeout::timeout(3) do
+#Camping::Models::Base.logger.debug("111")
+            fetched = Fast.fetch("http://en.wikipedia.org/wiki/Special:Search/#{URI.encode(state)}")
+            fetched = nil if fetched.blank?
+            if fetched then
+#Camping::Models::Base.logger.debug(fetched.slice(0, 100))
+              doc = Hpricot(fetched)
+              (doc / "li#ca-nstab-main").each { |el|
+#Camping::Models::Base.logger.debug("222")
+                data[state] = "oembed. http://en.wikipedia.org#{el.children[0].attributes['href']}".textilize
+#Camping::Models::Base.logger.debug("333")
+                break
+              }
+              (doc / "ul.mw-search-results li").each { |el|
+#Camping::Models::Base.logger.debug("444")
+                data[state] = "oembed. http://en.wikipedia.org#{el.children[0].attributes['href']}".textilize
+#Camping::Models::Base.logger.debug("555")
+                break
+              }
+            end
+          end
+        rescue Exception => problem
+#Camping::Models::Base.logger.debug("wikipedia timedout")
+#Camping::Models::Base.logger.debug("#{problem.inspect}")
+#Camping::Models::Base.logger.debug(problem.backtrace.join("\n"))
+        end
+      }
+#Camping::Models::Base.logger.debug("666")
+
+      return data.to_plist
+    end
+  end
   class Button < R('/button/(.*)')
     def get (id)
-      id ||= "GO"
+      id = "                    "
       label = Draw.new
       label.fill = "black" 
       label.stroke = 'none'
@@ -436,14 +534,48 @@ module RisingCode::Controllers
   class About < R('/about')
     def get
       @tags = Tag.find_all_by_include_in_header(true)
+      @active_tab = "about"
+      @bookmarks = Delicious::Bookmarks.all(0, 99999)
+      @found = []
+      @words = {}
+      @bookmarks.each { |date, bookmarks|
+        bookmarks.each { |bookmark|
+          new_words = bookmark["excerpt"].split(/([^a-zA-Z0-9])/)
+          new_words.each { |word|
+            word.gsub!(/([a-zA-Z0-9])\..*/, '\1')
+            word.gsub!(/([^a-zA-Z0-9])/, '')
+            word.downcase!
+            @words[word] = 0 if @words[word].nil?
+            @words[word] += 1
+          }
+        }
+      }
+      @words.each { |word, count|
+        next if word.length < 5
+        case count
+          when 1..10
+            next
+          when 10..20
+          when 30..60
+            next
+        end
+          
+        #next if count < 20
+        #next if count > 40
+        @found << word
+      }
+      #@top = @found.collect { |word| word.en.present_participle }
+      #@generalization = @found.en.conjunction(:generalize => true)
       render :about
     end
   end
   class Resume < R('/about/resume')
     def get
-      other_layout {
-        render :resume
-      }
+      #other_layout {
+      @tags = Tag.find_all_by_include_in_header(true)
+      @active_tab = "about"
+      render :resume
+      #}
     end
   end
   class Images < R('/images/', '/images/public/([a-zA-Z0-9\-]+).png', '/images/([a-zA-Z0-9\-]+)/(\d*)')
@@ -451,6 +583,7 @@ module RisingCode::Controllers
       if args.length == 0 then
         view_images {
           @tags = Tag.find_all_by_include_in_header(true)
+          @active_tab = "risingcode"
           @images = Image.find(:all, :order => "created_at desc")
           render :images
         }
@@ -463,6 +596,7 @@ module RisingCode::Controllers
     def get (tag)
       @tag = tag
       @tags = Tag.find_all_by_include_in_header(true)
+      @active_tab = "bookmarks"
       render :message
     end
   end
@@ -470,11 +604,12 @@ module RisingCode::Controllers
     def get (tag)
       @tag = tag
       @tags = Tag.find_all_by_include_in_header(true)
+      @active_tab = "bookmarks"
       @bookmarks = Delicious::Bookmarks.all(0, 99999)
       @bookmarks_for_tag = []
       @bookmarks.each { |date, bookmarks|
         bookmarks.each { |bookmark|
-          @bookmarks_for_tag << bookmark if bookmark["tag"].include?(tag)
+          @bookmarks_for_tag << bookmark if (bookmark["tag"].include?(tag) or bookmark["href"].include?(tag))
         }
       }
       render :bookmarks_by_tag
@@ -483,6 +618,7 @@ module RisingCode::Controllers
   class Bookmarks < R('/bookmarks', '/bookmarks/(\d+)/(\d+)/(\d+)')
     def get (*args)
       @tags = Tag.find_all_by_include_in_header(true)
+      @active_tab = "bookmarks"
       @bookmarks = Delicious::Bookmarks.all(0, 99999)
       @bookmarks_for_today = nil
       @bookmarks_for_tomorrow = nil
@@ -512,6 +648,40 @@ module RisingCode::Controllers
           @yesterday = Date.parse(@days[@index-1]) 
           @bookmarks_for_yesterday = @bookmarks[@yesterday.strftime("%Y-%m-%d")] 
         end
+        @s = ""
+        @s += (Date::DAYNAMES[@today.wday])
+        words = {}
+        word = nil
+        @bookmarks.each { |date, bookmarks|
+          bookmarks.each { |bookmark|
+            words_ = bookmark["excerpt"].split(/([^a-zA-Z0-9])/)
+            words_.each { |word|
+              word.gsub!(/([a-zA-Z0-9])\..*/, '\1')
+              word.gsub!(/([^a-zA-Z0-9])/, '')
+              word.downcase!
+              words[word] = 0 if words[word].nil?
+              words[word] += 1
+            }
+          }
+        }
+        flex = 0
+        @found = []
+        until (@found.length == 1) do
+          @bookmarks_for_today.each { |bookmark|
+            bookmark["excerpt"].split(/([^a-zA-Z0-9])/).sort_by { |word| word.length }.each { |word|
+              word.gsub!(/([a-zA-Z0-9])\..*/, '\1')
+              word.gsub!(/([^a-zA-Z0-9])/, '')
+              word.downcase!
+              next if word.length < 6
+              next if words[word] > 13
+              next if @found.include?(word)
+              @found << word
+              break
+            }
+          } 
+          break if ((flex += 1) > 4)
+        end
+        @title = @found.slice(0, 4).collect { |word| word.en.present_participle }.join(", ")
         render :bookmarks
       else
         redirect(R(Bookmarks))
@@ -573,6 +743,7 @@ module RisingCode::Controllers
   class Sources < R('/sources')
     def get
       @tags = Tag.find_all_by_include_in_header(true)
+      @active_tab = "about"
       @controllers = Hash.new
       @models = Hash.new
       DocumentationServer::SERVER.controllers.each { |controller|
@@ -592,6 +763,7 @@ module RisingCode::Controllers
       @use_date_navigation = false
       @include_openid_delegation = false
       @tags = Tag.find_all_by_include_in_header(true)
+      @active_tab = "risingcode"
       if args.empty? then
         @limit = 1
         @current_action = :index
@@ -795,7 +967,7 @@ module RisingCode::Views
     xhtml_transitional {
       head {
         title {
-          "Land of the Rising Code"
+          @title or "Land of the Rising Code"
         }
         link(:rel => "stylesheet", :type => "text/css", :href => "/stylesheets/main.css")
         #script(:src => "/javascripts/prototype-1.6.0.2.js")
@@ -808,7 +980,7 @@ module RisingCode::Views
           div.header! {
             div.logo!{
               ul {
-                li {
+                li(:class => (("risingcode" == @active_tab) ? "active" : "")) {
                   h1 {
                     a(:href => R(Index)) {
                       "RisingCode"
@@ -816,7 +988,7 @@ module RisingCode::Views
                   }
                 }
                 @tags.each { |tag|
-                  li {
+                  li(:class => ((tag.name == @active_tab) ? "active" : "")) {
                     h1 {
                       a(:href => R(Index, tag.name, nil)) {
                         text(tag.name.capitalize)
@@ -957,52 +1129,16 @@ module RisingCode::Views
   def bookmarks
     div {
       ads
-      s = ""
-        s += (Date::DAYNAMES[@today.wday])
-        words = {}
-        word = nil
-        @bookmarks.each { |date, bookmarks|
-          bookmarks.each { |bookmark|
-            words_ = bookmark["excerpt"].split(/([^a-zA-Z0-9])/)
-            words_.each { |word|
-              word.gsub!(/([a-zA-Z0-9])\..*/, '\1')
-              word.gsub!(/([^a-zA-Z0-9])/, '')
-              word.downcase!
-              words[word] = 0 if words[word].nil?
-              words[word] += 1
-            }
-          }
-        }
-        flex = 0
-        found = []
-        until (found.length == 1) do
-          @bookmarks_for_today.each { |bookmark|
-            bookmark["excerpt"].split(/([^a-zA-Z0-9])/).sort_by { rand }.each { |word|
-              word.gsub!(/([a-zA-Z0-9])\..*/, '\1')
-              word.gsub!(/([^a-zA-Z0-9])/, '')
-              word.downcase!
-              next if word.length < 6
-              next if words[word] > 11
-              next if found.include?(word)
-              found << word
-              break
-            }
-          } 
-          break if ((flex += 1) > 4)
-        end
-        #found[found.length] = "#{found.first} #{found.middle} #{found.last} kinda"
-        #case found.length
       ul {
         bookmarks_nav
         li {
           h2 {
-            #text(found.join("+"))
-            if found.at_center > 1 then
-              text(s + " started with #{found.first}, featured a #{found.center} flavoured lunch, ended in a #{found.last} afternoon")
-            elsif found.at_center == 1 then
-              text(s + " was a half #{found.first} and half #{found.last} kinda day")
+            if @found.at_center > 1 then
+              text(@s + " started with #{@found.first}, featured a #{@found.center} flavoured lunch, ended in a #{@found.last} afternoon")
+            elsif @found.at_center == 1 then
+              text(@s + " was a half #{@found.first} and half #{@found.last} kinda day")
             else
-              text(s + " was a whole lotta #{found.first || :nothing}")
+              text(@s + " was a whole lotta #{@found.first || :nothing}")
             end
           }
         }
@@ -1064,7 +1200,7 @@ module RisingCode::Views
       google_ad_client = "pub-1383228323607572";
       /* 728x15, created 3/7/08 */
       google_ad_slot = "4271053867";
-      google_ad_width = 728;
+      google_ad_width = 700;
       google_ad_height = 15;
       //-->
       </script>
@@ -1090,6 +1226,18 @@ module RisingCode::Views
           "source code"
         }
         text(", a.k.a. The Land of the Rising Code.")
+      }
+      p {
+        #@generalization.split(",").each { |word|
+        #  a(:href => R(BookmarksByTag, tag)) {
+        #    text("&nbsp;" + tag)
+        #  }
+        #text(@tagline)
+        @found.each { |word|
+          a(:href => R(BookmarksByTag, word)) {
+            text(" " + word)
+          }
+        }
       }
       ul.profiles! {
         li {
@@ -1152,15 +1300,10 @@ module RisingCode::Views
       }
     }
     div {
-=begin
-        h2 {
-          "Background"
-        }
-=end
-        p {"
-         I am a bleeding edge technology evangelist.
-         I spend my time dabbling in protoypes, widgets, gizmos and automatons.
-        "}
+      p {"
+       I am a bleeding edge technology evangelist.
+       I spend my time dabbling in protoypes, widgets, gizmos and automatons.
+      "}
     }
     div.experience {
       p {
@@ -1450,6 +1593,16 @@ module RisingCode::Views
         ul.projects {
           li {
             h5 {
+              a(:href => "http://veejay.tv") {
+                "VeeJay.tv"
+              }
+            }
+            p {"
+              Online music sharing / social messaging system
+            "}
+          }
+          li {
+            h5 {
               a(:href => "http://centerology.com") {
                 "Centerology.com"
               }
@@ -1582,7 +1735,7 @@ module RisingCode::Views
     wikipedia = nil
     youtube = nil
     div {
-      fetched = Fast.fetch("http://api.flickr.com/services/feeds/photos_public.gne?tags=#{@tag}&lang=en-us&format=rss_200")
+      fetched = Fast.fetch("http://api.flickr.com/services/feeds/photos_public.gne?tags=#{URI.encode(@tag)}&lang=en-us&format=rss_200")
       fetched = nil if fetched.blank?
       if fetched then
         doc = ::REXML::Document.new(fetched)
