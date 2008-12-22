@@ -430,7 +430,9 @@ module RisingCode::Controllers
   end
   class Button < R('/button/(.*)')
     def get (id)
-      id = "                    "
+      if id.nil? or id.length == 0 or id.length > 30 then
+        id = "                    "
+      end
       label = Draw.new
       label.fill = "black" 
       label.stroke = 'none'
@@ -445,7 +447,7 @@ module RisingCode::Controllers
       height = metrics.height
       width += 16
       height += 12
-      radius = 4
+      radius = 8
       top_grad = GradientFill.new(0, 0, width, 0, "#ffffff", "#cccccc")
       image_layer_one = Magick::Image.new(width, height, top_grad)
       gc = Draw.new
@@ -533,6 +535,7 @@ module RisingCode::Controllers
   end
   class About < R('/about')
     def get
+      @title = "Jon Bardin lives in the Land of the Rising Code"
       @tags = Tag.find_all_by_include_in_header(true)
       @active_tab = "about"
       @bookmarks = Delicious::Bookmarks.all(0, 99999)
@@ -551,7 +554,7 @@ module RisingCode::Controllers
         }
       }
       @words.each { |word, count|
-        next if word.length < 5
+        next if word.length < 6
         case count
           when 1..10
             next
@@ -1222,22 +1225,21 @@ module RisingCode::Views
           "Jon Bardin"
         }
         text("'s ")
+        a(:href => R(Index)) {
+          "blog"
+        }
+        text(", ")
         a(:href => R(Sources)) {
           "source code"
         }
+        text(" and ")
+        a(:href => R(Resume)) {
+          "resume"
+        }
         text(", a.k.a. The Land of the Rising Code.")
       }
-      p {
-        #@generalization.split(",").each { |word|
-        #  a(:href => R(BookmarksByTag, tag)) {
-        #    text("&nbsp;" + tag)
-        #  }
-        #text(@tagline)
-        @found.each { |word|
-          a(:href => R(BookmarksByTag, word)) {
-            text(" " + word)
-          }
-        }
+      h3 {
+        "I can also be found at..."
       }
       ul.profiles! {
         li {
@@ -1272,17 +1274,17 @@ module RisingCode::Views
         }
         li {
           a(:href => "http://freshmeat.net/~jbardin/", :rel => :me) {
-            img(:src => "http://images.freshmeat.net/img/logo.gif")
+            img(:src => "/images/freshmeat.gif")
           }
         }
-        li {
-          a(:href => "http://iphonebookmarklets.com/", :rel => :me) {
-            img(:src => "http://iphonebookmarklets.com/logo.png")
-          }
-        }
+        #li {
+        #  a(:href => "http://iphonebookmarklets.com/", :rel => :me) {
+        #    img(:src => "http://iphonebookmarklets.com/logo.png")
+        #  }
+        #}
         li {
           a(:href => "http://upcoming.yahoo.com/user/70266/", :rel => :me) {
-            img(:src => "http://upcoming.org/images/logo/logo_large_orange.png")
+            img(:src => "/images/logo/logo_large_orange.png")
           }
         }
         li {
@@ -1290,7 +1292,36 @@ module RisingCode::Views
             img(:src => "/images/slashdotlg.gif")
           }
         }
+        li {
+          a(:href => "http://www.vimeo.com/user1005919", :rel => :me) {
+            img(:src => "/images/vimeo_logo.png", :width => 100)
+          }
+        }
+        li {
+          a(:href => "http://www.linkedin.com/pub/10/44/a08", :rel => :me) {
+            img(:src => "/images/linkedin.gif")
+          }
+        }
+        li {
+          a(:href => "http://www.facebook.com/people/Jon-Bardin/5005911", :rel => :me) {
+            img(:src => "/images/facebook_logo.gif")
+          }
+        }
       }
+      h3 {
+        "You can ask me anything about..."
+      }
+      p {
+        @found.each { |word|
+          a(:href => R(BookmarksByTag, word)) {
+            text(" " + word)
+          }
+        }
+      }
+      h3 {
+        "If I were a cloud of words..."
+      }
+      img(:src => "/images/wordcloud.png", :width => 699)
     }
   end
   def resume
@@ -1650,7 +1681,7 @@ module RisingCode::Views
               "Heatmap Image Generator"
             }
             p {"
-               C++ Mandelbrot Set Generator + OpenLayers Web Interface
+              Generates heatmaps based on input data, used to overlay the original source
             "}
           }
           li {

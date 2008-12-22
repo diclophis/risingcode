@@ -90,13 +90,15 @@ textarea {
 
 #header {
   width: 175px;
+  /*
   height: 400px;
+  */
   float: left;
   padding: 10px;
   margin: 180px 0 0 0;
 }
 
-#header h1 { background: url('http://jefte.net/images/lorc/lorc_bullet.png') no-repeat 0 0;  height: 40px; padding: 10px 0 0 36px;}
+#header h1 { background: url('/images/lorc_bullet.png') no-repeat 0 0;  height: 40px; padding: 10px 0 0 36px;}
 
 #header li {
   float: left;
@@ -224,5 +226,5 @@ ul.projects p {
   margin: 0.5em 0 1em 1em;
 }
 
-#wrap { float: left; background: #ccc; width: 1000px; background: url('http://jefte.net/images/lorc/bg.gif') no-repeat;}
+#wrap { float: left; background: #ccc; width: 1000px; background: url('/images/bg.gif') no-repeat;}
 table { width: 100%; font-size: 1.0em;}
