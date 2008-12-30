@@ -3,7 +3,7 @@
 
 /* RisingCode based on Simpla */  
 * { margin:0; padding:0;}
-span.snippet { display: block; overflow: auto; white-space: nowrap; background-color: #000000; font-family: monospace; color: #ffffff; padding: 4px; border: 1px solid #777777; font-size: 1.3em;}
+span.snippet { display: block; overflow: auto; white-space: nowrap; background-color: #000000; font-family: monospace; color: #ffffff; padding: 4px; border: 1px solid #777777; font-size: 1.1em; }
 .Identifier { color: #00ffff; }
 .OldComment { color: #8080ff; }
 .Comment { color: blue; }
@@ -14,7 +14,7 @@ span.snippet { display: block; overflow: auto; white-space: nowrap; background-c
 .Type { color: #00ff00; }
 table { table-layout: fixed; border-collapse: collapse; border-spacing: 0; }
 td, tr { border-collapse: collapse; border-spacing: 0; margin: 0; padding: 0; border: 0; }
-td.lines { vertical-align: top; width: 1%; background-color: #e0e0e0; color: blue; font-family: monospace; padding: 0.5em 0.5em 0 0.5em; text-align: right; font-size: 1.3em;}
+td.lines { vertical-align: top; width: 1%; background-color: #e0e0e0; color: blue; font-family: monospace; padding: 0.5em 0.5em 0 0.5em; text-align: right; font-size: 1.1em; }
 
 body {
   margin: 0;
@@ -55,14 +55,14 @@ h1,h2,h3,h4,h5,h6 {
 }
 
 h1 a, h2 a {
+/* #646463 */
 color: #646463;
 }
-/* #646463 */
-h1 {  font-size: 1.8em; color: #333; }
-h2 {  font-size: 1.6em; color: #555; border-bottom: 1px solid #ccc; }
-h3 {  font-size: 1.3em; color: #777; }
-h4 {  font-size: 1.1em; color: #999; }
-h5 {  font-size: 0.9em; color: #aaa; }
+h1 { font-size: 1.6em; color: #000; }
+h2 { font-size: 1.5em; color: #222; border-bottom: 1px solid #ccc; }
+h3 { font-size: 1.3em; color: #444; }
+h4 { font-size: 1.1em; color: #444; }
+h5 { font-size: 1.1em; color: #444; }
 
 a {
   outline: 0;
@@ -71,7 +71,7 @@ a {
 
 p {
   margin: 7px 0 11px 0px;
-font-size: 1.1em;
+  font-size: 1.1em;
 }
 
 img {
@@ -141,10 +141,6 @@ li img {
   padding-bottom: 8px;
 }
 
-p.tagged {
-  font-size: smaller;
-}
-
 .centered {
   text-align: center;
   margin: 0em auto 1em 0;
@@ -205,7 +201,9 @@ div.experience h3 {
 
 div.experience h4 {
   display: inline;
+  /*
   font-size: smaller;
+  */
   margin-left: 1em;
 }
 
@@ -227,4 +225,21 @@ ul.projects p {
 }
 
 #wrap { float: left; background: #ccc; width: 1000px; background: url('/images/bg.gif') no-repeat;}
-table { width: 100%; font-size: 1.0em;}
+table { width: 100%; }
+
+.clr{clear:both;height:0;font-size:1%;line-height:.1em;overflow:none;}
+.tagdisplay{margin-left:14em;margin-top:2px;}
+h5.taglabel{position:absolute;right:-4.3em;width:4em;visibility:hidden;margin-top:6px;}
+ul.tags{float:right;text-align:right;margin:0 -10px 0 0;padding:0 0 0 8px;overflow:hidden;line-height:19px;}
+ul.tags li{display:inline!important;margin-left:-10px;}
+ul.tags li a{color:#404040;padding:1px 0 2px 8px;background:transparent url('/images/del_sprite_tags.gif') 0 -80px no-repeat;}
+ul.tags li.on a{background-position:0 -120px;}
+ul.tags li a span{padding:1px 13px 2px 7px;background:#F2F2F2;}
+ul.tags li a span strong{font-weight:normal;color:#aaa;}
+ul.tags li.on a span{text-decoration:none;color:#FFF;background:#8F8F8F;}
+ul.tags li a:hover{background-position:0 -160px;text-decoration:none;}
+ul.tags li a:hover span{background:#6C6C6C;color:#FFF;text-decoration:none;}
+ul.tags li.on a span strong,ul.tags li a:hover span strong{color:#ccc;text-decoration:none;}
+
+ul.bookmarks li { padding: 0 0 6px 0; border-bottom: 1px solid #efefef; }
+

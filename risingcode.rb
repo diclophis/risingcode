@@ -104,8 +104,8 @@ module RisingCodeTags
           when OEmbed::Response::Link
             ::Markaby::Builder.new.div(:class => "oembed") {
               div.oembeded {
-                a(:href => content) {
-                  h4 {
+                h4 {
+                  a(:href => content) {
                     text(res.field(:title))
                   }
                 }
@@ -600,6 +600,7 @@ module RisingCode::Controllers
       @tag = tag
       @tags = Tag.find_all_by_include_in_header(true)
       @active_tab = "bookmarks"
+      @title = "Learn about #{@tag}"
       render :message
     end
   end
@@ -615,6 +616,7 @@ module RisingCode::Controllers
           @bookmarks_for_tag << bookmark if (bookmark["tag"].include?(tag) or bookmark["href"].include?(tag))
         }
       }
+      @title = "Bookmarks tagged #{@tag}"
       render :bookmarks_by_tag
     end
   end
@@ -1089,7 +1091,7 @@ module RisingCode::Views
   def bookmarks_by_tag
     div {
       ads
-      ul {
+      ul.bookmarks {
         @bookmarks_for_tag.each { |bookmark|
           li {
             if ((oembed = "oembed. #{bookmark["href"]}".textilize) == bookmark["href"]) then
@@ -1102,29 +1104,39 @@ module RisingCode::Views
               ) then
                 img(:src => bookmark["href"])
               else
-                a(:href => bookmark["href"]) {
-                  bookmark["excerpt"]
+                h4 {
+                  a(:href => bookmark["href"]) {
+                    bookmark["excerpt"]
+                  }
                 }
               end
             else
               text(oembed)
             end
-            p.tagged {
-              bookmark["tag"].split(" ").each { |tag|
-                a(:href => R(BookmarksByTag, tag)) {
-                  text("&nbsp;" + tag)
-                }
-              }
-            }
             p {
               text(bookmark["extended"])
             } unless bookmark["extended"].blank?
+            h5.taglabel {
+              text("tags")
+            }
+            div.tagdisplay {
+              ul.tags {
+                bookmark["tag"].split(" ").each { |tag|
+                  li {
+                    a(:href => R(BookmarksByTag, tag)) {
+                      span {
+                        text("&nbsp;" + tag)
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            div.clr {}
           }
         }
-        li {
-          a(:href => R(Learn, @tag)) {
-            text("Learn about #{@tag}")
-          }
+        a(:href => R(Learn, @tag)) {
+          text("Learn about #{@tag}")
         }
       }
     }
@@ -1132,19 +1144,16 @@ module RisingCode::Views
   def bookmarks
     div {
       ads
-      ul {
-        bookmarks_nav
-        li {
-          h2 {
-            if @found.at_center > 1 then
-              text(@s + " started with #{@found.first}, featured a #{@found.center} flavoured lunch, ended in a #{@found.last} afternoon")
-            elsif @found.at_center == 1 then
-              text(@s + " was a half #{@found.first} and half #{@found.last} kinda day")
-            else
-              text(@s + " was a whole lotta #{@found.first || :nothing}")
-            end
-          }
-        }
+      h2 {
+        if @found.at_center > 1 then
+          text(@s + " started with #{@found.first}, featured a #{@found.center} flavoured lunch, ended in a #{@found.last} afternoon")
+        elsif @found.at_center == 1 then
+          text(@s + " was a half #{@found.first} and half #{@found.last} kinda day")
+        else
+          text(@s + " was a whole lotta #{@found.first || :nothing}")
+        end
+      }
+      ul.bookmarks {
         @bookmarks_for_today.each { |bookmark|
           li {
             if ((oembed = "oembed. #{bookmark["href"]}".textilize) == bookmark["href"]) then
@@ -1157,44 +1166,55 @@ module RisingCode::Views
               ) then
                 img(:src => bookmark["href"])
               else
-                a(:href => bookmark["href"]) {
-                  text(bookmark["excerpt"])
+                h3 {
+                  a(:href => bookmark["href"]) {
+                    text(bookmark["excerpt"])
+                  }
                 }
               end
             else
               text(oembed)
             end
-            p.tagged {
-              bookmark["tag"].split(" ").each { |tag|
-                a(:href => R(BookmarksByTag, tag)) {
-                  text("&nbsp;" + tag)
-                }
-              }
-            }
             p {
               text(bookmark["extended"])
             } unless bookmark["extended"].blank?
+            h5.taglabel {
+              text("tags")
+            }
+            div.tagdisplay {
+              ul.tags {
+                bookmark["tag"].split(" ").each { |tag|
+                  li {
+                    a(:href => R(BookmarksByTag, tag)) {
+                      span {
+                        text("&nbsp;" + tag)
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            div.clr {}
           }
         }
       }
+      bookmarks_nav
     }
   end
   def bookmarks_nav
-    li {
-      a(:href => R(Bookmarks, @yesterday.year, @yesterday.month, @yesterday.day)) {
-        text("&laquo;&nbsp;")
-        text(@yesterday.strftime("%Y-%m-%d"))
-        text("&nbsp;|&nbsp;")
-      } if @bookmarks_for_yesterday
-      text("&nbsp;")
-      text(@today.strftime("%Y-%m-%d"))
-      text("&nbsp;")
-      a(:href => R(Bookmarks, @tomorrow.year, @tomorrow.month, @tomorrow.day)) {
-        text("&nbsp;|&nbsp;")
-        text(@tomorrow.strftime("%Y-%m-%d"))
-        text("&nbsp;&raquo;")
-      } if @bookmarks_for_tomorrow
-    }
+    a(:href => R(Bookmarks, @yesterday.year, @yesterday.month, @yesterday.day)) {
+      text("&laquo;&nbsp;")
+      text(@yesterday.strftime("%Y-%m-%d"))
+      text("&nbsp;|&nbsp;")
+    } if @bookmarks_for_yesterday
+    text("&nbsp;")
+    text(@today.strftime("%Y-%m-%d"))
+    text("&nbsp;")
+    a(:href => R(Bookmarks, @tomorrow.year, @tomorrow.month, @tomorrow.day)) {
+      text("&nbsp;|&nbsp;")
+      text(@tomorrow.strftime("%Y-%m-%d"))
+      text("&nbsp;&raquo;")
+    } if @bookmarks_for_tomorrow
   end
   def ads
     p.ads! {
@@ -1253,6 +1273,11 @@ module RisingCode::Views
           }
         }
         li {
+          a(:href => "http://stackoverflow.com/users/32678?sort=recent", :rel => :me) {
+            img(:src => "/images/stackoverflow.png")
+          }
+        }
+        li {
           a(:href => "http://www.engadget.com/profile/68892/", :rel => :me) {
             img(:src => "/images/engadget.gif")
           }
@@ -1270,11 +1295,6 @@ module RisingCode::Views
         li {
           a(:href => "http://sourceforge.net/users/diclophis/", :rel => :me) {
             img(:src => "http://sourceforge.net/sflogo.php?group_id=13609&type=2")
-          }
-        }
-        li {
-          a(:href => "http://freshmeat.net/~jbardin/", :rel => :me) {
-            img(:src => "/images/freshmeat.gif")
           }
         }
         #li {
@@ -1307,21 +1327,29 @@ module RisingCode::Views
             img(:src => "/images/facebook_logo.gif")
           }
         }
-      }
-      h3 {
-        "You can ask me anything about..."
-      }
-      p {
-        @found.each { |word|
-          a(:href => R(BookmarksByTag, word)) {
-            text(" " + word)
+        li {
+          a(:href => "http://freshmeat.net/~jbardin/", :rel => :me) {
+            img(:src => "/images/freshmeat.gif")
           }
         }
       }
       h3 {
-        "If I were a cloud of words..."
+        "You can ask me anything about..."
       }
-      img(:src => "/images/wordcloud.png", :width => 699)
+      #p {
+      #  @found.each { |word|
+      #    a(:href => R(BookmarksByTag, word)) {
+      #      text(" " + word)
+      #    }
+      #  }
+      #}
+      #h3 {
+      #  "If I were a cloud of words..."
+      #}
+      img(:src => "/images/wordcloud.png", :width => 699, :usemap => "#wordcloud_map")
+      text('
+      <map id="wordcloud_map" name="wordcloud_map"><area shape="rectangle" alt="programming" title="" coords="234,65,694,125" href="/bookmarks/tagged/programming" target="" /><area shape="rectangle" alt="web2.0" title="" coords="315,50,358,64" href="/bookmarks/tagged/web2.0" target="" /><area shape="rectangle" alt="design" title="" coords="387,28,461,57" href="/bookmarks/tagged/design" target="" /><area shape="rectangle" alt="api" title="" coords="463,29,488,56" href="/bookmarks/tagged/api" target="" /><area shape="rectangle" alt="articles" title="" coords="499,36,579,62" href="/bookmarks/tagged/article" target="" /><area shape="rectangle" alt="art" title="" coords="486,154,522,183" href="/bookmarks/tagged/art" target="" /><area shape="rectangle" alt="development" title="" coords="426,123,549,156" href="/bookmarks/tagged/development" target="" /><area shape="rectangle" alt="css" title="" coords="558,126,577,139" href="/bookmarks/tagged/css" target="" /><area shape="rectangle" alt="game" title="" coords="268,129,334,153" href="/bookmarks/tagged/game" target="" /><area shape="rectangle" alt="cocoa" title="" coords="233,155,296,177" href="/bookmarks/tagged/cocoa" target="" /><area shape="rectangle" alt="ruby" title="" coords="127,116,223,175" href="/bookmarks/tagged/ruby" target="" /><area shape="rectangle" alt="javascript" title="" coords="125,94,183,111" href="/bookmarks/tagged/javascript" target="" /><area shape="rectangle" alt="tutorial" title="" coords="138,78,187,93" href="/bookmarks/tagged/tutorial" target="" /><area shape="rectangle" alt="funny" title="" coords="192,78,210,92" href="/bookmarks/tagged/funny" target="" /><area shape="rectangle" alt="voip" title="" coords="360,38,376,49" href="/bookmarks/tagged/voip" target="" /><area shape="rectangle" alt="interesting" title="" coords="402,16,439,25" href="/bookmarks/tagged/interesting" target="" /><area shape="rectangle" alt="iphone" title="" coords="28,3,173,58" href="/bookmarks/tagged/iphone" target="" /><area shape="rectangle" alt="howto" title="" coords="73,56,115,80" href="/bookmarks/tagged/howto" target="" /><area shape="rectangle" alt="blog" title="" coords="29,79,122,127" href="/bookmarks/tagged/blog" target="" /><area shape="rectangle" alt="video" title="" coords="38,125,87,151" href="/bookmarks/tagged/video" target="" /><area shape="rectangle" alt="photography" title="" coords="126,63,166,75" href="/bookmarks/tagged/photography" target="" /><area shape="rectangle" alt="architecture" title="" coords="395,126,424,141" href="/bookmarks/tagged/architecture" target="" /><area shape="rectangle" alt="awesome" title="" coords="208,98,233,105" href="/bookmarks/tagged/awesome" target="" /><area shape="rectangle" alt="humour" title="" coords="216,91,233,95" href="/bookmarks/tagged/humour" target="" /><area shape="rectangle" alt="arduino" title="" coords="173,62,191,76" href="/bookmarks/tagged/arduino" target="" /><area shape="rectangle" alt="flash" title="" coords="3,96,27,110" href="/bookmarks/tagged/flash" target="" /><area shape="rectangle" alt="barcode" title="" coords="7,113,25,125" href="/bookmarks/tagged/barcode" target="" /></map>
+      ')
     }
   end
   def resume
