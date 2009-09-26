@@ -495,7 +495,6 @@ module RisingCode::Controllers
         id = "                    "
       end
       label = Draw.new
-      label.fill = "white" 
       label.stroke = 'none'
       label.pointsize = 15 
       #label.kerning = 1 
@@ -504,14 +503,24 @@ module RisingCode::Controllers
       label.font_style=Magick::NormalStyle
       label.font_weight=Magick::BoldWeight
       label.gravity=Magick::CenterGravity
-      label.text(0,0,id)
+      label.text(0, 1, id)
       metrics = label.get_type_metrics(id)
       width = metrics.width
       height = metrics.height
+      top_grad = nil
+      if id.include?("!") then
+        label.fill = "white" 
+        top_grad = GradientFill.new(0, 0, width, 0, "#EEAAAA", "#CC1111")
+      elsif id.include?("?") then
+        label.fill = "black" 
+        top_grad = GradientFill.new(0, 0, width, 0, "#FFFF00", "#FFCC00")
+      else
+        label.fill = "white" 
+        top_grad = GradientFill.new(0, 0, width, 0, "#85EB6A", "#1D8C00")
+      end
       width += 21 
       height += 15
-      radius = 4
-      top_grad = GradientFill.new(0, 0, width, 0, "#85EB6A", "#1D8C00")
+      radius = 6
       image_layer_one = Magick::Image.new(width, height, top_grad)
       gc = Draw.new
       gc.roundrectangle(0,0,image_layer_one.columns-1, image_layer_one.rows-1, radius, radius)
@@ -523,18 +532,21 @@ module RisingCode::Controllers
       gc.stroke("black")
       gc.stroke_width(1)
       gc.fill("white")
-      gc.roundrectangle(1,1,inner_glow_mask.columns - 2, inner_glow_mask.rows - 2, radius, radius)
+      #gc.roundrectangle(2, 2, inner_glow_mask.columns - 3, inner_glow_mask.rows - 3, radius, radius)
+      gc.roundrectangle(0, 0, inner_glow_mask.columns - 1, inner_glow_mask.rows - 1, radius, radius)
       gc.draw(inner_glow_mask)
       inner_glow_mask = inner_glow_mask.blur_image(0, 1)
-      highlight_gradient = GradientFill.new(0,0,80, 0, "#85EB6A", "#1D8C00")
-      highlight_layer = Magick::Image.new((width - 14).to_i, (height * 0.5).to_i, highlight_gradient)
-      gc = Draw.new
-      gc.roundrectangle(0, 0, highlight_layer.columns - 1, highlight_layer.rows - 1, radius, radius)
-      gc.composite(0,0,0,0,highlight_layer,InCompositeOp)
-      new_highlight_layer = Magick::Image.new(highlight_layer.columns, highlight_layer.rows) { self.background_color = "none" }
-      gc.draw(new_highlight_layer)
+      
+      #highlight_gradient = GradientFill.new(0,0,80, 0, "#85EB6A", "#1D8C00")
+      #highlight_layer = Magick::Image.new((width - 14).to_i, (height * 0.5).to_i, highlight_gradient)
+      #gc = Draw.new
+      #gc.roundrectangle(0, 0, highlight_layer.columns - 1, highlight_layer.rows - 1, radius, radius)
+      #gc.composite(0,0,0,0,highlight_layer,InCompositeOp)
+      #new_highlight_layer = Magick::Image.new(highlight_layer.columns, highlight_layer.rows) { self.background_color = "none" }
+      #gc.draw(new_highlight_layer)
       new_layer_one.composite!(inner_glow_mask, CenterGravity, MultiplyCompositeOp)
-      new_layer_one.composite!(new_highlight_layer, NorthGravity, 4, 3, OverCompositeOp)
+      
+      #new_layer_one.composite!(new_highlight_layer, NorthGravity, 4, 3, OverCompositeOp)
       label.draw(new_layer_one)
       final_image = new_layer_one
       blob = final_image.to_blob {
