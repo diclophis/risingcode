@@ -5,12 +5,18 @@ module Fast
 #Camping::Models::Base.logger.debug("\n\n\n\n\n\n")
 #Camping::Models::Base.logger.debug(url.inspect)
 #Camping::Models::Base.logger.debug(recursed.inspect)
-    uri = URI.parse(url)
-Camping::Models::Base.logger.debug("fetching #{url}")
+    begin
+      uri = URI.parse(url)
+    rescue => problem
+#Camping::Models::Base.logger.debug(problem.inspect)
+      raise "WTF is wrong with this url"
+    end
+      
+#Camping::Models::Base.logger.debug("fetching #{url}")
     if Cache.enabled? and Cache::alive?
       begin
         response = Cache::get("fast" + url)
-Camping::Models::Base.logger.debug("cached #{url}")
+#Camping::Models::Base.logger.debug("cached #{url}")
       rescue
         response = nil
       end
@@ -49,6 +55,7 @@ Camping::Models::Base.logger.debug("cached #{url}")
         response = nil
       end
       if cache then
+Camping::Models::Base.logger.debug("tryng to cache")
         Cache::set("fast" + url, response) if (Cache.alive?)
       else
 #Camping::Models::Base.logger.debug("not caching")
@@ -74,6 +81,7 @@ Camping::Models::Base.logger.debug("cached #{url}")
       # Enable caching
       def enable!
         @cache ||= MemCache.new(host, :namespace => "openuri")
+Camping::Models::Base.logger.debug("wtf #{@cache.inspect}")
         @cache_enabled = true
       end
       
@@ -88,11 +96,29 @@ Camping::Models::Base.logger.debug("cached #{url}")
       end
       
       def get(key)
-        @cache.get(key)
+        value = @cache.get(key)
+        if value.is_a?(Exception) then
+#Camping::Models::Base.logger.debug("NOT GONNA GET IT")
+#Camping::Models::Base.logger.debug(value.backtrace.join("\n"))
+          nil
+        else
+          if value then
+Camping::Models::Base.logger.debug("#{key} cached!") if value.nil?
+          else
+Camping::Models::Base.logger.debug("#{key} NOT cached!") if value.nil?
+          end
+          value
+        end
       end
       
       def set(key, value)
-        @cache.set(key, value, expiry)
+        if value.is_a?(Exception) then
+#Camping::Models::Base.logger.debug("NOT GONNA PUT IT")
+#Camping::Models::Base.logger.debug(value.backtrace.join("\n"))
+        else
+Camping::Models::Base.logger.debug("setting #{key}")
+          @cache.set(key, value, expiry)
+        end
       end
             
       # How long your caches will be kept for (in seconds)

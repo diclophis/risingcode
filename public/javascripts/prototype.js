@@ -1,4 +1,4 @@
-/*  Prototype JavaScript framework, version 1.6.0
+/*  Prototype JavaScript framework, version 1.6.0.1
  *  (c) 2005-2007 Sam Stephenson
  *
  *  Prototype is freely distributable under the terms of an MIT-style license.
@@ -7,7 +7,7 @@
  *--------------------------------------------------------------------------*/
 
 var Prototype = {
-  Version: '1.6.0',
+  Version: '1.6.0.1',
 
   Browser: {
     IE:     !!(window.attachEvent && !window.opera),
@@ -36,8 +36,6 @@ var Prototype = {
 if (Prototype.Browser.MobileSafari)
   Prototype.BrowserFeatures.SpecificElementExtensions = false;
 
-if (Prototype.Browser.WebKit)
-  Prototype.BrowserFeatures.XPath = false;
 
 /* Based on Alex Arnell's inheritance implementation. */
 var Class = {
@@ -110,7 +108,7 @@ Object.extend = function(destination, source) {
 Object.extend(Object, {
   inspect: function(object) {
     try {
-      if (object === undefined) return 'undefined';
+      if (Object.isUndefined(object)) return 'undefined';
       if (object === null) return 'null';
       return object.inspect ? object.inspect() : object.toString();
     } catch (e) {
@@ -135,7 +133,7 @@ Object.extend(Object, {
     var results = [];
     for (var property in object) {
       var value = Object.toJSON(object[property]);
-      if (value !== undefined)
+      if (!Object.isUndefined(value))
         results.push(property.toJSON() + ': ' + value);
     }
 
@@ -204,7 +202,7 @@ Object.extend(Function.prototype, {
   },
 
   bind: function() {
-    if (arguments.length < 2 && arguments[0] === undefined) return this;
+    if (arguments.length < 2 && Object.isUndefined(arguments[0])) return this;
     var __method = this, args = $A(arguments), object = args.shift();
     return function() {
       return __method.apply(object, args.concat($A(arguments)));
@@ -351,7 +349,7 @@ Object.extend(String.prototype, {
 
   sub: function(pattern, replacement, count) {
     replacement = this.gsub.prepareReplacement(replacement);
-    count = count === undefined ? 1 : count;
+    count = Object.isUndefined(count) ? 1 : count;
 
     return this.gsub(pattern, function(match) {
       if (--count < 0) return match[0];
@@ -366,7 +364,7 @@ Object.extend(String.prototype, {
 
   truncate: function(length, truncation) {
     length = length || 30;
-    truncation = truncation === undefined ? '...' : truncation;
+    truncation = Object.isUndefined(truncation) ? '...' : truncation;
     return this.length > length ?
       this.slice(0, length - truncation.length) + truncation : String(this);
   },
@@ -486,7 +484,9 @@ Object.extend(String.prototype, {
   },
 
   isJSON: function() {
-    var str = this.replace(/\\./g, '@').replace(/"[^"\\\n\r]*"/g, '');
+    var str = this;
+    if (str.blank()) return false;
+    str = this.replace(/\\./g, '@').replace(/"[^"\\\n\r]*"/g, '');
     return (/^[,:{}\[\]0-9.\-+Eaeflnr-u \n\r\t]*$/).test(str);
   },
 
@@ -565,7 +565,8 @@ var Template = Class.create({
       if (before == '\\') return match[2];
 
       var ctx = object, expr = match[3];
-      var pattern = /^([^.[]+|\[((?:.*?[^\\])?)\])(\.|\[|$)/, match = pattern.exec(expr);
+      var pattern = /^([^.[]+|\[((?:.*?[^\\])?)\])(\.|\[|$)/;
+      match = pattern.exec(expr);
       if (match == null) return before;
 
       while (match != null) {
@@ -686,7 +687,7 @@ var Enumerable = {
   },
 
   inGroupsOf: function(number, fillWith) {
-    fillWith = fillWith === undefined ? null : fillWith;
+    fillWith = Object.isUndefined(fillWith) ? null : fillWith;
     return this.eachSlice(number, function(slice) {
       while(slice.length < number) slice.push(fillWith);
       return slice;
@@ -713,7 +714,7 @@ var Enumerable = {
     var result;
     this.each(function(value, index) {
       value = iterator(value, index);
-      if (result == undefined || value >= result)
+      if (result == null || value >= result)
         result = value;
     });
     return result;
@@ -724,7 +725,7 @@ var Enumerable = {
     var result;
     this.each(function(value, index) {
       value = iterator(value, index);
-      if (result == undefined || value < result)
+      if (result == null || value < result)
         result = value;
     });
     return result;
@@ -904,7 +905,7 @@ Object.extend(Array.prototype, {
     var results = [];
     this.each(function(object) {
       var value = Object.toJSON(object);
-      if (value !== undefined) results.push(value);
+      if (!Object.isUndefined(value)) results.push(value);
     });
     return '[' + results.join(', ') + ']';
   }
@@ -984,34 +985,6 @@ function $H(object) {
 };
 
 var Hash = Class.create(Enumerable, (function() {
-  if (function() {
-    var i = 0, Test = function(value) { this.key = value };
-    Test.prototype.key = 'foo';
-    for (var property in new Test('bar')) i++;
-    return i > 1;
-  }()) {
-    function each(iterator) {
-      var cache = [];
-      for (var key in this._object) {
-        var value = this._object[key];
-        if (cache.include(key)) continue;
-        cache.push(key);
-        var pair = [key, value];
-        pair.key = key;
-        pair.value = value;
-        iterator(pair);
-      }
-    }
-  } else {
-    function each(iterator) {
-      for (var key in this._object) {
-        var value = this._object[key], pair = [key, value];
-        pair.key = key;
-        pair.value = value;
-        iterator(pair);
-      }
-    }
-  }
 
   function toQueryPair(key, value) {
     if (Object.isUndefined(value)) return key;
@@ -1023,7 +996,14 @@ var Hash = Class.create(Enumerable, (function() {
       this._object = Object.isHash(object) ? object.toObject() : Object.clone(object);
     },
 
-    _each: each,
+    _each: function(iterator) {
+      for (var key in this._object) {
+        var value = this._object[key], pair = [key, value];
+        pair.key = key;
+        pair.value = value;
+        iterator(pair);
+      }
+    },
 
     set: function(key, value) {
       return this._object[key] = value;
@@ -1187,8 +1167,11 @@ Ajax.Base = Class.create({
     Object.extend(this.options, options || { });
 
     this.options.method = this.options.method.toLowerCase();
+
     if (Object.isString(this.options.parameters))
       this.options.parameters = this.options.parameters.toQueryParams();
+    else if (Object.isHash(this.options.parameters))
+      this.options.parameters = this.options.parameters.toObject();
   }
 });
 
@@ -1371,7 +1354,7 @@ Ajax.Response = Class.create({
 
     if(readyState == 4) {
       var xml = transport.responseXML;
-      this.responseXML  = xml === undefined ? null : xml;
+      this.responseXML  = Object.isUndefined(xml) ? null : xml;
       this.responseJSON = this._getResponseJSON();
     }
   },
@@ -1417,10 +1400,11 @@ Ajax.Response = Class.create({
   _getResponseJSON: function() {
     var options = this.request.options;
     if (!options.evalJSON || (options.evalJSON != 'force' &&
-      !(this.getHeader('Content-type') || '').include('application/json')))
-        return null;
+      !(this.getHeader('Content-type') || '').include('application/json')) ||
+        this.responseText.blank())
+          return null;
     try {
-      return this.transport.responseText.evalJSON(options.sanitizeJSON);
+      return this.responseText.evalJSON(options.sanitizeJSON);
     } catch (e) {
       this.request.dispatchException(e);
     }
@@ -1434,11 +1418,11 @@ Ajax.Updater = Class.create(Ajax.Request, {
       failure: (container.failure || (container.success ? null : container))
     };
 
-    options = options || { };
+    options = Object.clone(options);
     var onComplete = options.onComplete;
-    options.onComplete = (function(response, param) {
+    options.onComplete = (function(response, json) {
       this.updateContent(response.responseText);
-      if (Object.isFunction(onComplete)) onComplete(response, param);
+      if (Object.isFunction(onComplete)) onComplete(response, json);
     }).bind(this);
 
     $super(url, options);
@@ -1459,10 +1443,6 @@ Ajax.Updater = Class.create(Ajax.Request, {
         else options.insertion(receiver, responseText);
       }
       else receiver.update(responseText);
-    }
-
-    if (this.success()) {
-      if (this.onComplete) this.onComplete.bind(this).defer();
     }
   }
 });
@@ -1690,7 +1670,7 @@ Element.Methods = {
   },
 
   descendants: function(element) {
-    return $A($(element).getElementsByTagName('*')).each(Element.extend);
+    return $(element).getElementsBySelector("*");
   },
 
   firstDescendant: function(element) {
@@ -1795,10 +1775,11 @@ Element.Methods = {
     var attributes = { }, t = Element._attributeTranslations.write;
 
     if (typeof name == 'object') attributes = name;
-    else attributes[name] = value === undefined ? true : value;
+    else attributes[name] = Object.isUndefined(value) ? true : value;
 
     for (var attr in attributes) {
-      var name = t.names[attr] || attr, value = attributes[attr];
+      name = t.names[attr] || attr;
+      value = attributes[attr];
       if (t.values[attr]) name = t.values[attr](element, value);
       if (value === false || value === null)
         element.removeAttribute(name);
@@ -1867,6 +1848,7 @@ Element.Methods = {
 
   descendantOf: function(element, ancestor) {
     element = $(element), ancestor = $(ancestor);
+    var originalAncestor = ancestor;
 
     if (element.compareDocumentPosition)
       return (element.compareDocumentPosition(ancestor) & 8) === 8;
@@ -1882,7 +1864,7 @@ Element.Methods = {
     }
 
     while (element = element.parentNode)
-      if (element == ancestor) return true;
+      if (element == originalAncestor) return true;
     return false;
   },
 
@@ -1921,7 +1903,7 @@ Element.Methods = {
       if (property == 'opacity') element.setOpacity(styles[property]);
       else
         elementStyle[(property == 'float' || property == 'cssFloat') ?
-          (elementStyle.styleFloat === undefined ? 'cssFloat' : 'styleFloat') :
+          (Object.isUndefined(elementStyle.styleFloat) ? 'cssFloat' : 'styleFloat') :
             property] = styles[property];
 
     return element;
@@ -2212,22 +2194,46 @@ if (!document.createRange || Prototype.Browser.Opera) {
 }
 
 if (Prototype.Browser.Opera) {
-  Element.Methods._getStyle = Element.Methods.getStyle;
-  Element.Methods.getStyle = function(element, style) {
-    switch(style) {
-      case 'left':
-      case 'top':
-      case 'right':
-      case 'bottom':
-        if (Element._getStyle(element, 'position') == 'static') return null;
-      default: return Element._getStyle(element, style);
+  Element.Methods.getStyle = Element.Methods.getStyle.wrap(
+    function(proceed, element, style) {
+      switch (style) {
+        case 'left': case 'top': case 'right': case 'bottom':
+          if (proceed(element, 'position') === 'static') return null;
+        case 'height': case 'width':
+          // returns '0px' for hidden elements; we want it to return null
+          if (!Element.visible(element)) return null;
+
+          // returns the border-box dimensions rather than the content-box
+          // dimensions, so we subtract padding and borders from the value
+          var dim = parseInt(proceed(element, style), 10);
+
+          if (dim !== element['offset' + style.capitalize()])
+            return dim + 'px';
+
+          var properties;
+          if (style === 'height') {
+            properties = ['border-top-width', 'padding-top',
+             'padding-bottom', 'border-bottom-width'];
+          }
+          else {
+            properties = ['border-left-width', 'padding-left',
+             'padding-right', 'border-right-width'];
+          }
+          return properties.inject(dim, function(memo, property) {
+            var val = proceed(element, property);
+            return val === null ? memo : memo - parseInt(val, 10);
+          }) + 'px';
+        default: return proceed(element, style);
+      }
     }
-  };
-  Element.Methods._readAttribute = Element.Methods.readAttribute;
-  Element.Methods.readAttribute = function(element, attribute) {
-    if (attribute == 'title') return element.title;
-    return Element._readAttribute(element, attribute);
-  };
+  );
+
+  Element.Methods.readAttribute = Element.Methods.readAttribute.wrap(
+    function(proceed, element, attribute) {
+      if (attribute === 'title') return element.title;
+      return proceed(element, attribute);
+    }
+  );
 }
 
 else if (Prototype.Browser.IE) {
@@ -2301,7 +2307,7 @@ else if (Prototype.Browser.IE) {
           return node ? node.value : "";
         },
         _getEv: function(element, attribute) {
-          var attribute = element.getAttribute(attribute);
+          attribute = element.getAttribute(attribute);
           return attribute ? attribute.toString().slice(23, -2) : null;
         },
         _flag: function(element, attribute) {
@@ -2398,7 +2404,7 @@ else if (Prototype.Browser.WebKit) {
   };
 
   // Safari returns margins on body which is incorrect if the child is absolutely
-  // positioned.  For performance reasons, redefine Position.cumulativeOffset for
+  // positioned.  For performance reasons, redefine Element#cumulativeOffset for
   // KHTML/WebKit only.
   Element.Methods.cumulativeOffset = function(element) {
     var valueT = 0, valueL = 0;
@@ -2687,10 +2693,11 @@ Element.addMethods = function(methods) {
 document.viewport = {
   getDimensions: function() {
     var dimensions = { };
+    var B = Prototype.Browser;
     $w('width height').each(function(d) {
       var D = d.capitalize();
-      dimensions[d] = self['inner' + D] ||
-       (document.documentElement['client' + D] || document.body['client' + D]);
+      dimensions[d] = (B.WebKit && !document.evaluate) ? self['inner' + D] :
+        (B.Opera) ? document.body['client' + D] : document.documentElement['client' + D];
     });
     return dimensions;
   },
@@ -2719,9 +2726,26 @@ var Selector = Class.create({
     this.compileMatcher();
   },
 
+  shouldUseXPath: function() {
+    if (!Prototype.BrowserFeatures.XPath) return false;
+
+    var e = this.expression;
+
+    // Safari 3 chokes on :*-of-type and :empty
+    if (Prototype.Browser.WebKit &&
+     (e.include("-of-type") || e.include(":empty")))
+      return false;
+
+    // XPath can't do namespaced attributes, nor can it read
+    // the "checked" property from DOM nodes
+    if ((/(\[[\w-]*?:|:checked)/).test(this.expression))
+      return false;
+
+    return true;
+  },
+
   compileMatcher: function() {
-    // Selectors with namespaced attributes can't use the XPath version
-    if (Prototype.BrowserFeatures.XPath && !(/(\[[\w-]*?:|:checked)/).test(this.expression))
+    if (this.shouldUseXPath())
       return this.compileXPathMatcher();
 
     var e = this.expression, ps = Selector.patterns, h = Selector.handlers,
@@ -2844,8 +2868,12 @@ Object.extend(Selector, {
     },
     className:    "[contains(concat(' ', @class, ' '), ' #{1} ')]",
     id:           "[@id='#{1}']",
-    attrPresence: "[@#{1}]",
+    attrPresence: function(m) {
+      m[1] = m[1].toLowerCase();
+      return new Template("[@#{1}]").evaluate(m);
+    },
     attr: function(m) {
+      m[1] = m[1].toLowerCase();
       m[3] = m[5] || m[6];
       return new Template(Selector.xpath.operators[m[2]]).evaluate(m);
     },
@@ -2874,7 +2902,7 @@ Object.extend(Selector, {
       'enabled':     "[not(@disabled)]",
       'not': function(m) {
         var e = m[6], p = Selector.patterns,
-            x = Selector.xpath, le, m, v;
+            x = Selector.xpath, le, v;
 
         var exclusion = [];
         while (e && le != e && (/\S/).test(e)) {
@@ -3051,7 +3079,7 @@ Object.extend(Selector, {
     child: function(nodes) {
       var h = Selector.handlers;
       for (var i = 0, results = [], node; node = nodes[i]; i++) {
-        for (var j = 0, children = [], child; child = node.childNodes[j]; j++)
+        for (var j = 0, child; child = node.childNodes[j]; j++)
           if (child.nodeType == 1 && child.tagName != '!') results.push(child);
       }
       return results;
@@ -3323,7 +3351,8 @@ Object.extend(Selector, {
   },
 
   findChildElements: function(element, expressions) {
-    var exprs = expressions.join(','), expressions = [];
+    var exprs = expressions.join(',');
+    expressions = [];
     exprs.scan(/(([\w#:.~>+()\s-]+|\*|\[.*?\])+)\s*(,|$)/, function(m) {
       expressions.push(m[1].strip());
     });
@@ -3336,6 +3365,16 @@ Object.extend(Selector, {
   }
 });
 
+if (Prototype.Browser.IE) {
+  // IE returns comment nodes on getElementsByTagName("*").
+  // Filter them out.
+  Selector.handlers.concat = function(a, b) {
+    for (var i = 0, node; node = b[i]; i++)
+      if (node.tagName !== "!") a.push(node);
+    return a;
+  };
+}
+
 function $$() {
   return Selector.findChildElements(document, $A(arguments));
 }
@@ -3347,7 +3386,7 @@ var Form = {
 
   serializeElements: function(elements, options) {
     if (typeof options != 'object') options = { hash: !!options };
-    else if (options.hash === undefined) options.hash = true;
+    else if (Object.isUndefined(options.hash)) options.hash = true;
     var key, value, submitted = false, submit = options.submit;
 
     var data = elements.inject({ }, function(result, element) {
@@ -3545,17 +3584,17 @@ Form.Element.Serializers = {
   },
 
   inputSelector: function(element, value) {
-    if (value === undefined) return element.checked ? element.value : null;
+    if (Object.isUndefined(value)) return element.checked ? element.value : null;
     else element.checked = !!value;
   },
 
   textarea: function(element, value) {
-    if (value === undefined) return element.value;
+    if (Object.isUndefined(value)) return element.value;
     else element.value = value;
   },
 
   select: function(element, index) {
-    if (index === undefined)
+    if (Object.isUndefined(index))
       return this[element.type == 'select-one' ?
         'selectOne' : 'selectMany'](element);
     else {
@@ -3746,7 +3785,9 @@ Event.Methods = (function() {
 
     findElement: function(event, expression) {
       var element = Event.element(event);
-      return element.match(expression) ? element : element.up(expression);
+      if (!expression) return element;
+      var elements = [element].concat(element.ancestors());
+      return Selector.findElement(elements, expression, 0);
     },
 
     pointer: function(event) {
@@ -3938,7 +3979,7 @@ Object.extend(Event, (function() {
         element.fireEvent(event.eventType, event);
       }
 
-      return event;
+      return Event.extend(event);
     }
   };
 })());
@@ -4182,3 +4223,1036 @@ Object.extend(Element.ClassNames.prototype, Enumerable);
 /*--------------------------------------------------------------------------*/
 
 Element.addMethods();
+/*
+  Proto!MultiSelect 0.2
+  - Prototype version required: 6.0
+  
+  Credits:
+  - Idea: Facebook + Apple Mail
+  - Caret position method: Diego Perini <http://javascript.nwbox.com/cursor_position/cursor.js>
+  - Guillermo Rauch: Original MooTools script
+  - Ran Grushkowsky/InteRiders Inc. : Porting into Prototype and further development
+  
+  Changelog:
+  - 0.1: translation of MooTools script
+  - 0.2: renamed from Proto!TextboxList to Proto!MultiSelect, added new features/bug fixes
+        added feature: support to fetch list on-the-fly using AJAX    Credit: Cheeseroll
+        added feature: support for value/caption
+        added feature: maximum results to display, when greater displays a scrollbar   Credit: Marcel
+        added feature: filter by the beginning of word only or everywhere in the word   Credit: Kiliman
+        added feature: shows hand cursor when going over options
+        bug fix: the click event stopped working
+        bug fix: the cursor does not 'travel' when going up/down the list   Credit: Marcel
+*/
+
+/* Copyright: InteRiders <http://interiders.com/> - Distributed under MIT - Keep this message! */
+
+/*
+== Loren Johnson, www.hellovenado.com -- 2/27/08 == 
+bug fix: moved class variables into initialize so they happen per instance. This allows multiple controls per page
+bug fix: added id_base attribute so that multiple controls on the same page have unique list item ids (won't work otherwise)
+feature: Added newValues option and logic to allow new values to be created when ended with a comma (tag selector use case)           
+mod: removed ajax fetch file happening on every search and moved it to initialization to laod all results immediately and not keep polling
+mod: added "fetchMethod" option so I could better accomodate my RESTful ways and set a "get" for retrieving
+mod: added this.update to the add and dispose methods to keep the target input box values always up to date
+mod: moved ResizableTextBox, TextBoxList and FaceBookList all into same file
+mod: added extra line breaks and fixed-up some indentation for readability
+mod: spaceReplace option added to allow handling of new tag values when the tagging scheme doesn't allow spaces, 
+     this is set as blank by default and will have no impact
+
+== Zuriel Barron, severelimitation.com -- 3/1/08 ==
+bug fix: fixed bug where it was not loading initial list values
+bug fix: new values are not added into the autocomplete list upon removal
+bug fix: improved browser compatibility (Safari, IE)
+*/
+
+// Added key contstant for COMMA watching happiness
+Object.extend(Event, { KEY_COMMA: 188 });
+
+var ResizableTextbox = Class.create({  
+  
+  initialize: function(element, options) {
+    var that = this;
+    this.options = $H({
+      min: 5,
+      max: 500,
+      step: 7
+    });
+    this.options.update(options);
+    this.el = $(element);
+    this.width = this.el.offsetWidth;
+    this.el.observe(
+      'keyup', function() {
+        var newsize = that.options.get('step') * $F(this).length;
+        if(newsize <= that.options.get('min')) newsize = that.width;
+        if(! ($F(this).length == this.retrieveData('rt-value') || newsize <= that.options.min || newsize >= that.options.max))
+          this.setStyle({'width': newsize});
+      }).observe('keydown', function() {
+        this.cacheData('rt-value', $F(this).length);
+      });
+  }
+});
+
+var TextboxList = Class.create({
+	
+  initialize: function(element, options) {
+    this.options = $H({/*
+      onFocus: $empty,
+      onBlur: $empty,
+      onInputFocus: $empty,
+      onInputBlur: $empty,
+      onBoxFocus: $empty,
+      onBoxBlur: $empty,
+      onBoxDispose: $empty,*/
+      resizable: {},
+      className: 'bit',
+      separator: ',',
+      extrainputs: true,
+      startinput: true,
+      hideempty: true,
+      newValues: false,
+      spaceReplace: '',
+      fetchFile: undefined,
+      fetchMethod: 'get',
+      results: 10,
+      wordMatch: false
+    });
+    this.options.update(options);
+    this.element = $(element).hide();    
+    this.bits = new Hash();
+    this.events = new Hash();
+    this.count = 0;
+    this.current = false;
+    this.maininput = this.createInput({'class': 'maininput'});
+    this.holder = new Element('ul', {
+      'class': 'holder'
+    }).insert(this.maininput);
+    this.element.insert({'before':this.holder});
+    this.holder.observe('click', function(event){
+      event.stop();
+      if(this.maininput != this.current) this.focus(this.maininput);     
+    }.bind(this));
+    this.makeResizable(this.maininput);
+    this.setEvents();
+  },
+  
+  setEvents: function() {
+    document.observe(Prototype.Browser.IE ? 'keydown' : 'keypress', function(e) {      
+      if(! this.current) return;
+      if(this.current.retrieveData('type') == 'box' && e.keyCode == Event.KEY_BACKSPACE) e.stop();
+    }.bind(this));      
+         
+    document.observe(
+      'keyup', function(e) {
+        e.stop();
+        if(! this.current) return;
+        switch(e.keyCode){
+          case Event.KEY_LEFT: return this.move('left');
+          case Event.KEY_RIGHT: return this.move('right');
+          case Event.KEY_DELETE:
+          case Event.KEY_BACKSPACE: return this.moveDispose();
+        }
+      }.bind(this)).observe(  
+      'click', function() { document.fire('blur'); }.bindAsEventListener(this)
+    );
+  },
+  
+  update: function() {
+    this.element.value = this.bits.values().join(this.options.get('separator'));
+    return this;
+  },
+  
+  add: function(text, html) {
+    var id = this.id_base + '-' + this.count++;
+    var el = this.createBox($pick(html, text), {'id': id, 'class': this.options.get('className'), 'newValue' : text.newValue ? 'true' : 'false'});
+    (this.current || this.maininput).insert({'before':el});                                         
+    el.observe('click', function(e) {
+      e.stop();
+      this.focus(el);
+    }.bind(this));
+    this.bits.set(id, text.value);
+    // Dynamic updating... why not?
+    this.update();
+    if(this.options.get('extrainputs') && (this.options.get('startinput') || el.previous())) this.addSmallInput(el,'before');
+    return el;
+  },
+  
+  addSmallInput: function(el, where) {
+    var input = this.createInput({'class': 'smallinput'});
+    el.insert({}[where] = input);
+    input.cacheData('small', true);
+    this.makeResizable(input);
+    if(this.options.get('hideempty')) input.hide();
+    return input;
+  },
+  
+  dispose: function(el) {
+    this.bits.unset(el.id);
+    // Dynamic updating... why not?
+    this.update();
+    if(el.previous() && el.previous().retrieveData('small')) el.previous().remove();
+    if(this.current == el) this.focus(el.next());
+    if(el.retrieveData('type') == 'box') el.onBoxDispose(this);
+    el.remove();    
+    return this;
+  },
+  
+  focus: function(el, nofocus) {
+    if(! this.current) el.fire('focus');
+    else if(this.current == el) return this;
+    this.blur();
+    el.addClassName(this.options.get('className') + '-' + el.retrieveData('type') + '-focus');
+    if(el.retrieveData('small')) el.setStyle({'display': 'block'});
+    if(el.retrieveData('type') == 'input') {
+      el.onInputFocus(this);      
+      if(! nofocus) this.callEvent(el.retrieveData('input'), 'focus');
+    }
+    else el.fire('onBoxFocus');
+    this.current = el;    
+    return this;
+  },
+  
+  blur: function(noblur) {
+    if(! this.current) return this;
+    if(this.current.retrieveData('type') == 'input') {
+      var input = this.current.retrieveData('input');
+      if(! noblur) this.callEvent(input, 'blur');   
+      input.onInputBlur(this);
+    }
+    else this.current.fire('onBoxBlur');
+    if(this.current.retrieveData('small') && ! input.get('value') && this.options.get('hideempty')) 
+      this.current.hide();
+    this.current.removeClassName(this.options.get('className') + '-' + this.current.retrieveData('type') + '-focus');
+    this.current = false;
+    return this;
+  },
+  
+  createBox: function(text, options) {
+    return new Element('li', options).addClassName(this.options.get('className') + '-box').update(text.caption).cacheData('type', 'box');
+  },
+  
+  createInput: function(options) {
+    var li = new Element('li', {'class': this.options.get('className') + '-input'});
+    var el = new Element('input', Object.extend(options,{'type': 'text'}));
+    el.observe('click', function(e) { e.stop(); }).observe('focus', function(e) { if(! this.isSelfEvent('focus')) this.focus(li, true); }.bind(this)).observe('blur', function() { if(! this.isSelfEvent('blur')) this.blur(true); }.bind(this)).observe('keydown', function(e) { this.cacheData('lastvalue', this.value).cacheData('lastcaret', this.getCaretPosition()); });
+    var tmp = li.cacheData('type', 'input').cacheData('input', el).insert(el);
+    return tmp;
+  },
+  
+  callEvent: function(el, type) {
+    this.events.set(type, el);
+    el[type]();
+  },
+  
+  isSelfEvent: function(type) {
+    return (this.events.get(type)) ? !! this.events.unset(type) : false;
+  },
+  
+  makeResizable: function(li) {
+    var el = li.retrieveData('input');
+    el.cacheData('resizable', new ResizableTextbox(el, Object.extend(this.options.get('resizable'),{min: el.offsetWidth, max: (this.element.getWidth()?this.element.getWidth():0)})));
+    return this;
+  },
+  
+  checkInput: function() {
+    var input = this.current.retrieveData('input');
+    return (! input.retrieveData('lastvalue') || (input.getCaretPosition() === 0 && input.retrieveData('lastcaret') === 0));
+  },
+  
+  move: function(direction) {
+    var el = this.current[(direction == 'left' ? 'previous' : 'next')]();
+    if(el && (! this.current.retrieveData('input') || ((this.checkInput() || direction == 'right')))) this.focus(el);
+    return this;
+  },
+  
+  moveDispose: function() {
+    if(this.current.retrieveData('type') == 'box') return this.dispose(this.current);
+    if(this.checkInput() && this.bits.keys().length && this.current.previous()) return this.focus(this.current.previous());
+  }
+  
+});
+
+//helper functions 
+Element.addMethods({
+  getCaretPosition: function() {
+    if (this.createTextRange) {
+      var r = document.selection.createRange().duplicate();
+        r.moveEnd('character', this.value.length);
+        if (r.text === '') return this.value.length;
+        return this.value.lastIndexOf(r.text);
+    } else return this.selectionStart;
+  },
+  cacheData: function(element, key, value) { 
+    if (Object.isUndefined(this[$(element).identify()]) || !Object.isHash(this[$(element).identify()]))
+        this[$(element).identify()] = $H();
+    this[$(element).identify()].set(key,value);
+    return element;
+  },
+  retrieveData: function(element,key) {
+    return this[$(element).identify()].get(key);
+  }  
+});
+
+function $pick(){for(var B=0,A=arguments.length;B<A;B++){if(!Object.isUndefined(arguments[B])){return arguments[B];}}return null;}
+
+/*
+  Proto!MultiSelect 0.2
+  - Prototype version required: 6.0
+  
+  Credits:
+  - Idea: Facebook
+  - Guillermo Rauch: Original MooTools script
+  - Ran Grushkowsky/InteRiders Inc. : Porting into Prototype and further development
+  
+  Changelog:
+  - 0.1: translation of MooTools script
+  - 0.2: renamed from Proto!TextboxList to Proto!MultiSelect, added new features/bug fixes
+        added feature: support to fetch list on-the-fly using AJAX    Credit: Cheeseroll
+        added feature: support for value/caption
+        added feature: maximum results to display, when greater displays a scrollbar   Credit: Marcel
+        added feature: filter by the beginning of word only or everywhere in the word   Credit: Kiliman
+        added feature: shows hand cursor when going over options
+        bug fix: the click event stopped working
+        bug fix: the cursor does not 'travel' when going up/down the list   Credit: Marcel
+*/
+
+/* Copyright: InteRiders <http://interiders.com/> - Distributed under MIT - Keep this message! */
+
+var FacebookList = Class.create(TextboxList, { 
+  
+  initialize: function($super,element, autoholder, options, func) {
+    $super(element, options);
+    this.loptions = $H({    
+      autocomplete: {
+        'opacity': 1,
+        'maxresults': 10,
+        'minchars': 1
+      }
+    });
+
+    this.id_base = $(element).identify() + "_" + this.options.get("className");
+
+    this.data = [];    
+    this.autoholder = $(autoholder).setOpacity(this.loptions.get('autocomplete').opacity);
+    this.autoholder.observe('mouseover',function() {this.curOn = true;}.bind(this)).observe('mouseout',function() {this.curOn = false;}.bind(this));
+    this.autoresults = this.autoholder.select('ul').first();
+	var children = this.autoresults.select('li');
+    children.each(function(el) { this.add({value:el.readAttribute('value'),caption:el.innerHTML}); }, this);
+
+    // Loading the options list only once at initialize. 
+    // This would need to be further extended if the list was exceptionally long
+    if (!Object.isUndefined(this.options.get('fetchFile'))) {
+      new Ajax.Request(this.options.get('fetchFile'), {
+        method: this.options.get('fetchMethod'),
+        onSuccess: function(transport) {
+          transport.responseText.evalJSON(true).each(function(t) { 
+            this.autoFeed(t) }.bind(this)); 
+          }.bind(this)
+        }
+      );
+    }
+
+  },
+  
+  autoShow: function(search) {
+    this.autoholder.setStyle({'display': 'block'});
+    this.autoholder.descendants().each(function(e) { e.hide() });
+    if(! search || ! search.strip() || (! search.length || search.length < this.loptions.get('autocomplete').minchars)) 
+    {
+      this.autoholder.select('.default').first().setStyle({'display': 'block'});
+      this.resultsshown = false;
+    } else {
+      this.resultsshown = true;
+      this.autoresults.setStyle({'display': 'block'}).update('');
+      if (this.options.get('wordMatch'))
+        var regexp = new RegExp("(^|\\s)"+search,'i')
+      else
+        var regexp = new RegExp(search,'i')
+      var count = 0;
+      this.data.filter( 
+        function(str) { 
+          return str ? regexp.test(str.evalJSON(true).caption) : false; }).each(
+            function(result, ti) {
+              count++;
+              if(ti >= this.loptions.get('autocomplete').maxresults) return;
+              var that = this;
+              var el = new Element('li');
+              el.observe('click',function(e) { 
+                e.stop();
+                that.autoAdd(this); 
+            }
+          ).observe('mouseover', function() { that.autoFocus(this); } ).update(
+            this.autoHighlight(result.evalJSON(true).caption, search)
+          );
+          this.autoresults.insert(el);
+          el.cacheData('result', result.evalJSON(true));
+          if(ti == 0) this.autoFocus(el);
+        }, 
+        this
+      );
+    }
+    if (count > this.options.get('results'))
+      this.autoresults.setStyle({'height': (this.options.get('results')*24)+'px'});
+    else
+      this.autoresults.setStyle({'height': (count?(count*24):0)+'px'});
+    return this;
+  },
+  
+  autoHighlight: function(html, highlight) {
+    return html.gsub(new RegExp(highlight,'i'), function(match) {
+      return '<em>' + match[0] + '</em>';
+    });
+  },
+  
+  autoHide: function() {    
+    this.resultsshown = false;
+    this.autoholder.hide();
+    return this;
+  },
+  
+  autoFocus: function(el) {
+    if(! el) return;
+    if(this.autocurrent) this.autocurrent.removeClassName('auto-focus');
+    this.autocurrent = el.addClassName('auto-focus');
+    return this;
+  },
+  
+  autoMove: function(direction) {    
+    if(!this.resultsshown) return;
+    this.autoFocus(this.autocurrent[(direction == 'up' ? 'previous' : 'next')]());
+    this.autoresults.scrollTop = this.autocurrent.positionedOffset()[1]-this.autocurrent.getHeight();         
+    return this;
+  },
+  
+  autoFeed: function(text) {
+    if (this.data.indexOf(Object.toJSON(text)) == -1)
+      this.data.push(Object.toJSON(text));
+    return this;
+  },
+  
+  autoAdd: function(el) {
+    if(this.newvalue && this.options.get("newValues")) {
+      this.add({caption: el.value, value: el.value, newValue: true});
+      var input = el;
+    } else if(!el || ! el.retrieveData('result')) {
+      return;
+    } else {
+      this.add(el.retrieveData('result'));
+      delete this.data[this.data.indexOf(Object.toJSON(el.retrieveData('result')))];
+      var input = this.lastinput || this.current.retrieveData('input');
+    }
+    this.autoHide();
+    input.clear().focus();
+    return this;
+  },
+  
+  createInput: function($super,options) {
+    var li = $super(options);
+    var input = li.retrieveData('input');
+    input.observe('keydown', function(e) {
+        this.dosearch = false;
+        this.newvalue = false;
+        
+        switch(e.keyCode) {
+          case Event.KEY_UP: e.stop(); return this.autoMove('up');
+          case Event.KEY_DOWN: e.stop(); return this.autoMove('down');        
+          case Event.KEY_COMMA:
+            if(this.options.get('newValues')) {
+              new_value_el = this.current.retrieveData('input');
+              new_value_el.value = new_value_el.value.strip().gsub(",","");
+              if(!this.options.get("spaceReplace").blank()) new_value_el.gsub(" ", this.options.get("spaceReplace"));
+              if(!new_value_el.value.blank()) {
+                e.stop();
+                this.newvalue = true;
+                this.autoAdd(new_value_el);
+              }
+            }
+            break;
+          case Event.KEY_RETURN:
+            e.stop();
+            if(! this.autocurrent) break;
+            this.autoAdd(this.autocurrent);
+            this.autocurrent = false;
+            this.autoenter = true;
+            break;
+          case Event.KEY_ESC: 
+            this.autoHide();
+            if(this.current && this.current.retrieveData('input'))
+              this.current.retrieveData('input').clear();
+            break;
+          default: this.dosearch = true;
+        }
+    }.bind(this));
+    input.observe('keyup',function(e) {
+	
+        switch(e.keyCode) {
+          case Event.KEY_UP: 
+          case Event.KEY_DOWN: 
+          case Event.KEY_RETURN:
+          case Event.KEY_ESC: 
+            break;              
+          default: 
+            // Removed Ajax.Request from here and moved to initialize, 
+            // now doesn't create server queries every search but only 
+            // refreshes the list on initialize (page load) 
+            if(this.dosearch) this.autoShow(input.value);
+        }        
+    }.bind(this));
+    input.observe(Prototype.Browser.IE ? 'keydown' : 'keypress', function(e) { 
+      if(this.autoenter) e.stop();
+      this.autoenter = false;
+    }.bind(this));
+    return li;
+  },
+  
+  createBox: function($super,text, options) {
+    var li = $super(text, options);
+    li.observe('mouseover',function() { 
+        this.addClassName('bit-hover');
+    }).observe('mouseout',function() { 
+        this.removeClassName('bit-hover') 
+    });
+    var a = new Element('a', {
+      'href': '#',
+      'class': 'closebutton'
+      }
+    );
+    a.observe('click',function(e) {
+      e.stop();
+      if(! this.current) this.focus(this.maininput);
+      this.dispose(li);
+    }.bind(this));
+    li.insert(a).cacheData('text', Object.toJSON(text));
+    return li;
+  }
+  
+});
+
+Element.addMethods({
+  onBoxDispose: function(item,obj) { 
+    // Set to not to "add back" values in the drop-down upon delete if they were new values
+	item = item.retrieveData('text').evalJSON(true);
+	if(!item.newValue)
+    	obj.autoFeed(item); 
+  },
+  onInputFocus: function(el,obj) { obj.autoShow(); },    
+  onInputBlur: function(el,obj) { 
+      obj.lastinput = el;
+      if(!obj.curOn) {
+          obj.blurhide = obj.autoHide.bind(obj).delay(0.1);
+      }
+            if(obj.options.get('newValues')) {
+              new_value_el = obj.current.retrieveData('input');
+              new_value_el.value = new_value_el.value.strip().gsub(",","");
+              if(!obj.options.get("spaceReplace").blank()) new_value_el.gsub(" ", obj.options.get("spaceReplace"));
+              if(!new_value_el.value.blank()) {
+                //e.stop();
+                obj.newvalue = true;
+                obj.autoAdd(new_value_el);
+              }
+            }
+  },
+  filter: function(D,E) { var C=[];for(var B=0,A=this.length;B<A;B++){if(D.call(E,this[B],B,this)){C.push(this[B]);}} return C; }
+});         
+/**
+ * @author Ryan Johnson <http://saucytiger.com/>
+ * @copyright 2008 PersonalGrid Corporation <http://personalgrid.com/>
+ * @package LivePipe UI
+ * @license MIT
+ * @url http://livepipe.net/core
+ * @require prototype.js
+ */
+
+if(typeof(Control) == 'undefined')
+	Control = {};
+	
+var $proc = function(proc){
+	return typeof(proc) == 'function' ? proc : function(){return proc};
+};
+
+var $value = function(value){
+	return typeof(value) == 'function' ? value() : value;
+};
+
+Object.Event = {
+	extend: function(object){
+		object._objectEventSetup = function(event_name){
+			this._observers = this._observers || {};
+			this._observers[event_name] = this._observers[event_name] || [];
+		};
+		object.observe = function(event_name,observer){
+			if(typeof(event_name) == 'string' && typeof(observer) != 'undefined'){
+				this._objectEventSetup(event_name);
+				if(!this._observers[event_name].include(observer))
+					this._observers[event_name].push(observer);
+			}else
+				for(var e in event_name)
+					this.observe(e,event_name[e]);
+		};
+		object.stopObserving = function(event_name,observer){
+			this._objectEventSetup(event_name);
+			if(event_name && observer)
+				this._observers[event_name] = this._observers[event_name].without(observer);
+			else if(event_name)
+				this._observers[event_name] = [];
+			else
+				this._observers = {};
+		};
+		object.observeOnce = function(event_name,outer_observer){
+			var inner_observer = function(){
+				outer_observer.apply(this,arguments);
+				this.stopObserving(event_name,inner_observer);
+			}.bind(this);
+			this._objectEventSetup(event_name);
+			this._observers[event_name].push(inner_observer);
+		};
+		object.notify = function(event_name){
+			this._objectEventSetup(event_name);
+			var collected_return_values = [];
+			var args = $A(arguments).slice(1);
+			try{
+				for(var i = 0; i < this._observers[event_name].length; ++i)
+					collected_return_values.push(this._observers[event_name][i].apply(this._observers[event_name][i],args) || null);
+			}catch(e){
+				if(e == $break)
+					return false;
+				else
+					throw e;
+			}
+			return collected_return_values;
+		};
+		if(object.prototype){
+			object.prototype._objectEventSetup = object._objectEventSetup;
+			object.prototype.observe = object.observe;
+			object.prototype.stopObserving = object.stopObserving;
+			object.prototype.observeOnce = object.observeOnce;
+			object.prototype.notify = function(event_name){
+				if(object.notify){
+					var args = $A(arguments).slice(1);
+					args.unshift(this);
+					args.unshift(event_name);
+					object.notify.apply(object,args);
+				}
+				this._objectEventSetup(event_name);
+				var args = $A(arguments).slice(1);
+				var collected_return_values = [];
+				try{
+					if(this.options && this.options[event_name] && typeof(this.options[event_name]) == 'function')
+						collected_return_values.push(this.options[event_name].apply(this,args) || null);
+					for(var i = 0; i < this._observers[event_name].length; ++i)
+						collected_return_values.push(this._observers[event_name][i].apply(this._observers[event_name][i],args) || null);
+				}catch(e){
+					if(e == $break)
+						return false;
+					else
+						throw e;
+				}
+				return collected_return_values;
+			};
+		}
+	}
+};
+
+/* Begin Core Extensions */
+
+//Element.observeOnce
+Element.addMethods({
+	observeOnce: function(element,event_name,outer_callback){
+		var inner_callback = function(){
+			outer_callback.apply(this,arguments);
+			Element.stopObserving(element,event_name,inner_callback);
+		};
+		Element.observe(element,event_name,inner_callback);
+	}
+});
+
+//mouseenter, mouseleave
+//from http://dev.rubyonrails.org/attachment/ticket/8354/event_mouseenter_106rc1.patch
+Object.extend(Event, (function() {
+	var cache = Event.cache;
+
+	function getEventID(element) {
+		if (element._prototypeEventID) return element._prototypeEventID[0];
+		arguments.callee.id = arguments.callee.id || 1;
+		return element._prototypeEventID = [++arguments.callee.id];
+	}
+
+	function getDOMEventName(eventName) {
+		if (eventName && eventName.include(':')) return "dataavailable";
+		//begin extension
+		if(!Prototype.Browser.IE){
+			eventName = {
+				mouseenter: 'mouseover',
+				mouseleave: 'mouseout'
+			}[eventName] || eventName;
+		}
+		//end extension
+		return eventName;
+	}
+
+	function getCacheForID(id) {
+		return cache[id] = cache[id] || { };
+	}
+
+	function getWrappersForEventName(id, eventName) {
+		var c = getCacheForID(id);
+		return c[eventName] = c[eventName] || [];
+	}
+
+	function createWrapper(element, eventName, handler) {
+		var id = getEventID(element);
+		var c = getWrappersForEventName(id, eventName);
+		if (c.pluck("handler").include(handler)) return false;
+
+		var wrapper = function(event) {
+			if (!Event || !Event.extend ||
+				(event.eventName && event.eventName != eventName))
+					return false;
+
+			Event.extend(event);
+			handler.call(element, event);
+		};
+		
+		//begin extension
+		if(!(Prototype.Browser.IE) && ['mouseenter','mouseleave'].include(eventName)){
+			wrapper = wrapper.wrap(function(proceed,event) {	
+				var rel = event.relatedTarget;
+				var cur = event.currentTarget;			 
+				if(rel && rel.nodeType == Node.TEXT_NODE)
+					rel = rel.parentNode;	  
+				if(rel && rel != cur && !rel.descendantOf(cur))	  
+					return proceed(event);   
+			});	 
+		}
+		//end extension
+
+		wrapper.handler = handler;
+		c.push(wrapper);
+		return wrapper;
+	}
+
+	function findWrapper(id, eventName, handler) {
+		var c = getWrappersForEventName(id, eventName);
+		return c.find(function(wrapper) { return wrapper.handler == handler });
+	}
+
+	function destroyWrapper(id, eventName, handler) {
+		var c = getCacheForID(id);
+		if (!c[eventName]) return false;
+		c[eventName] = c[eventName].without(findWrapper(id, eventName, handler));
+	}
+
+	function destroyCache() {
+		for (var id in cache)
+			for (var eventName in cache[id])
+				cache[id][eventName] = null;
+	}
+
+	if (window.attachEvent) {
+		window.attachEvent("onunload", destroyCache);
+	}
+
+	return {
+		observe: function(element, eventName, handler) {
+			element = $(element);
+			var name = getDOMEventName(eventName);
+
+			var wrapper = createWrapper(element, eventName, handler);
+			if (!wrapper) return element;
+
+			if (element.addEventListener) {
+				element.addEventListener(name, wrapper, false);
+			} else {
+				element.attachEvent("on" + name, wrapper);
+			}
+
+			return element;
+		},
+
+		stopObserving: function(element, eventName, handler) {
+			element = $(element);
+			var id = getEventID(element), name = getDOMEventName(eventName);
+
+			if (!handler && eventName) {
+				getWrappersForEventName(id, eventName).each(function(wrapper) {
+					element.stopObserving(eventName, wrapper.handler);
+				});
+				return element;
+
+			} else if (!eventName) {
+				Object.keys(getCacheForID(id)).each(function(eventName) {
+					element.stopObserving(eventName);
+				});
+				return element;
+			}
+
+			var wrapper = findWrapper(id, eventName, handler);
+			if (!wrapper) return element;
+
+			if (element.removeEventListener) {
+				element.removeEventListener(name, wrapper, false);
+			} else {
+				element.detachEvent("on" + name, wrapper);
+			}
+
+			destroyWrapper(id, eventName, handler);
+
+			return element;
+		},
+
+		fire: function(element, eventName, memo) {
+			element = $(element);
+			if (element == document && document.createEvent && !element.dispatchEvent)
+				element = document.documentElement;
+
+			var event;
+			if (document.createEvent) {
+				event = document.createEvent("HTMLEvents");
+				event.initEvent("dataavailable", true, true);
+			} else {
+				event = document.createEventObject();
+				event.eventType = "ondataavailable";
+			}
+
+			event.eventName = eventName;
+			event.memo = memo || { };
+
+			if (document.createEvent) {
+				element.dispatchEvent(event);
+			} else {
+				element.fireEvent(event.eventType, event);
+			}
+
+			return Event.extend(event);
+		}
+	};
+})());
+
+Object.extend(Event, Event.Methods);
+
+Element.addMethods({
+	fire:			Event.fire,
+	observe:		Event.observe,
+	stopObserving:	Event.stopObserving
+});
+
+Object.extend(document, {
+	fire:			Element.Methods.fire.methodize(),
+	observe:		Element.Methods.observe.methodize(),
+	stopObserving:	Element.Methods.stopObserving.methodize()
+});
+
+//mouse:wheel
+(function(){
+	function wheel(event){
+		var delta;
+		// normalize the delta
+		if(event.wheelDelta) // IE & Opera
+			delta = event.wheelDelta / 120;
+		else if (event.detail) // W3C
+			delta =- event.detail / 3;
+		if(!delta)
+			return;
+		var custom_event = event.element().fire('mouse:wheel',{
+			delta: delta
+		});
+		if(custom_event.stopped){
+			event.stop();
+			return false;
+		}
+	}
+	document.observe('mousewheel',wheel);
+	document.observe('DOMMouseScroll',wheel);
+})();
+
+/* End Core Extensions */
+
+//from PrototypeUI
+var IframeShim = Class.create({
+	initialize: function() {
+		this.element = new Element('iframe',{
+			style: 'position:absolute;filter:progid:DXImageTransform.Microsoft.Alpha(opacity=0);display:none',
+			src: 'javascript:void(0);',
+			frameborder: 0 
+		});
+		$(document.body).insert(this.element);
+	},
+	hide: function() {
+		this.element.hide();
+		return this;
+	},
+	show: function() {
+		this.element.show();
+		return this;
+	},
+	positionUnder: function(element) {
+		var element = $(element);
+		var offset = element.cumulativeOffset();
+		var dimensions = element.getDimensions();
+		this.element.setStyle({
+			left: offset[0] + 'px',
+			top: offset[1] + 'px',
+			width: dimensions.width + 'px',
+			height: dimensions.height + 'px',
+			zIndex: element.getStyle('zIndex') - 1
+		}).show();
+		return this;
+	},
+	setBounds: function(bounds) {
+		for(prop in bounds)
+			bounds[prop] += 'px';
+		this.element.setStyle(bounds);
+		return this;
+	},
+	destroy: function() {
+		if(this.element)
+			this.element.remove();
+		return this;
+	}
+});/**
+ * @author Ryan Johnson <http://saucytiger.com/>
+ * @copyright 2008 PersonalGrid Corporation <http://personalgrid.com/>
+ * @package LivePipe UI
+ * @license MIT
+ * @url http://livepipe.net/control/tabs
+ * @require prototype.js, livepipe.js
+ */
+
+if(typeof(Prototype) == "undefined")
+	throw "Control.Tabs requires Prototype to be loaded.";
+if(typeof(Object.Event) == "undefined")
+	throw "Control.Tabs requires Object.Event to be loaded.";
+
+Control.Tabs = Class.create({
+	initialize: function(tab_list_container,options){
+		if(!$(tab_list_container))
+			throw "Control.Tabs could not find the element: " + tab_list_container;
+		this.activeContainer = false;
+		this.activeLink = false;
+		this.containers = $H({});
+		this.links = [];
+		Control.Tabs.instances.push(this);
+		this.options = {
+			beforeChange: Prototype.emptyFunction,
+			afterChange: Prototype.emptyFunction,
+			hover: false,
+			linkSelector: 'li a',
+			setClassOnContainer: true,
+			activeClassName: 'active',
+			defaultTab: 'first',
+			autoLinkExternal: true,
+			targetRegExp: /#(.+)$/,
+			showFunction: Element.show,
+			hideFunction: Element.hide
+		};
+		Object.extend(this.options,options || {});
+		(typeof(this.options.linkSelector == 'string')
+			? $(tab_list_container).select(this.options.linkSelector)
+			: this.options.linkSelector($(tab_list_container))
+		).findAll(function(link){
+			return (/^#/).exec((Prototype.Browser.WebKit ? decodeURIComponent(link.href) : link.href).replace(window.location.href.split('#')[0],''));
+		}).each(function(link){
+			this.addTab(link);
+		}.bind(this));
+		this.containers.values().each(Element.hide);
+		if(this.options.defaultTab == 'first')
+			this.setActiveTab(this.links.first());
+		else if(this.options.defaultTab == 'last')
+			this.setActiveTab(this.links.last());
+		else
+			this.setActiveTab(this.options.defaultTab);
+		var targets = this.options.targetRegExp.exec(window.location);
+		if(targets && targets[1]){
+			targets[1].split(',').each(function(target){
+				this.setActiveTab(this.links.find(function(link){
+					return link.key == target;
+				}));
+			}.bind(this));
+		}
+		if(this.options.autoLinkExternal){
+			$A(document.getElementsByTagName('a')).each(function(a){
+				if(!this.links.include(a)){
+					var clean_href = a.href.replace(window.location.href.split('#')[0],'');
+					if(clean_href.substring(0,1) == '#'){
+						if(this.containers.keys().include(clean_href.substring(1))){
+							$(a).observe('click',function(event,clean_href){
+								this.setActiveTab(clean_href.substring(1));
+							}.bindAsEventListener(this,clean_href));
+						}
+					}
+				}
+			}.bind(this));
+		}
+	},
+	addTab: function(link){
+		this.links.push(link);
+		link.key = link.getAttribute('href').replace(window.location.href.split('#')[0],'').split('/').last().replace(/#/,'');
+		var container = $(link.key);
+		if(!container)
+			throw "Control.Tabs: #" + link.key + " was not found on the page."
+		this.containers.set(link.key,container);
+		link[this.options.hover ? 'onmouseover' : 'onclick'] = function(link){
+			if(window.event)
+				Event.stop(window.event);
+			this.setActiveTab(link);
+			return false;
+		}.bind(this,link);
+	},
+	setActiveTab: function(link){
+		if(!link && typeof(link) == 'undefined')
+			return;
+		if(typeof(link) == 'string'){
+			this.setActiveTab(this.links.find(function(_link){
+				return _link.key == link;
+			}));
+		}else if(typeof(link) == 'number'){
+			this.setActiveTab(this.links[link]);
+		}else{
+			if(this.notify('beforeChange',this.activeContainer,this.containers.get(link.key)) === false)
+				return;
+			if(this.activeContainer)
+				this.options.hideFunction(this.activeContainer);
+			this.links.each(function(item){
+				(this.options.setClassOnContainer ? $(item.parentNode) : item).removeClassName(this.options.activeClassName);
+			}.bind(this));
+			(this.options.setClassOnContainer ? $(link.parentNode) : link).addClassName(this.options.activeClassName);
+			this.activeContainer = this.containers.get(link.key);
+			this.activeLink = link;
+			this.options.showFunction(this.containers.get(link.key));
+			this.notify('afterChange',this.containers.get(link.key));
+		}
+	},
+	next: function(){
+		this.links.each(function(link,i){
+			if(this.activeLink == link && this.links[i + 1]){
+				this.setActiveTab(this.links[i + 1]);
+				throw $break;
+			}
+		}.bind(this));
+	},
+	previous: function(){
+		this.links.each(function(link,i){
+			if(this.activeLink == link && this.links[i - 1]){
+				this.setActiveTab(this.links[i - 1]);
+				throw $break;
+			}
+		}.bind(this));
+	},
+	first: function(){
+		this.setActiveTab(this.links.first());
+	},
+	last: function(){
+		this.setActiveTab(this.links.last());
+	}
+});
+Object.extend(Control.Tabs,{
+	instances: [],
+	findByTabId: function(id){
+		return Control.Tabs.instances.find(function(tab){
+			return tab.links.find(function(link){
+				return link.key == id;
+			});
+		});
+	}
+});
+Object.Event.extend(Control.Tabs);

@@ -19,6 +19,8 @@ require 'right_aws'
 require 'linguistics'
 require 'hpricot'
 require 'plist'
+require 'net/smtp'
+
 Linguistics::use( :en )
 
 #import into the system
@@ -38,7 +40,9 @@ require '/var/www/risingcode/email_server'
 require '/var/www/risingcode/documentation_server'
 require '/var/www/risingcode/twitter'
 require '/var/www/risingcode/referrer'
+require '/var/www/risingcode/slugalizer'
 require '/var/www/risingcode/fast'
+require '/var/www/risingcode/lockfile'
 require '/root/ruby-oembed/lib/oembed'
 
 Camping.goes :RisingCode
@@ -79,12 +83,33 @@ module RisingCodeTags
       problem.inspect
     end
   end
+  def rhtml(opts)
+#Camping::Models::Base.logger.debug("rhtml. opts = #{opts.inspect}")
+    content = opts[:text]
+    begin
+      return DocumentationServer::SERVER.highlight(content, "rhtml")
+    rescue Exception => problem
+#Camping::Models::Base.logger.debug("rhtml. problem #{problem}")
+      problem.inspect
+    end
+  end
+  def javascript(opts)
+#Camping::Models::Base.logger.debug("ruby. opts = #{opts.inspect}")
+    content = opts[:text]
+    begin
+      return DocumentationServer::SERVER.highlight(content, "js")
+    rescue Exception => problem
+#Camping::Models::Base.logger.debug("ruby problem #{problem}")
+      problem.inspect
+    end
+  end
   def oembed(opts)
 #Camping::Models::Base.logger.debug("oembed. opts = #{opts.inspect}")
     content = opts[:text]
     begin
-      Timeout::timeout(3) do
+      Timeout::timeout(30) do
         res = OEmbed::Providers::OohEmbed.get(content)
+#Camping::Models::Base.logger.debug(res.inspect)
         case res
           when OEmbed::Response::Photo
             ::Markaby::Builder.new.div(:class => "oembed centered") {
@@ -96,30 +121,62 @@ module RisingCodeTags
               }
             }
           when OEmbed::Response::Video, OEmbed::Response::Rich
+            doc = Hpricot(res.field(:html))
+Camping::Models::Base.logger.debug("doc -> #{doc.inspect}")
+            (doc / "object").each { |el|
+Camping::Models::Base.logger.debug("el 1 -> #{el.inspect}")
+              if el['width'] and el['width'].to_i > 500 then 
+                #el.remove_attribute('height') # = nil #(el['height'].to_i / (el['width'].to_i / 480)).to_s
+                new_height = el['height'].to_i / (el['width'].to_i / 480)
+Camping::Models::Base.logger.debug("new_height -> #{new_height.inspect}")
+                el['height'] = new_height.to_s
+                el['width'] = "480"
+
+
+                
+Camping::Models::Base.logger.debug("el -> #{el.inspect}")
+              else
+              end
+            }
+
             ::Markaby::Builder.new.div(:class => "oembed centered") {
               div.oembeded {
-                text(res.field(:html))
+                #text(res.field(:html))
+                text(doc.to_s)
               }
             }
           when OEmbed::Response::Link
             ::Markaby::Builder.new.div(:class => "oembed") {
+#Camping::Models::Base.logger.debug("Rich???!")
               div.oembeded {
                 h4 {
                   a(:href => content) {
                     text(res.field(:title))
                   }
                 }
-                text(res.field(:html))
+
+                doc = Hpricot(res.field(:html))
+                (doc / "a").each { |el|
+#Camping::Models::Base.logger.debug(el.inspect)
+#http://en.wikipedia.org/wiki/Discipline
+                  if el['href'] and el['href'].include?("http://en.wikipedia.org/wiki/") and not el['href'].include?("http://en.wikipedia.org/wiki/Wikipedia") then
+#Camping::Models::Base.logger.debug("WIKI!")
+                    #el['href'] = "/learn/about/" + Slugalizer.slugalize(el['href'].gsub("http://en.wikipedia.org/wiki/", ""))
+                  end
+#Camping::Models::Base.logger.debug(el.inspect)
+                }
+                text(doc.to_s)
               }
             }
         else
+#Camping::Models::Base.logger.debug("WTF???!")
           content
         end
       end
-    rescue Exception => problem
-#      Camping::Models::Base.logger.debug("wang chung")
-#      Camping::Models::Base.logger.debug("#{problem.inspect}")
-#      Camping::Models::Base.logger.debug(problem.backtrace.join("\n"))
+    rescue => problem
+Camping::Models::Base.logger.debug("wang chung")
+Camping::Models::Base.logger.debug("#{problem.inspect}")
+Camping::Models::Base.logger.debug(problem.backtrace.join("\n"))
       content
     end
   end
@@ -141,6 +198,10 @@ module RisingCode
   end
   def view_images
     @viewing_images = true
+    yield
+  end
+  def without_layout
+    @no_layout = true
     yield
   end
   def other_layout
@@ -396,7 +457,7 @@ module RisingCode::Controllers
       data = {}
       states.each { |state|
         begin
-          Timeout::timeout(3) do
+          Timeout::timeout(6) do #depc
 #Camping::Models::Base.logger.debug("111")
             fetched = Fast.fetch("http://en.wikipedia.org/wiki/Special:Search/#{URI.encode(state)}")
             fetched = nil if fetched.blank?
@@ -434,9 +495,11 @@ module RisingCode::Controllers
         id = "                    "
       end
       label = Draw.new
-      label.fill = "black" 
+      label.fill = "white" 
       label.stroke = 'none'
-      label.font = "Vera"
+      label.pointsize = 15 
+      #label.kerning = 1 
+      label.font = "Arial"
       label.text_antialias(true)
       label.font_style=Magick::NormalStyle
       label.font_weight=Magick::BoldWeight
@@ -445,10 +508,10 @@ module RisingCode::Controllers
       metrics = label.get_type_metrics(id)
       width = metrics.width
       height = metrics.height
-      width += 16
-      height += 12
-      radius = 8
-      top_grad = GradientFill.new(0, 0, width, 0, "#ffffff", "#cccccc")
+      width += 21 
+      height += 15
+      radius = 4
+      top_grad = GradientFill.new(0, 0, width, 0, "#85EB6A", "#1D8C00")
       image_layer_one = Magick::Image.new(width, height, top_grad)
       gc = Draw.new
       gc.roundrectangle(0,0,image_layer_one.columns-1, image_layer_one.rows-1, radius, radius)
@@ -463,7 +526,7 @@ module RisingCode::Controllers
       gc.roundrectangle(1,1,inner_glow_mask.columns - 2, inner_glow_mask.rows - 2, radius, radius)
       gc.draw(inner_glow_mask)
       inner_glow_mask = inner_glow_mask.blur_image(0, 1)
-      highlight_gradient = GradientFill.new(0,0,80, 0, "#ffffff", "#e4e4e4")
+      highlight_gradient = GradientFill.new(0,0,80, 0, "#85EB6A", "#1D8C00")
       highlight_layer = Magick::Image.new((width - 14).to_i, (height * 0.5).to_i, highlight_gradient)
       gc = Draw.new
       gc.roundrectangle(0, 0, highlight_layer.columns - 1, highlight_layer.rows - 1, radius, radius)
@@ -485,11 +548,46 @@ module RisingCode::Controllers
   end
   class Contact < R("/contact")
     def get
+      primes = []
+      state = Numeric.new
+      (2300..3500).each { |i|
+         (2..(Math.sqrt(i).ceil)).each { |thing|
+            state = 1
+            if (i.divmod(thing)[1] == 0)
+               state = 0
+               break
+            end
+         }
+         primes << i unless (state == 0)
+      }
+      random_primes = primes.sort_by { rand }
       @tags = Tag.find_all_by_include_in_header(true)
+      @state.contact_me_token = UUID.random_create.to_s
+      @state.authentication_token = "#{primes[0]}x#{primes[1]}"
+      @large_factor = primes[0] * primes[1]
       render :contact
     end
-    def post
-      
+    def post(*args)
+      begin
+        Lockfile.new('/tmp/email.lock') do
+          sleep 5
+          if @input.agree_to_tos.nil? and @input.i_am_not_a_robot == @state.contact_me_token and @input.authentication_token == @state.authentication_token then
+            @state.contact_me_token = UUID.random_create.to_s
+            Net::SMTP.start('localhost') do |smtp|
+              smtp.sendmail("Subject: Contact Form Submission\n\n#{@input.inspect}", "www-data", "Jon Bardin <diclophis@gmail.com>")
+            end
+            other_layout {
+              return render :thanks
+            }
+          else
+            @state.contact_me_token = UUID.random_create.to_s
+            return "<a href=\"#{R(Contact)}\">try again</a>"
+          end
+        end
+      rescue => problem
+Camping::Models::Base.logger.debug(problem.inspect)
+        return "really, don't do that"
+      end
     end
   end
   class Login < R("/dashboard/login(.*)")
@@ -604,8 +702,8 @@ module RisingCode::Controllers
       render :message
     end
   end
-  class BookmarksByTag < R('/bookmarks/tagged/(.*)')
-    def get (tag)
+  class BookmarksByTag < R('/bookmarks/tagged/([a-zA-Z0-9\-]+)', '/bookmarks/tagged/([a-zA-Z0-9\-]+)/([0-9]+)')
+    def get (tag, page = nil)
       @tag = tag
       @tags = Tag.find_all_by_include_in_header(true)
       @active_tab = "bookmarks"
@@ -617,6 +715,13 @@ module RisingCode::Controllers
         }
       }
       @title = "Bookmarks tagged #{@tag}"
+      @page = page
+      if @page then
+        @offset = 10 * @page.to_i
+      else
+        @offset = 0
+      end
+Camping::Models::Base.logger.debug("#{@page} #{@offset}")
       render :bookmarks_by_tag
     end
   end
@@ -758,6 +863,18 @@ module RisingCode::Controllers
         @models[model] = DocumentationServer::SERVER.source_for(model)
       }
       render :sources
+    end
+  end
+  class Highlight < R('/highlight/(\w+)\.(\w+)')
+    def post(*args)
+      @code = args.inspect + @input.inspect 
+      unless @input.the_file.is_a?(String) then
+        @code = DocumentationServer::SERVER.highlight(@input.the_file[:tempfile].read, args[1])
+        #@code += @input.the_file[:tempfile].read
+      end
+      without_layout {
+        render :highlight
+      }
     end
   end
   class Index < R('/', '/(articles)', '/([a-zA-Z0-9 ]+)/(\d*)', '/(\d+)/(\d+)/(\d+)', '/(\w+)/(\w+)/(\w+)/([\w-]+)')
@@ -959,16 +1076,84 @@ module RisingCode::Controllers
   end
 end
 module RisingCode::Views
+  def thanks
+    div {
+      h1 {
+        "Thanks!"
+      }
+      p {
+        "I will try to get back to you as soon as possible..."
+      }
+      a(:href => R(Index)) {
+        "return to index"
+      }
+    }
+  end
   def contact
     form(:action => R(Contact), :method => :post) {
-      label {
-        "Name"
+      ul {
+        li {
+          label {
+            "Please State Your Name"
+          }
+          input(:id => "your_name", :name => "name", :type => "text", :disabled => :disabled) 
+        }
+        li {
+          label {
+            "And Your Business"
+          }
+          textarea(:id => "token", :class => @large_factor, :name => "business", :rows => 10, :cols => 10, :disabled => :disabled) {}
+        }
+        li {
+          table {
+            if rand > 0.5 then
+              i_am_a_robot
+              i_am_not_a_robot
+            else
+              i_am_not_a_robot
+              i_am_a_robot
+            end
+          }
+        }
+        li {
+          input(:id => "gotime", :class => @state.contact_me_token, :type => "submit", :value => "please wait...", :disabled => :disabled)
+          span.wait! {
+            "&nbsp;&nbsp;I am authenticating your session, please allow this script to finish before submitting"
+          }
+        }
       }
-      input(:type => "text") 
-      input(:type => "submit", :value => "go")
+    }
+    script(:src => "/javascripts/prototype.js", :type => "text/javascript")
+    script(:src => "/javascripts/filter.js", :type => "text/javascript")
+  end
+  def i_am_a_robot
+    tr {
+      td.shrink {
+        input(:id => "i_am_a_robot", :type => "checkbox", :name => "agree_to_tos", :disabled => :disabled)
+      }
+      td.puff {
+        label(:for => "i_am_a_robot") {
+          "You are a robot"
+        }
+      }
+    }
+  end
+  def i_am_not_a_robot
+    tr {
+      td.human!(:class => "shrink") {
+      }
+      td.puff {
+        label(:for => "i_am_not_a_robot") {
+          "You are <em>not</em> a robot"
+        }
+      }
     }
   end
   def layout
+    if @no_layout then
+      self << yield
+      return
+    end
     xhtml_transitional {
       head {
         title {
@@ -1092,7 +1277,8 @@ module RisingCode::Views
     div {
       ads
       ul.bookmarks {
-        @bookmarks_for_tag.each { |bookmark|
+Camping::Models::Base.logger.debug("#{@offset} #{@bookmarks_for_tag.length} #{@bookmarks_for_tag.slice(@offset, 10)}")
+        @bookmarks_for_tag.slice(@offset, 10).each { |bookmark|
           li {
             if ((oembed = "oembed. #{bookmark["href"]}".textilize) == bookmark["href"]) then
               if (
@@ -1185,7 +1371,7 @@ module RisingCode::Views
               ul.tags {
                 bookmark["tag"].split(" ").each { |tag|
                   li {
-                    a(:href => R(BookmarksByTag, tag)) {
+                    a(:href => R(BookmarksByTag, Slugalizer.slugalize(tag))) {
                       span {
                         text("&nbsp;" + tag)
                       }
@@ -1248,10 +1434,10 @@ module RisingCode::Views
         a(:href => R(Index)) {
           "blog"
         }
-        text(", ")
-        a(:href => R(Sources)) {
-          "source code"
-        }
+        #text(", ")
+        #a(:href => R(Sources)) {
+        #  "source code"
+        #}
         text(" and ")
         a(:href => R(Resume)) {
           "resume"
@@ -1304,7 +1490,7 @@ module RisingCode::Views
         #}
         li {
           a(:href => "http://upcoming.yahoo.com/user/70266/", :rel => :me) {
-            img(:src => "/images/logo/logo_large_orange.png")
+            img(:src => "/images/upcoming.png")
           }
         }
         li {
@@ -1332,6 +1518,11 @@ module RisingCode::Views
             img(:src => "/images/freshmeat.gif")
           }
         }
+        li {
+          a(:href => "http://code.google.com/u/diclophis/", :rel => :me) {
+            img(:src => "/images/google_code.png")
+          }
+        }
       }
       h3 {
         "You can ask me anything about..."
@@ -1355,7 +1546,10 @@ module RisingCode::Views
   def resume
     div {
       h1 {
-        "Jon Bardin"
+        text("Jon Bardin")
+        a(:href => R(Contact), :class => :unprintable) {
+          text("&nbsp;contact me if you are not a robot")
+        }
       }
     }
     div {
@@ -1365,7 +1559,65 @@ module RisingCode::Views
       "}
     }
     div.experience {
-      p {
+      div {
+        h3 {
+          em {
+            "Senior Software Engineer - Funji"
+          }
+        }
+        h4 {
+          "January 2009 - Present, San Francisco, CA"
+        }
+        hr
+        ul.projects {
+          li {
+            h5 {
+              "iPhone Social Network Application (Funji Home)"
+            }
+            p {"
+             Architected and implemented both the iPhone frontend and Linux/Rails backend system.
+             Features include realtime group chat / instant messaging, sprite based room decoration, community forum, message wall, point system, virtual goods store.
+             The client/server protocol is Thrift, the database is MySQL, and the server is a multi-threaded ruby application.
+            "}
+          }
+          li {
+            h5 {
+              "Side Scrolling iPhone Game (Funji Float)"
+            }
+            p {"
+              Lead the engineering on a basic side-scrolling sprite based game engine.
+              The graphics engine was built on top of CoreAnimation, the sound system was built on top of AVFoundation.
+              Gameplay is based around the idea that you are a character from Funji Home, floating around and collecting fruit for points.
+            "}
+          }
+          li {
+            h5 {
+              "Finger Maze iPhone Game (Funji Flush)"
+            }
+            p {"
+              Building on top of the game engine I developed for Funji Float, we built a second game with simple maze dynamics.
+              This games primary purpose was to serve as a marketing platform for the Funji Home application.
+            "}
+          }
+          li {
+            h5 {
+              "Frogger Clone iPhone Game (Funji Bunny)"
+            }
+            p {"
+              Again using the game engine from Funji Float we built an homage to frogger.
+            "}
+          }
+          li {
+            h5 {
+              "Marketing Website (funji.me)"
+            }
+            p {"
+              Built with Rails, it features a basic authentication mechanism allowing users to participate in the Funji Home community without an iPhone.
+            "}
+          }
+        }
+      }
+      div {
         h3 {
           em {
             "Software Engineer - Timebridge"
@@ -1404,7 +1656,7 @@ module RisingCode::Views
           }
         }
       }
-      p {
+      div {
         h3 {
           em {
             "Software Engineer - CIS Data Systems"
@@ -1478,7 +1730,7 @@ module RisingCode::Views
           }
         }
       }
-      p {
+      div {
         h3 {
           "Junior Software Engineer - USF College of Medicine"
         }
@@ -1527,7 +1779,7 @@ module RisingCode::Views
           }
         }
       }
-      p {
+      div {
         h3 {
           "Junior Software Engineer - ImageLinks"
         }
@@ -1554,7 +1806,7 @@ module RisingCode::Views
               Data storage layer is implemented with a MySQL database.
             "}
           }
-          li {
+          li.unprintable {
             h5 {
               "Maintenance of a Linux-based computing cluster."
             }
@@ -1565,7 +1817,7 @@ module RisingCode::Views
           }
         }
       }
-      p {
+      div.unprintable {
         h3 {
           "Junior Software Engineer - XL Vision"
         }
@@ -1583,7 +1835,7 @@ module RisingCode::Views
               Data storage layer is implemented with a MSSQL database.
             "}
           }
-          li {
+          li.unprintable {
             h5 {
               "Online List-Serve interface"
             }
@@ -1592,7 +1844,7 @@ module RisingCode::Views
               Used to facilitate intra-office communication.
             "}
           }
-          li {
+          li.unprintable {
             h5 {
               "Linux Server administration"
             }
@@ -1602,7 +1854,7 @@ module RisingCode::Views
           }
         }
       }
-      p {
+      div.unprintable {
         h3 {
           "Architectural Intern - The Kendust Group"
         }
@@ -1639,7 +1891,7 @@ module RisingCode::Views
           }
         }
       }
-      p {
+      div.unprintable {
         h3 {
           em {
             "Open Source Software Engineer"
@@ -1678,6 +1930,16 @@ module RisingCode::Views
             }
             p {"
                Personal blog built using ruby+camping 
+            "}
+          }
+          li {
+            h5 {
+              a(:href => "http://kivaiphoneapp.com") {
+                "Kiva iPhone App"
+              }
+            }
+            p {"
+              iPhone Kiva Application
             "}
           }
           li {
@@ -1739,6 +2001,9 @@ module RisingCode::Views
       }
     }
   end
+  def highlight
+    @code
+  end
   def sources
     ul {
       li {
@@ -1794,6 +2059,7 @@ module RisingCode::Views
     wikipedia = nil
     youtube = nil
     div {
+      ads
       fetched = Fast.fetch("http://api.flickr.com/services/feeds/photos_public.gne?tags=#{URI.encode(@tag)}&lang=en-us&format=rss_200")
       fetched = nil if fetched.blank?
       if fetched then
