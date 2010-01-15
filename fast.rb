@@ -80,9 +80,9 @@ Camping::Models::Base.logger.debug("tryng to cache")
       
       # Enable caching
       def enable!
-        @cache ||= MemCache.new(host, :namespace => "openuri")
+        #@cache ||= MemCache.new(host, :namespace => "openuri")
 Camping::Models::Base.logger.debug("wtf #{@cache.inspect}")
-        @cache_enabled = true
+        @cache_enabled = false
       end
       
       # Disable caching - all queries will be run directly 

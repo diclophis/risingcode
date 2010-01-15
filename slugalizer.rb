@@ -10,6 +10,12 @@ rescue LoadError
   require "active_support/multibyte"
 end
 
+class String
+  def normalize(normalization_form=ActiveSupport::Multibyte.default_normalization_form)
+    ActiveSupport::Multibyte::Chars.new(self).normalize(normalization_form)
+  end
+end
+
 
 module Slugalizer
   extend self
@@ -20,7 +26,8 @@ module Slugalizer
       raise "Word separator must be one of #{SEPARATORS}"
     end
     re_separator = Regexp.escape(separator)
-    result = ActiveSupport::Multibyte::Handlers::UTF8Handler.normalize(text.to_s, :kd)
+    #result = ActiveSupport::Multibyte::Handlers::UTF8Handler.normalize(text.to_s, :kd)
+    result = text.to_s.normalize
     result.gsub!(/[^\x00-\x7F]+/, '')                      # Remove non-ASCII (e.g. diacritics).
     result.gsub!(/[^a-z0-9\-_\+]+/i, separator)            # Turn non-slug chars into the separator.
     result.gsub!(/#{re_separator}{2,}/, separator)         # No more than one of the separator in a row.

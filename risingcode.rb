@@ -24,7 +24,7 @@ require 'net/smtp'
 Linguistics::use( :en )
 
 #import into the system
-require 'rack'
+gem 'rack', '= 0.4.0'
 require 'camping'
 require 'camping/session'
 require 'openid'
@@ -122,19 +122,19 @@ module RisingCodeTags
             }
           when OEmbed::Response::Video, OEmbed::Response::Rich
             doc = Hpricot(res.field(:html))
-Camping::Models::Base.logger.debug("doc -> #{doc.inspect}")
+#Camping::Models::Base.logger.debug("doc -> #{doc.inspect}")
             (doc / "object").each { |el|
-Camping::Models::Base.logger.debug("el 1 -> #{el.inspect}")
+#Camping::Models::Base.logger.debug("el 1 -> #{el.inspect}")
               if el['width'] and el['width'].to_i > 500 then 
                 #el.remove_attribute('height') # = nil #(el['height'].to_i / (el['width'].to_i / 480)).to_s
                 new_height = el['height'].to_i / (el['width'].to_i / 480)
-Camping::Models::Base.logger.debug("new_height -> #{new_height.inspect}")
+#Camping::Models::Base.logger.debug("new_height -> #{new_height.inspect}")
                 el['height'] = new_height.to_s
                 el['width'] = "480"
 
 
                 
-Camping::Models::Base.logger.debug("el -> #{el.inspect}")
+#Camping::Models::Base.logger.debug("el -> #{el.inspect}")
               else
               end
             }
@@ -174,9 +174,9 @@ Camping::Models::Base.logger.debug("el -> #{el.inspect}")
         end
       end
     rescue => problem
-Camping::Models::Base.logger.debug("wang chung")
-Camping::Models::Base.logger.debug("#{problem.inspect}")
-Camping::Models::Base.logger.debug(problem.backtrace.join("\n"))
+#Camping::Models::Base.logger.debug("wang chung")
+#Camping::Models::Base.logger.debug("#{problem.inspect}")
+#Camping::Models::Base.logger.debug(problem.backtrace.join("\n"))
       content
     end
   end
@@ -494,6 +494,7 @@ module RisingCode::Controllers
       if id.nil? or id.length == 0 or id.length > 30 then
         id = "                    "
       end
+      id.gsub!("+", " ")
       label = Draw.new
       label.stroke = 'none'
       label.pointsize = 15 
@@ -597,7 +598,7 @@ module RisingCode::Controllers
           end
         end
       rescue => problem
-Camping::Models::Base.logger.debug(problem.inspect)
+#Camping::Models::Base.logger.debug(problem.inspect)
         return "really, don't do that"
       end
     end
@@ -733,7 +734,7 @@ Camping::Models::Base.logger.debug(problem.inspect)
       else
         @offset = 0
       end
-Camping::Models::Base.logger.debug("#{@page} #{@offset}")
+#Camping::Models::Base.logger.debug("#{@page} #{@offset}")
       render :bookmarks_by_tag
     end
   end
@@ -1289,7 +1290,7 @@ module RisingCode::Views
     div {
       ads
       ul.bookmarks {
-Camping::Models::Base.logger.debug("#{@offset} #{@bookmarks_for_tag.length} #{@bookmarks_for_tag.slice(@offset, 10)}")
+#Camping::Models::Base.logger.debug("#{@offset} #{@bookmarks_for_tag.length} #{@bookmarks_for_tag.slice(@offset, 10)}")
         @bookmarks_for_tag.slice(@offset, 10).each { |bookmark|
           li {
             if ((oembed = "oembed. #{bookmark["href"]}".textilize) == bookmark["href"]) then
@@ -1320,22 +1321,36 @@ Camping::Models::Base.logger.debug("#{@offset} #{@bookmarks_for_tag.length} #{@b
             div.tagdisplay {
               ul.tags {
                 bookmark["tag"].split(" ").each { |tag|
-                  li {
-                    a(:href => R(BookmarksByTag, tag)) {
-                      span {
-                        text("&nbsp;" + tag)
+                  r = nil
+                  begin
+                    r = R(BookmarksByTag, Slugalizer.slugalize(tag))
+                  rescue
+                  end
+                  unless r.blank?
+                    li {
+                      a(:href => r) {
+                        span {
+                          text("&nbsp;" + tag)
+                        }
                       }
                     }
-                  }
+                  end
                 }
               }
             }
             div.clr {}
           }
         }
-        a(:href => R(Learn, @tag)) {
-          text("Learn about #{@tag}")
-        }
+        if @offset > 0 then
+          a(:href => R(Learn, @tag)) {
+            text("Learn more about #{@tag}")
+          }
+        else
+          a(:href => R(BookmarksByTag, Slugalizer.slugalize(@tag), 1)) {
+            text("More tagged #{@tag} >>")
+          }
+        end
+
       }
     }
   end

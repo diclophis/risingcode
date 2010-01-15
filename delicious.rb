@@ -22,8 +22,8 @@ module Delicious
             text = element.attributes["description"]
             length = 60 
             truncate_string = "..."
-            l = length - truncate_string.chars.length
-            excerpt = text.chars.length > length ? text.chars[0...l] + truncate_string : text
+            l = length - truncate_string.mb_chars.length
+            excerpt = text.mb_chars.length > length ? text.mb_chars[0...l] + truncate_string : text
             element.attributes["excerpt"] = excerpt 
             dates[date] << element.attributes
           }
