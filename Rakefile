@@ -1,7 +1,7 @@
 require 'rubygems'
 require 'rake'
-require '/var/www/risingcode/risingcode'
-require '/var/www/risingcode/boot'
+require '/home/ubuntu/risingcode/risingcode'
+require '/home/ubuntu/risingcode/boot'
  
 desc "Default Task"
 task :default => [ :migrate ]
