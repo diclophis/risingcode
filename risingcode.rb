@@ -46,7 +46,7 @@ require '/home/ubuntu/risingcode/referrer'
 require '/home/ubuntu/risingcode/slugalizer'
 require '/home/ubuntu/risingcode/fast'
 require '/home/ubuntu/risingcode/lockfile'
-require '/home/ubuntu/ruby-oembed/lib/oembed'
+require '/home/ubuntu/risingcode/ruby-oembed/lib/oembed'
 
 Camping.goes :RisingCode
 
