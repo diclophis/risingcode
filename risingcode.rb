@@ -25,7 +25,10 @@ Linguistics::use( :en )
 
 #import into the system
 #gem 'rack' #, '= 0.4.0'
-require 'camping'
+#gem "activesupport", "= 2.3.5"
+require "activerecord"
+require "activesupport"
+require "camping"
 require 'camping/session'
 require 'openid'
 require 'openid/store/filesystem'
@@ -33,17 +36,17 @@ require 'openid/consumer'
 require 'openid/extensions/sreg'
 
 #import into this file
-require '/var/www/risingcode/acts_as_taggable'
-require '/var/www/risingcode/tag_list'
-require '/var/www/risingcode/delicious'
-require '/var/www/risingcode/email_server'
-require '/var/www/risingcode/documentation_server'
-require '/var/www/risingcode/twitter'
-require '/var/www/risingcode/referrer'
-require '/var/www/risingcode/slugalizer'
-require '/var/www/risingcode/fast'
-require '/var/www/risingcode/lockfile'
-require '/root/ruby-oembed/lib/oembed'
+require '/home/ubuntu/risingcode/acts_as_taggable'
+require '/home/ubuntu/risingcode/tag_list'
+require '/home/ubuntu/risingcode/delicious'
+require '/home/ubuntu/risingcode/email_server'
+require '/home/ubuntu/risingcode/documentation_server'
+require '/home/ubuntu/risingcode/twitter'
+require '/home/ubuntu/risingcode/referrer'
+require '/home/ubuntu/risingcode/slugalizer'
+require '/home/ubuntu/risingcode/fast'
+require '/home/ubuntu/risingcode/lockfile'
+require '/home/ubuntu/ruby-oembed/lib/oembed'
 
 Camping.goes :RisingCode
 
