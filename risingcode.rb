@@ -24,7 +24,7 @@ require 'net/smtp'
 Linguistics::use( :en )
 
 #import into the system
-gem 'rack', '= 0.4.0'
+#gem 'rack' #, '= 0.4.0'
 require 'camping'
 require 'camping/session'
 require 'openid'
