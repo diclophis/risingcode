@@ -26,8 +26,8 @@ Linguistics::use( :en )
 #import into the system
 #gem 'rack' #, '= 0.4.0'
 #gem "activesupport", "= 2.3.5"
-require "activerecord"
-require "activesupport"
+require "active_record"
+require "active_support"
 require "camping"
 require 'camping/session'
 require 'openid'
@@ -942,6 +942,7 @@ module RisingCode::Controllers
       end
       @articles = Article.find(
         :all, 
+        :include => :tags,
         :limit => @limit, 
         :offset => @offset,
         :conditions => ["permalink like ? and (date(published_on) <= ? or ?)", @permalink, @now, user_logged_in], 
