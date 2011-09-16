@@ -21,7 +21,7 @@ class RisingCode::Controllers::NotFound
   end
 end
 =end
-require 'markaby'
+#require 'markaby'
 
 module RisingCode
   module Base

@@ -11,7 +11,7 @@
  -c ":let html_no_pre = 1" \
  -c ":let use_xhtml = 1" \
  -c ":let html_use_css = 1" \
- -c ":so /usr/share/vim/vim71/syntax/2html.vim" \
+ -c ":so /usr/share/vim/vim72/syntax/2html.vim" \
  -c ":w $2" \
  -c ':q!' \
  -c ':q!' \

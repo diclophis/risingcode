@@ -3,6 +3,8 @@
 # Slugalizer
 # http://github.com/henrik/slugalizer
 
+=begin
+
 begin
   require "active_support/multibyte"
 rescue LoadError
@@ -10,10 +12,35 @@ rescue LoadError
   require "active_support/multibyte"
 end
 
+
 class String
   def normalize(normalization_form=ActiveSupport::Multibyte.default_normalization_form)
     ActiveSupport::Multibyte::Chars.new(self).normalize(normalization_form)
   end
+end
+=end
+class String
+  def normalize(normalization_form=nil)
+    self
+  end
+end
+
+class Fixnum
+  def ordinalize
+    if (10...20) === self
+      "#{self}th"
+    else
+      g = %w{ th st nd rd th th th th th th }
+      a = self.to_s
+      c=a[-1..-1].to_i
+      a + g[c]
+    end
+  end
+end
+
+def returning(value)
+  yield(value)
+  value
 end
 
 

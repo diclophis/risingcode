@@ -26,8 +26,10 @@ Linguistics::use( :en )
 #import into the system
 #gem 'rack' #, '= 0.4.0'
 #gem "activesupport", "= 2.3.5"
-require "active_record"
-require "active_support"
+#gem "active_record", "= 2.3.5"
+gem "activerecord"
+#require "active_support"
+#gem "rails"#, "= 2.3.5"
 require "camping"
 require 'camping/session'
 require 'openid'
@@ -77,7 +79,7 @@ module RisingCodeTags
     end
   end
   def ruby(opts)
-#Camping::Models::Base.logger.debug("ruby. opts = #{opts.inspect}")
+Camping::Models::Base.logger.debug("ruby. opts = #{opts.inspect}")
     content = opts[:text]
     begin
       return DocumentationServer::SERVER.highlight(content, "rb")
@@ -106,9 +108,40 @@ module RisingCodeTags
       problem.inspect
     end
   end
+  def cpp(opts)
+#Camping::Models::Base.logger.debug("ruby. opts = #{opts.inspect}")
+    content = opts[:text]
+    begin
+      return DocumentationServer::SERVER.highlight(content, "cpp")
+    rescue Exception => problem
+#Camping::Models::Base.logger.debug("ruby problem #{problem}")
+      problem.inspect
+    end
+  end
+  def objc(opts)
+#Camping::Models::Base.logger.debug("ruby. opts = #{opts.inspect}")
+    content = opts[:text]
+    begin
+      return DocumentationServer::SERVER.highlight(content, "mm")
+    rescue Exception => problem
+#Camping::Models::Base.logger.debug("ruby problem #{problem}")
+      problem.inspect
+    end
+  end
+  def java(opts)
+#Camping::Models::Base.logger.debug("ruby. opts = #{opts.inspect}")
+    content = opts[:text]
+    begin
+      return DocumentationServer::SERVER.highlight(content, "java")
+    rescue Exception => problem
+#Camping::Models::Base.logger.debug("ruby problem #{problem}")
+      problem.inspect
+    end
+  end
   def oembed(opts)
 #Camping::Models::Base.logger.debug("oembed. opts = #{opts.inspect}")
     content = opts[:text]
+    return content
     begin
       Timeout::timeout(30) do
         res = OEmbed::Providers::OohEmbed.get(content)
@@ -188,7 +221,7 @@ end
 class String
   def textilize
 #Camping::Models::Base.logger.debug("AAA")
-    wang = RedCloth.new(self, [:no_span_caps]).extend(::RisingCodeTags).to_html(:ruby)
+    wang = RedCloth.new(self, [:no_span_caps]).extend(::RisingCodeTags).to_html
 #Camping::Models::Base.logger.debug("BBB")
     wang
   end
@@ -331,7 +364,7 @@ module RisingCode::Models
       public_link(:icon)
     end
     def x_put (blob)
-      self.permalink = UUID.random_create.to_s if self.permalink.blank?
+      self.permalink = UUIDTools::UUID.random_create.to_s if self.permalink.blank?
       imgs = Magick::Image.from_blob(blob)
       first = imgs.first
       case first.get_exif_by_entry("Orientation") && first["EXIF:Orientation"]
@@ -578,7 +611,7 @@ module RisingCode::Controllers
       }
       random_primes = primes.sort_by { rand }
       @tags = Tag.find_all_by_include_in_header(true)
-      @state.contact_me_token = UUID.random_create.to_s
+      @state.contact_me_token = UUIDTools::UUID.random_create.to_s
       @state.authentication_token = "#{primes[0]}x#{primes[1]}"
       @large_factor = primes[0] * primes[1]
       render :contact
@@ -588,7 +621,7 @@ module RisingCode::Controllers
         Lockfile.new('/tmp/email.lock') do
           sleep 5
           if @input.agree_to_tos.nil? and @input.i_am_not_a_robot == @state.contact_me_token and @input.authentication_token == @state.authentication_token then
-            @state.contact_me_token = UUID.random_create.to_s
+            @state.contact_me_token = UUIDTools::UUID.random_create.to_s
             Net::SMTP.start('localhost') do |smtp|
               smtp.sendmail("Subject: Contact Form Submission\n\n#{@input.inspect}", "www-data", "Jon Bardin <diclophis@gmail.com>")
             end
@@ -601,7 +634,7 @@ module RisingCode::Controllers
           end
         end
       rescue => problem
-#Camping::Models::Base.logger.debug(problem.inspect)
+Camping::Models::Base.logger.debug(problem.inspect)
         return "really, don't do that"
       end
     end
@@ -695,7 +728,7 @@ module RisingCode::Controllers
       #}
     end
   end
-  class Images < R('/images/', '/images/public/([a-zA-Z0-9\-]+).png', '/images/([a-zA-Z0-9\-]+)/(\d*)')
+  class Images < R('/imagery')
     def get (*args)
       if args.length == 0 then
         view_images {
@@ -1140,8 +1173,12 @@ module RisingCode::Views
         }
       }
     }
-    script(:src => "/javascripts/prototype.js", :type => "text/javascript")
-    script(:src => "/javascripts/filter.js", :type => "text/javascript")
+    script(:src => "/javascripts/prototype.js", :type => "text/javascript") {
+      "//foo"
+    }
+    script(:src => "/javascripts/filter.js", :type => "text/javascript") {
+      "//foo"
+    }
   end
   def i_am_a_robot
     tr {
@@ -1247,6 +1284,27 @@ module RisingCode::Views
                         }
                       }
                     }
+                    li {
+                      a(:href => R(CreateOrUpdateArticle, nil)) {
+                        h2 {
+                          text("new article")
+                        }
+                      }
+                    }
+                    li {
+                      a(:href => R(CreateOrUpdateTag, nil)) {
+                        h2 {
+                          text("new tag")
+                        }
+                      }
+                    }
+                    li {
+                      a(:href => R(CreateOrUpdateImage, nil)) {
+                        h2 {
+                          text("new image")
+                        }
+                      }
+                    }
                   }
                   br
                 }
@@ -1260,6 +1318,7 @@ module RisingCode::Views
           } unless (administering or viewing_images or no_sidebar) 
         }
         unless (administering)
+=begin
           script(:type => "text/javascript") {"
             var gaJsHost = ((\"https:\" == document.location.protocol) ? \"https://ssl.\" : \"http://www.\");
             document.write(unescape(\"%3Cscript src='\" + gaJsHost + \"google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E\"));
@@ -1269,6 +1328,7 @@ module RisingCode::Views
             pageTracker._initData();
             pageTracker._trackPageview();
           "}
+=end
         end
       }
     }
@@ -1593,11 +1653,60 @@ module RisingCode::Views
       div {
         h3 {
           em {
+            "Senior Software Engineer - OpenFeint"
+          }
+        }
+        h4 {
+          "October 2009 - Present, Burlingame, CA"
+        }
+        hr
+        ul.projects {
+          li {
+            h5 {
+              "Virtual Economy Platform (OFX)"
+            }
+            p {"
+              By provided a REST based API to store resources we enable social game developers to quickly integrate virtual economy functionality into their titles.
+              The service is centered around items that can be purchased in game via real-money micro-payments or in game virtual currency.
+              My main responsibility was implementing the server-side functionality of the platform.
+              Building on top of an existing Rails project infrastructure our team added several new features including a Scribe based event logger, an asynchronous offline package generation process, a virtual store and user inventory management interface.
+            "}
+          }
+          li {
+            h5 {
+              "Instant Messaging And Presence Platform (OFSocket)"
+            }
+            p {"
+              Evented message based server infrastructure.
+              Built using Ruby EventMachine and RabbitMQ.
+              Implemented client side networking with asynchrounous tcp socket programming techniques.
+              Custom streaming-text based wire protocol.
+              Used for IM functionality and Forum Topic pubsub style notifications.
+              Services >70k simultaneous client connections.
+            "}
+          }
+          li {
+            h5 {
+              "Cross Platform Social Gaming Platform (XP)"
+            }
+            p {"
+              Responsible for minor operations duties, such as deploys, hot-fixes, and basic server monitoring.
+              Implemented / Enhanced several features like Forums and Moderation and Abuse Flagging.
+              Maintained multi-host QA infrastructure.
+              Also part of the team implementing a new architecture for the core service to provide enhanced cross-platform support, namely Android clients.
+              Tons of bug-fixing and refactoring. 
+            "}
+          }
+        }
+      }
+      div {
+        h3 {
+          em {
             "Senior Software Engineer - Funji"
           }
         }
         h4 {
-          "January 2009 - Present, San Francisco, CA"
+          "January 2009 - October 2009, San Francisco, CA"
         }
         hr
         ul.projects {
@@ -1761,7 +1870,7 @@ module RisingCode::Views
           }
         }
       }
-      div {
+      div.unprintable {
         h3 {
           "Junior Software Engineer - USF College of Medicine"
         }

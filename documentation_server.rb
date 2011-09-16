@@ -5,8 +5,9 @@ class DocumentationServer
   SERVER = DRbObject.new(nil, URI)
   def self.daemon (argv)
     #Daemons.run_proc("documentation_server", {:ontop => true, :dir_mode => :system, :ARGV => argv}) do
-    Daemons.run_proc("documentation_server", {:dir_mode => :system, :ARGV => argv}) do
-      require "/var/www/risingcode/boot"
+    Daemons.run_proc("documentation_server", {:ontop => true, :dir_mode => :script, :ARGV => argv}) do
+      require "/home/ubuntu/risingcode/risingcode"
+      require "/home/ubuntu/risingcode/boot"
       #Camping::Models::Base.logger.debug("starting server")
       DRb.start_service(URI, self.new)
 #      Signal.trap(:KILL) do
@@ -65,19 +66,34 @@ class DocumentationServer
       IO.popen("-") { |worker|
         if worker == nil
           ready = nil
-          cmd = "/var/www/risingcode/tohtml #{input_buffer} #{output_buffer}"
+          cmd = "/home/ubuntu/risingcode/tohtml #{input_buffer} #{output_buffer}"
+
+cache_content = cmd
+cache = File.new(cache_buffer, 'w')
+cache.write(cache_content)
+cache.close
+cache = nil
+
           if system(cmd) then
-            xml = File.open(output_buffer)
-            doc = REXML::Document.new(xml)
-            code_a = ""
-            doc.root.elements["//body"].each { |element| 
-              code_a += element.to_s.gsub("&#x20;", "&nbsp;").gsub("\n", "")
-            }
-            cache_content = '<span class="snippet">' + code_a + '</span>'
-            cache = File.new(cache_buffer, 'w')
-            cache.write(cache_content)
-            cache.close
-            cache = nil
+            begin
+              xml = File.open(output_buffer)
+              doc = REXML::Document.new(xml)
+              code_a = ""
+              doc.root.elements["//body"].each { |element| 
+                code_a += element.to_s.gsub("&#x20;", "&nbsp;").gsub("\n", "")
+              }
+              cache_content = '<span class="snippet">' + code_a + '</span>'
+              cache = File.new(cache_buffer, 'w')
+              cache.write(cache_content)
+              cache.close
+              cache = nil
+             rescue => problem
+              cache_content = problem.inspect
+              cache = File.new(cache_buffer, 'w')
+              cache.write(cache_content)
+              cache.close
+              cache = nil
+             end
           end
           Process.exit!(0)
         else
