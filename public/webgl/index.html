@@ -220,6 +220,8 @@
         start_time = new Date().getTime();
 
         rtTexture1 = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, {min_filter: THREE.LinearFilter, mag_filter: THREE.LinearFilter});
+        rtTexture2 = new THREE.WebGLRenderTarget(256, 512, { min_filter: THREE.LinearFilter, mag_filter: THREE.LinearFilter });
+        rtTexture3 = new THREE.WebGLRenderTarget(512, 256, { min_filter: THREE.LinearFilter, mag_filter: THREE.LinearFilter });
 
         uniforms1 = {
           time: { type: "f", value: 1.0 },
@@ -268,6 +270,15 @@
           return Math.exp(- (x * x) / (2.0 * sigma * sigma));
         };
 
+        materialScreen = new THREE.MeshShaderMaterial({
+          uniforms: { tDiffuse: { type: "t", value: 0, texture: rtTexture1 },
+            opacity: { type: "f", value: 0.4 }
+          },
+          vertexShader: document.getElementById('vs-generic').textContent,
+          fragmentShader: document.getElementById('fs-screen').textContent,
+          blending: THREE.AdditiveBlending
+        });
+
         plane = new THREE.PlaneGeometry(1.0, 1.0)
         blurx = new THREE.Vector2(0.001953125, 0.0);
         blury = new THREE.Vector2(0.0, 0.001953125);
@@ -297,19 +308,9 @@
           fragmentShader: document.getElementById('fs-convolution').textContent
         });
 
-        //quadScreen = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), new THREE.MeshBasicMaterial({color: 0xe0e0e0}));
-        //quadScreen = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({color: 0xe0e0e0}));
-        //quadScreen = new THREE.Mesh(new THREE.PlaneGeometry(window.innerWidth, window.innerHeight), materialConvolution);
         quadScreen = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), materialConvolution);
-        //quadScreen.rotation.x = - 90 * (Math.PI / 180);
-        quadScreen.position.x = 0.0;
-        quadScreen.position.y = 0.0;
-        quadScreen.position.z = 0.0;
         quadScreen.overdraw = true;
         scene.addObject(quadScreen);
-
-        //quadScreen = new THREE.Mesh(plane, new THREE.MeshFaceMaterial());
-        //scene.addObject(quadScreen);
 
         renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -326,7 +327,21 @@
         quadScreen.materials = [materialConvolution];
         materialConvolution.uniforms.tDiffuse.texture = rtTexture1;
         materialConvolution.uniforms.uImageIncrement.value = blurx;
-        //renderer.render(scene, cameraOrtho, rtTexture2);
+        renderer.render(scene, cameraOrtho, rtTexture2);
+
+        // Render quad with blured scene into texture (convolution pass 2)
+        materialConvolution.uniforms.tDiffuse.texture = rtTexture2;
+        materialConvolution.uniforms.uImageIncrement.value = blury;
+        renderer.render(scene, cameraOrtho, rtTexture3);
+
+        // Render original scene with superimposed blur to texture
+        quadScreen.materials = [materialScreen];
+        materialScreen.uniforms.tDiffuse.texture = rtTexture3;
+        materialScreen.uniforms.opacity.value = 1.5;
+        renderer.render(scene, cameraOrtho, rtTexture1, false);
+
+        //assign texture
+        materialScreen.uniforms.tDiffuse.texture = rtTexture1;
 
         uniforms1.time.value += 0.05;
         uniforms2.time.value = (new Date().getTime() - start_time) / 1000;
