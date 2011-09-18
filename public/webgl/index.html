@@ -3,12 +3,16 @@
   <head>
     <title>webgl</title>
     <style type="text/css">
-      body { background-color: #ffffff; }
+      body { background-color: #ffffff; overflow: hidden; }
+      img, video { display: none; }
     </style>
   </head>
   <body>
+    <video id="mandelbrot" autoplay loop>
+      <source src="mandelbrot.mp4" type="video/mp4">
+    </video>
+    <img id="disturb" src="textures/disturb.png"/>
     <script type="text/javascript" src="three.js"></script>
-    <!-- Convolution fragment shader -->
     <script id="fs-convolution" type="x-shader/x-fragment">
       varying vec2 vUv;
       uniform sampler2D tDiffuse;
@@ -25,19 +29,16 @@
         gl_FragColor = sum;
       }
     </script>
-    <!-- Convolution vertex shader -->
     <script id="vs-convolution" type="x-shader/x-vertex">
       varying vec2 vUv;
       uniform vec2 uImageIncrement;
       #define KERNEL_SIZE 25.0
       void main(void) {
-        //vUv = vec2( uv.x, 1.0 - uv.y ) - ((KERNEL_SIZE - 1.0) / 2.0) *
         uImageIncrement;
         vUv = uv - ((KERNEL_SIZE - 1.0) / 2.0) * uImageIncrement;
         gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
       }
     </script>
-    <!-- Render parameter modulated texture fragment shader -->
     <script id="fs-screen" type="x-shader/x-fragment">
       varying vec2 vUv;
       uniform sampler2D tDiffuse;
@@ -47,7 +48,6 @@
         gl_FragColor = opacity * texel;
       }
     </script>
-    <!-- Generic vertex shader -->
     <script id="vs-generic" type="x-shader/x-vertex">
       varying vec2 vUv;
       void main() {
@@ -143,13 +143,20 @@
       }
     </script>
     <script type="text/javascript">
-      (function main() {
+      document.addEventListener("DOMContentLoaded", function () {
+        renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
         meshes = [];
 
         windowHalfX = window.innerWidth / 2;
         windowHalfY = window.innerHeight / 2;
 
-        cameraOrtho = new THREE.OrthoCamera(-5, 5, 5, -5, -1000, 1000)
+        //-5, 5, 5, -5
+        //cameraOrtho = new THREE.OrthoCamera(window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, -10000, 10000)
+        cameraOrtho = new THREE.OrthoCamera(-15, 15, 15, -15, -10000, 10000)
+        cameraOrtho.position.z = 0;
 
         cameraPerspective = new THREE.Camera(50, window.innerWidth / window.innerHeight, 1, 10000);
         cameraPerspective.position.z = 4;
@@ -176,10 +183,14 @@
           resolution: { type: "v2", value: new THREE.Vector2() }
         };
 
+        t = new THREE.Texture(document.getElementById("disturb"));
+        //t = new THREE.Texture(document.getElementById("mandelbrot"));
+        t.needsUpdate = true;
+
         uniforms2 = {
           time: { type: "f", value: 1.0 },
           resolution: { type: "v2", value: new THREE.Vector2() },
-          texture: { type: "t", value: 0, texture: THREE.ImageUtils.loadTexture( "textures/disturb.jpg" ) }
+          texture: { type: "t", value: 0, texture: t }
         };
 
         uniforms2.texture.texture.wrapS = uniforms2.texture.texture.wrapT = THREE.Repeat;
@@ -187,18 +198,33 @@
         size = 0.75, mlib = [],
         params = [['fragment_shader1', uniforms1],  ['fragment_shader2', uniforms2], [ 'fragment_shader3', uniforms1 ], [ 'fragment_shader4', uniforms1 ] ];
 
+          //vt = new THREE.Texture(document.getElementById("mandelbrot"));
+          //vt.needsUpdate = true;
+          //parameters = { color: 0xffffff, map: vt };
+          //material = new THREE.MeshLambertMaterial(parameters);
+
+          vt = new THREE.Texture(document.getElementById("mandelbrot"));
+          vt.minFilter = THREE.LinearFilter;
+          vt.magFilter = THREE.LinearFilter;
+
+          material = new THREE.MeshBasicMaterial({map: vt});
+
+
         for(i = 0; i < params.length; i++ ) {
+          /*
           material = new THREE.MeshShaderMaterial({
             uniforms: params[i][1],
             vertexShader: document.getElementById('vertexShader').textContent,
             fragmentShader: document.getElementById(params[ i ][ 0 ]).textContent
           });
+          */
           mlib[i] = material;
-          mesh = new THREE.Mesh( new THREE.CubeGeometry( size, size, size, 1, 1, 1, [ mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ] ], false ), new THREE.MeshFaceMaterial() );
+          //mesh = new THREE.Mesh( new THREE.CubeGeometry( size, size, size, 1, 1, 1, [ mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ] ], false ), new THREE.MeshFaceMaterial() );
+          mesh = new THREE.Mesh(new THREE.CubeGeometry(size, size, size), material);
           mesh.position.x = i - ( params.length - 1 ) / 2;
           mesh.position.y = i % 2 - 0.5;
           sceneRTT.addObject(mesh);
-          meshes[ i ] = mesh;
+          meshes[i] = mesh;
         }
 
         uniforms1.resolution.value.x = window.innerWidth;
@@ -219,8 +245,8 @@
           fragmentShader: document.getElementById('fs-screen').textContent,
           blending: THREE.AdditiveBlending
         });
+        console.log(document.getElementById('disturb').textContent)
 
-        plane = new THREE.PlaneGeometry(1.0, 1.0)
         blurx = new THREE.Vector2(0.001953125, 0.0);
         blury = new THREE.Vector2(0.0, 0.001953125);
         kernel = (function buildKernel(sigma) {
@@ -249,17 +275,21 @@
           fragmentShader: document.getElementById('fs-convolution').textContent
         });
 
-        quadScreen = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), materialConvolution);
+        quadScreen = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), materialConvolution);
         quadScreen.overdraw = true;
         scene.addObject(quadScreen);
 
-        renderer = new THREE.WebGLRenderer();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-      })();
       (function render_and_vsync() {
+
+        //quadScreen.rotation.x += 0.01;
+        //quadScreen.rotation.y += 0.01;
+        //quadScreen.rotation.z += 0.01;
+        //cameraOrtho.position.z += 1;
+
+        renderer.clear();
+
         renderer.context.disable(renderer.context.DEPTH_TEST);
-        renderer.render(sceneBG, cameraOrtho, rtTexture1);
+        //renderer.render(sceneBG, cameraOrtho, rtTexture1);
         renderer.context.enable(renderer.context.DEPTH_TEST);
 
         renderer.render(sceneRTT, cameraPerspective, rtTexture1);
@@ -287,20 +317,17 @@
         uniforms1.time.value += 0.05;
         uniforms2.time.value = (new Date().getTime() - start_time) / 1000;
 
-        for( var i = 0; i < meshes.length; ++i ) {
+        for(i = 0; i < meshes.length; ++i ) {
           meshes[ i ].rotation.y += 0.01 * ( i % 2 ? 1 : -1 );
           meshes[ i ].rotation.x += 0.01 * ( i % 2 ? -1 : 1 );
         }
 
-        if (Math.random() > 0.2) {
-          renderer.render(scene, cameraOrtho);
-        } else {
+        //renderer.render(scene, cameraOrtho);
         //renderer.render(scene, cameraPerspective);
         //renderer.render(sceneScreen, cameraOrtho);
         renderer.render(sceneRTT, cameraPerspective);
         //renderer.render(sceneRTT, cameraOrtho);
         //renderer.render(scene, cameraOrtho);
-        }
 
         (function vsync() {
           return window.requestAnimationFrame || 
@@ -313,6 +340,7 @@
           };
         })()(render_and_vsync);
       })();
+      });
     </script>
   </body>
 </html>
