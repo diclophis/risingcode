@@ -8,10 +8,8 @@
     </style>
   </head>
   <body>
-    <video id="mandelbrot" autoplay loop>
-      <source src="mandelbrot.mp4" type="video/mp4">
-    </video>
     <img id="disturb" src="textures/disturb.png"/>
+    <link id="mindkick" href="mindkick.mod"/>
     <script type="text/javascript" src="three.js"></script>
     <script type="text/javascript" src="modfile.js"></script>
     <script type="text/javascript" src="modplayer.js"></script>
@@ -147,14 +145,110 @@
       }
     </script>
     <script type="text/javascript">
+      // FFT from dsp.js, see below
+      var FFT = function(bufferSize, sampleRate) {
+        this.bufferSize   = bufferSize;
+        this.sampleRate   = sampleRate;
+        this.spectrum     = new Float32Array(bufferSize/2);
+        this.real         = new Float32Array(bufferSize);
+        this.imag         = new Float32Array(bufferSize);
+        this.reverseTable = new Uint32Array(bufferSize);
+        this.sinTable     = new Float32Array(bufferSize);
+        this.cosTable     = new Float32Array(bufferSize);
+
+        var limit = 1,
+            bit = bufferSize >> 1;
+
+        while ( limit < bufferSize ) {
+          for ( var i = 0; i < limit; i++ ) {
+            this.reverseTable[i + limit] = this.reverseTable[i] + bit;
+          }
+
+          limit = limit << 1;
+          bit = bit >> 1;
+        }
+
+        for ( var i = 0; i < bufferSize; i++ ) {
+          this.sinTable[i] = Math.sin(-Math.PI/i);
+          this.cosTable[i] = Math.cos(-Math.PI/i);
+        }
+      };
+
+      FFT.prototype.forward = function(buffer) {
+        var bufferSize   = this.bufferSize,
+            cosTable     = this.cosTable,
+            sinTable     = this.sinTable,
+            reverseTable = this.reverseTable,
+            real         = this.real,
+            imag         = this.imag,
+            spectrum     = this.spectrum;
+
+        if ( bufferSize !== buffer.length ) {
+          throw "Supplied buffer is not the same size as defined FFT. FFT Size: " + bufferSize + " Buffer Size: " + buffer.length;
+        }
+
+        for ( var i = 0; i < bufferSize; i++ ) {
+          real[i] = buffer[reverseTable[i]];
+          imag[i] = 0;
+        }
+
+        var halfSize = 1,
+            phaseShiftStepReal, 
+            phaseShiftStepImag,
+            currentPhaseShiftReal,
+            currentPhaseShiftImag,
+            off,
+            tr,
+            ti,
+            tmpReal,  
+            i;
+
+        while ( halfSize < bufferSize ) {
+          phaseShiftStepReal = cosTable[halfSize];
+          phaseShiftStepImag = sinTable[halfSize];
+          currentPhaseShiftReal = 1.0;
+          currentPhaseShiftImag = 0.0;
+
+          for ( var fftStep = 0; fftStep < halfSize; fftStep++ ) {
+            i = fftStep;
+
+            while ( i < bufferSize ) {
+              off = i + halfSize;
+              tr = (currentPhaseShiftReal * real[off]) - (currentPhaseShiftImag * imag[off]);
+              ti = (currentPhaseShiftReal * imag[off]) + (currentPhaseShiftImag * real[off]);
+
+              real[off] = real[i] - tr;
+              imag[off] = imag[i] - ti;
+              real[i] += tr;
+              imag[i] += ti;
+
+              i += halfSize << 1;
+            }
+
+            tmpReal = currentPhaseShiftReal;
+            currentPhaseShiftReal = (tmpReal * phaseShiftStepReal) - (currentPhaseShiftImag * phaseShiftStepImag);
+            currentPhaseShiftImag = (tmpReal * phaseShiftStepImag) + (currentPhaseShiftImag * phaseShiftStepReal);
+          }
+
+          halfSize = halfSize << 1;
+        }
+
+        i = bufferSize/2;
+        while(i--) {
+          spectrum[i] = 2 * Math.sqrt(real[i] * real[i] + imag[i] * imag[i]) / bufferSize;
+        }
+      };
+    </script>
+    <script type="text/javascript">
       document.addEventListener("DOMContentLoaded", function () {
+        count = 0;
         now = last = new Date().getTime();
 
         playing = false;
         dynamicAudio = new DynamicAudio({'swf': 'dynamicaudio.swf'});
 
         fetch = new XMLHttpRequest();
-        fetch.open('GET', "mindkick.mod");
+        fetch.open('GET', document.getElementById("mindkick").href);
         fetch.overrideMimeType("text/plain; charset=x-user-defined");
         fetch.onreadystatechange = function() {
           if(this.readyState == 4 && this.status == 200) {
@@ -170,7 +264,8 @@
             modFile = new ModFile(binString);
             modPlayer = new ModPlayer(modFile, 44100);
             //// initially buffer 10 seconds (44100 * 2(stereo) * 10)
-            dynamicAudio.write(modPlayer.getSamples(44100 * 2 * 1));
+            //dynamicAudio.write(modPlayer.getSamples(44100 * 2 * 1));
+
             playing = true;
           }
         }
@@ -236,24 +331,21 @@
           //parameters = { color: 0xffffff, map: vt };
           //material = new THREE.MeshLambertMaterial(parameters);
 
-          vt = new THREE.Texture(document.getElementById("mandelbrot"));
-          vt.minFilter = THREE.LinearFilter;
-          vt.magFilter = THREE.LinearFilter;
-
-          material = new THREE.MeshBasicMaterial({map: vt});
+          //vt = new THREE.Texture(document.getElementById("mandelbrot"));
+          //vt.minFilter = THREE.LinearFilter;
+          //vt.magFilter = THREE.LinearFilter;
+          //material = new THREE.MeshBasicMaterial({map: vt});
 
 
         for(i = 0; i < params.length; i++ ) {
-          /*
           material = new THREE.MeshShaderMaterial({
             uniforms: params[i][1],
             vertexShader: document.getElementById('vertexShader').textContent,
             fragmentShader: document.getElementById(params[ i ][ 0 ]).textContent
           });
-          */
           mlib[i] = material;
-          //mesh = new THREE.Mesh( new THREE.CubeGeometry( size, size, size, 1, 1, 1, [ mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ] ], false ), new THREE.MeshFaceMaterial() );
-          mesh = new THREE.Mesh(new THREE.CubeGeometry(size, size, size), material);
+          mesh = new THREE.Mesh( new THREE.CubeGeometry( size, size, size, 1, 1, 1, [ mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ] ], false ), new THREE.MeshFaceMaterial() );
+          //mesh = new THREE.Mesh(new THREE.CubeGeometry(size, size, size), material);
           mesh.position.x = i - ( params.length - 1 ) / 2;
           mesh.position.y = i % 2 - 0.5;
           sceneRTT.addObject(mesh);
@@ -308,69 +400,91 @@
           fragmentShader: document.getElementById('fs-convolution').textContent
         });
 
-        quadScreen = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), materialConvolution);
+        quadScreen = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), materialConvolution);
         quadScreen.overdraw = true;
         scene.addObject(quadScreen);
 
       (function render_and_vsync() {
+
         now = new Date().getTime();
         dt = now - last;
         last = now;
-        //console.log(dt);
 
         if (playing) {
-          //44100 * 2(stereo) * 10
-          dynamicAudio.write(modPlayer.getSamples(44100 * 2 * (dt / 1000)));
+
+
+          //44100 hz * 2 channels * Ns
+          samples = (modPlayer.getSamples(44100 * 2 * (dt / 1000)));
+          //fbl = samples.length / 2;
+          //signal = new Float32Array(fbl);
+
+count += 1;
+
+//          for (i=0; i<fbl; i++) {
+            // Assuming interlaced stereo channels,
+            // need to split and merge into a stero-mix mono signal
+            //signal[i] = (samples[2*i] + samples[2*i+1]) / 2;
+//          }
+
+//          fft = new FFT(fbl, 44100);
+//          fft.forward(signal);
+
+base = false;
+//if (count > 100 && count < 150) {
+//  console.log(fft.spectrum);
+//}
+//playing = false;
+
+          dynamicAudio.write(samples);
+
+
+          //quadScreen.rotation.x += 0.01;
+          //quadScreen.rotation.y += 0.01;
+          //quadScreen.rotation.z += 0.01;
+          //cameraOrtho.position.z += 1;
+
+          renderer.clear();
+
+          renderer.context.disable(renderer.context.DEPTH_TEST);
+          //renderer.render(sceneBG, cameraOrtho, rtTexture1);
+          renderer.context.enable(renderer.context.DEPTH_TEST);
+
+          renderer.render(sceneRTT, cameraPerspective, rtTexture1);
+
+          // Render quad with blured scene into texture (convolution pass 1)
+          quadScreen.materials = [materialConvolution];
+          materialConvolution.uniforms.tDiffuse.texture = rtTexture1;
+          materialConvolution.uniforms.uImageIncrement.value = blurx;
+          renderer.render(scene, cameraOrtho, rtTexture2);
+
+          // Render quad with blured scene into texture (convolution pass 2)
+          materialConvolution.uniforms.tDiffuse.texture = rtTexture2;
+          materialConvolution.uniforms.uImageIncrement.value = blury;
+          renderer.render(scene, cameraOrtho, rtTexture3);
+
+          // Render original scene with superimposed blur to texture
+          quadScreen.materials = [materialScreen];
+          materialScreen.uniforms.tDiffuse.texture = rtTexture3;
+          materialScreen.uniforms.opacity.value = 1.5;
+          renderer.render(scene, cameraOrtho, rtTexture1, false);
+
+          //assign texture
+          materialScreen.uniforms.tDiffuse.texture = rtTexture1;
+
+          uniforms1.time.value += 0.05;
+          uniforms2.time.value = (new Date().getTime() - start_time) / 1000;
+
+          for(i = 0; i < meshes.length; ++i ) {
+            meshes[ i ].rotation.y += 0.01 * ( i % 2 ? 1 : -1 );
+            meshes[ i ].rotation.x += 0.01 * ( i % 2 ? -1 : 1 );
+          }
+
+          if (base) {
+            renderer.render(scene, cameraOrtho);
+          } else {
+            renderer.render(sceneRTT, cameraPerspective);
+          }
         }
-
-
-        //quadScreen.rotation.x += 0.01;
-        //quadScreen.rotation.y += 0.01;
-        //quadScreen.rotation.z += 0.01;
-        //cameraOrtho.position.z += 1;
-
-        renderer.clear();
-
-        renderer.context.disable(renderer.context.DEPTH_TEST);
-        //renderer.render(sceneBG, cameraOrtho, rtTexture1);
-        renderer.context.enable(renderer.context.DEPTH_TEST);
-
-        renderer.render(sceneRTT, cameraPerspective, rtTexture1);
-
-        // Render quad with blured scene into texture (convolution pass 1)
-        quadScreen.materials = [materialConvolution];
-        materialConvolution.uniforms.tDiffuse.texture = rtTexture1;
-        materialConvolution.uniforms.uImageIncrement.value = blurx;
-        renderer.render(scene, cameraOrtho, rtTexture2);
-
-        // Render quad with blured scene into texture (convolution pass 2)
-        materialConvolution.uniforms.tDiffuse.texture = rtTexture2;
-        materialConvolution.uniforms.uImageIncrement.value = blury;
-        renderer.render(scene, cameraOrtho, rtTexture3);
-
-        // Render original scene with superimposed blur to texture
-        quadScreen.materials = [materialScreen];
-        materialScreen.uniforms.tDiffuse.texture = rtTexture3;
-        materialScreen.uniforms.opacity.value = 1.5;
-        renderer.render(scene, cameraOrtho, rtTexture1, false);
-
-        //assign texture
-        materialScreen.uniforms.tDiffuse.texture = rtTexture1;
-
-        uniforms1.time.value += 0.05;
-        uniforms2.time.value = (new Date().getTime() - start_time) / 1000;
-
-        for(i = 0; i < meshes.length; ++i ) {
-          meshes[ i ].rotation.y += 0.01 * ( i % 2 ? 1 : -1 );
-          meshes[ i ].rotation.x += 0.01 * ( i % 2 ? -1 : 1 );
-        }
-
-        //renderer.render(scene, cameraOrtho);
-        //renderer.render(scene, cameraPerspective);
-        //renderer.render(sceneScreen, cameraOrtho);
-        renderer.render(sceneRTT, cameraPerspective);
-        //renderer.render(sceneRTT, cameraOrtho);
-        //renderer.render(scene, cameraOrtho);
 
         (function vsync() {
           return window.requestAnimationFrame || 
