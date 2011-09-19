@@ -370,22 +370,16 @@ function writeSamples (samples) {
 
           sample_length = (44100 * 2 * (dt / 1000));
           samples = (modPlayer.getSamples(sample_length));
-          //fbl = samples.length / 2;
-//          fft = new FFT(fbl, 44100);
-//          fft.forward(signal);
-//fft = new FFT();
-//i = fft.forward(signal);
-
-//base = false;
-//if (count > 100 && count < 110) {
-//  console.log(fft.value);
-//  console.log(signal);
-//}
-//playing = false;
+          fill = new Float32Array(fbLength);
+          for (i=0; i<samples.length; i++) {
+            fill[i] = samples[i];
+          }
 
 
 
-//          writeSamples(samples);
+
+
+          writeSamples(fill);
           dynamicAudio.write(samples);
 
 
