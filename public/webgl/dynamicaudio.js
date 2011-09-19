@@ -20,6 +20,7 @@ DynamicAudio.prototype = {
     audioElement: null,
     flashWrapper: null,
     flashElement: null,
+    flashElementRef: null,
     
     init: function(opts) {
         var self = this;
@@ -65,7 +66,7 @@ DynamicAudio.prototype = {
             {'allowScriptAccess': 'always'},
             null,
             function(e) {
-                self.flashElement = e.ref;
+                self.flashElementRef = e.ref;
             }
         );
     },
@@ -74,12 +75,12 @@ DynamicAudio.prototype = {
         if (this.audioElement !== null) {
             this.audioElement.mozWriteAudio(samples);
         }
-        else if (this.flashElement !== null) {
+        else if (this.flashElementRef !== null) {
             var out = new Array(samples.length);
             for (var i = samples.length-1; i !== 0; i--) {
                 out[i] = Math.floor(samples[i] * 32768);
             }
-            this.flashElement.write(out.join(' '));
+            this.flashElementRef.write(out.join(' '));
         }
     },
     
@@ -91,8 +92,8 @@ DynamicAudio.prototype = {
             }
             this.audioElement.mozWriteAudio(out);
         }
-        else if (this.flashElement !== null) {
-            this.flashElement.write(samples.join(' '));
+        else if (this.flashElementRef !== null) {
+            this.flashElementRef.write(samples.join(' '));
         }
     }
 };
