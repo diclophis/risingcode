@@ -148,76 +148,48 @@
     </script>
     <script type="text/javascript">
       document.addEventListener("DOMContentLoaded", function () {
+        playing = false;
 
+        canvas5 = document.getElementById("canvas_spec");
+        context5 = canvas5.getContext('2d');
+        context5.strokeStyle = "#FFFFFF";
+        context5.lineWidth = 2;
 
+        channels = 2; //audio5.mozChannels;
+        fbLength = 1024 * 8;
+        rate     = 44100;
+        fft = new FFT(fbLength / channels, 44100);
+        audio_b = [];
 
-
-canvas5 = document.getElementById("canvas_spec");
-context5 = canvas5.getContext('2d');
-context5.strokeStyle = "#FFFFFF";
-context5.lineWidth = 2;
-
-
-  channels = 2; //audio5.mozChannels;
-  fbLength = 1024 * 8; //audio5.mozFrameBufferLength;
-  rate     = 44100; //audio5.mozSampleRate;
-  //fft = new FFT(fbLength / channels, rate);
-  //console.log(fft);
-  fft = new FFT(fbLength / channels, 44100);
-  audio_b = [];
-
-function writeSamples (samples) {
-  length = samples.length / channels;
-  signal = new Float32Array(length);
-  for (i = 0; i < length; i++ ) {
-    if (channels == 2) {
-    // merge channels into a stereo-mix mono signal
-      signal[i] = (samples[2*i] + samples[2*i+1]) / 2;
-    } else { // assume no more than 2 channels of data
-      signal[i] = samples[i];
-    }
-  }
-  //samples.length / 2
-  //fft = new FFT(length, 44100);
-  fft.forward(signal);
-  context5.clearRect(0,0, fbLength, 200);
-  for (i = 0; i < fft.spectrum.length; i++ ) {
-    // multiply spectrum by a zoom value
-    /*
-    magnitude = Math.round(Math.exp(fft.spectrum[i] * Math.LN10) * 100.0) //Math.log(fft.spectrum[i]) * 1000.0; //fft.spectrum[i] * 1000;
-    */
-    //console.log(fft.spectrum[i]);
-
-//value = fft.spectrum[i] * 1000.0;
-//min = 0;
-//max = 200;
-// The result should be between 100 an 10000000
-//minv = Math.log(0.0);
-//maxv = Math.log(1000.0);
-// calculate adjustment factor
-//scale = (maxv-minv) / (max-min);
-//magnitude = Math.exp(minv + scale*(value-min));
-
-    magnitude = fft.spectrum[i] * 1000;
-
-
-    // Draw rectangle bars for each frequency bin
-    context5.fillRect(i * 5, canvas5.height, 4, -magnitude);
-  }
-}
-       
+        function writeSamples (samples) {
+          length = samples.length / channels;
+          signal = new Float32Array(length);
+          for (i = 0; i < length; i++ ) {
+            if (channels == 2) {
+            // merge channels into a stereo-mix mono signal
+              signal[i] = (samples[2*i] + samples[2*i+1]) / 2;
+            } else { // assume no more than 2 channels of data
+              signal[i] = samples[i];
+            }
+          }
+          fft.forward(signal);
+          context5.clearRect(0,0, fbLength, 200);
+          for (i = 0; i < fft.spectrum.length; i++ ) {
+            magnitude = fft.spectrum[i] * 1000;
+            context5.fillRect(i * 5, canvas5.height, 4, -magnitude);
+          }
+        }
 
         count = 0;
         now = last = now_v = last_v = new Date().getTime();
 
-        playing = false;
         dynamicAudio = new DynamicAudio({'swf': 'dynamicaudio.swf'});
 
         fetch = new XMLHttpRequest();
         fetch.open('GET', document.getElementById("mod").href);
         fetch.overrideMimeType("text/plain; charset=x-user-defined");
         fetch.onreadystatechange = function() {
-          if(this.readyState == 4 && this.status == 200) {
+          if (this.readyState == 4 && this.status == 200) {
             /* munge response into a binary string */
             t = this.responseText || "" ;
             ff = [];
@@ -229,14 +201,9 @@ function writeSamples (samples) {
             binString = ff.join("");
             modFile = new ModFile(binString);
             modPlayer = new ModPlayer(modFile, 44100);
-            //// initially buffer 10 seconds (44100 * 2(stereo) * 10)
-            //dynamicAudio.write(modPlayer.getSamples(44100 * 2 * 1));
-
-            playing = true;
           }
         }
         fetch.send();
-
 
         renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -256,7 +223,6 @@ function writeSamples (samples) {
         cameraPerspective.position.z = 4;
 
         scene = new THREE.Scene();
-        sceneBG = new THREE.Scene();
         sceneRTT = new THREE.Scene();
 
         directionalLight = new THREE.DirectionalLight(0xffffff);
@@ -278,7 +244,6 @@ function writeSamples (samples) {
         };
 
         t = new THREE.Texture(document.getElementById("disturb"));
-        //t = new THREE.Texture(document.getElementById("mandelbrot"));
         t.needsUpdate = true;
 
         uniforms2 = {
@@ -292,17 +257,6 @@ function writeSamples (samples) {
         size = 0.75, mlib = [],
         params = [['fragment_shader1', uniforms1],  ['fragment_shader2', uniforms2], [ 'fragment_shader3', uniforms1 ], [ 'fragment_shader4', uniforms1 ] ];
 
-          //vt = new THREE.Texture(document.getElementById("mandelbrot"));
-          //vt.needsUpdate = true;
-          //parameters = { color: 0xffffff, map: vt };
-          //material = new THREE.MeshLambertMaterial(parameters);
-
-          //vt = new THREE.Texture(document.getElementById("mandelbrot"));
-          //vt.minFilter = THREE.LinearFilter;
-          //vt.magFilter = THREE.LinearFilter;
-          //material = new THREE.MeshBasicMaterial({map: vt});
-
-
         for(i = 0; i < params.length; i++ ) {
           material = new THREE.MeshShaderMaterial({
             uniforms: params[i][1],
@@ -311,7 +265,6 @@ function writeSamples (samples) {
           });
           mlib[i] = material;
           mesh = new THREE.Mesh( new THREE.CubeGeometry( size, size, size, 1, 1, 1, [ mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ] ], false ), new THREE.MeshFaceMaterial() );
-          //mesh = new THREE.Mesh(new THREE.CubeGeometry(size, size, size), material);
           mesh.position.x = i - ( params.length - 1 ) / 2;
           mesh.position.y = i % 2 - 0.5;
           sceneRTT.addObject(mesh);
@@ -336,7 +289,6 @@ function writeSamples (samples) {
           fragmentShader: document.getElementById('fs-screen').textContent,
           blending: THREE.AdditiveBlending
         });
-        console.log(document.getElementById('disturb').textContent)
 
         blurx = new THREE.Vector2(0.001953125, 0.0);
         blury = new THREE.Vector2(0.0, 0.001953125);
@@ -376,12 +328,10 @@ function writeSamples (samples) {
           dt = now - last;
           last = now;
           if (playing) {
-            sample_length = (44100 * 2 * ((dt) / 1000)); //(8192 * 2) - audio_b.length;//(44100 * 2 * ((dt) / 1000));
+            sample_length = (44100 * 2 * ((dt) / 1000));
             samples = (modPlayer.getSamples(sample_length));
-            //console.log(sample_length, samples.length);
             dynamicAudio.write(samples);
             audio_b = audio_b.concat(samples);
-            //console.log(audio_b.length);
           }
           (function wait() {
             return function(callback, element){
@@ -398,69 +348,51 @@ function writeSamples (samples) {
 
           if (playing) {
 
-//console.log(audio_b.length, fbLength);
-            //if (audio_b.length > fbLength) {
-              //console.log(audio_b.length);
-              sl = (44100 * 2 * (dt / 1000))
-              console.log(sl);
+            sl = (44100 * 2 * (dt / 1000))
+            if (audio_b.length > sl) {
               chumped = audio_b.splice(0, sl);
-              //console.log(audio_b.length);
               fill = new Float32Array(fbLength);
               for (i=0; i<chumped.length; i++) {
                 fill[i] = chumped[i];
               }
               writeSamples(fill);
-              //console.log(chumped.length);
-              //console.log(audio_b.length);
-              //console.log(chumped.length);
-              //writeSamples(chumped);
-            //}
-
-
-
-
-            //renderer.clear();
-
-            renderer.context.disable(renderer.context.DEPTH_TEST);
-            //renderer.render(sceneBG, cameraOrtho, rtTexture1);
-            renderer.context.enable(renderer.context.DEPTH_TEST);
-
-            renderer.render(sceneRTT, cameraPerspective, rtTexture1);
-
-            // Render quad with blured scene into texture (convolution pass 1)
-            quadScreen.materials = [materialConvolution];
-            materialConvolution.uniforms.tDiffuse.texture = rtTexture1;
-            materialConvolution.uniforms.uImageIncrement.value = blurx;
-            renderer.render(scene, cameraOrtho, rtTexture2);
-
-            // Render quad with blured scene into texture (convolution pass 2)
-            materialConvolution.uniforms.tDiffuse.texture = rtTexture2;
-            materialConvolution.uniforms.uImageIncrement.value = blury;
-            renderer.render(scene, cameraOrtho, rtTexture3);
-
-            // Render original scene with superimposed blur to texture
-            quadScreen.materials = [materialScreen];
-            materialScreen.uniforms.tDiffuse.texture = rtTexture3;
-            materialScreen.uniforms.opacity.value = 1.5;
-            renderer.render(scene, cameraOrtho, rtTexture1, false);
-
-            //assign texture
-            materialScreen.uniforms.tDiffuse.texture = rtTexture1;
-
-            uniforms1.time.value += 0.05;
-            uniforms2.time.value = (new Date().getTime() - start_time) / 1000;
-
-            for(i = 0; i < meshes.length; ++i ) {
-              meshes[ i ].rotation.y += 0.01 * ( i % 2 ? 1 : -1 );
-              meshes[ i ].rotation.x += 0.01 * ( i % 2 ? -1 : 1 );
             }
+          }
 
-            if (Math.random() > 0.1) {
-              renderer.render(scene, cameraOrtho);
-            } else {
-              renderer.render(sceneRTT, cameraPerspective);
-            }
+          renderer.render(sceneRTT, cameraPerspective, rtTexture1);
 
+          // Render quad with blured scene into texture (convolution pass 1)
+          quadScreen.materials = [materialConvolution];
+          materialConvolution.uniforms.tDiffuse.texture = rtTexture1;
+          materialConvolution.uniforms.uImageIncrement.value = blurx;
+          renderer.render(scene, cameraOrtho, rtTexture2);
+
+          // Render quad with blured scene into texture (convolution pass 2)
+          materialConvolution.uniforms.tDiffuse.texture = rtTexture2;
+          materialConvolution.uniforms.uImageIncrement.value = blury;
+          renderer.render(scene, cameraOrtho, rtTexture3);
+
+          // Render original scene with superimposed blur to texture
+          quadScreen.materials = [materialScreen];
+          materialScreen.uniforms.tDiffuse.texture = rtTexture3;
+          materialScreen.uniforms.opacity.value = 1.5;
+          renderer.render(scene, cameraOrtho, rtTexture1, false);
+
+          //assign texture
+          materialScreen.uniforms.tDiffuse.texture = rtTexture1;
+
+          uniforms1.time.value += 0.05;
+          uniforms2.time.value = (new Date().getTime() - start_time) / 1000;
+
+          for(i = 0; i < meshes.length; ++i ) {
+            meshes[ i ].rotation.y += 0.01 * ( i % 2 ? 1 : -1 );
+            meshes[ i ].rotation.x += 0.01 * ( i % 2 ? -1 : 1 );
+          }
+
+          if (Math.random() > 0.1) {
+            renderer.render(scene, cameraOrtho);
+          } else {
+            renderer.render(sceneRTT, cameraPerspective);
           }
 
           (function vsync() {
