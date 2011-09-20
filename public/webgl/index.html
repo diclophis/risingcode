@@ -3,12 +3,12 @@
   <head>
     <title>webgl</title>
     <style type="text/css">
-      body { margin: 0; background-color: #ffffff; overflow: hidden; }
+      body { margin: 0; background-color: #000000; overflow: hidden; }
       img, video { display: none; }
     </style>
   </head>
   <body>
-    <canvas id="canvas_spec" width="512" height="200" style="background-color:orange;"></canvas>
+    <canvas id="canvas_spec" width="8192" height="200" style="background-color:orange;"></canvas>
     <img id="disturb" src="textures/disturb.png"/>
     <link id="mod" href="cyberm00n.mod"/>
     <script type="text/javascript" src="three.js"></script>
@@ -159,7 +159,7 @@ context5.lineWidth = 2;
 
 
   channels = 2; //audio5.mozChannels;
-  fbLength = 8192; //audio5.mozFrameBufferLength;
+  fbLength = 1024 * 8; //audio5.mozFrameBufferLength;
   rate     = 44100; //audio5.mozSampleRate;
   //fft = new FFT(fbLength / channels, rate);
   //console.log(fft);
@@ -180,12 +180,29 @@ function writeSamples (samples) {
   //samples.length / 2
   //fft = new FFT(length, 44100);
   fft.forward(signal);
-  context5.clearRect(0,0, 512, 200);
+  context5.clearRect(0,0, fbLength, 200);
   for (i = 0; i < fft.spectrum.length; i++ ) {
     // multiply spectrum by a zoom value
-    magnitude = fft.spectrum[i] * 5300;
+    /*
+    magnitude = Math.round(Math.exp(fft.spectrum[i] * Math.LN10) * 100.0) //Math.log(fft.spectrum[i]) * 1000.0; //fft.spectrum[i] * 1000;
+    */
+    //console.log(fft.spectrum[i]);
+
+//value = fft.spectrum[i] * 1000.0;
+//min = 0;
+//max = 200;
+// The result should be between 100 an 10000000
+//minv = Math.log(0.0);
+//maxv = Math.log(1000.0);
+// calculate adjustment factor
+//scale = (maxv-minv) / (max-min);
+//magnitude = Math.exp(minv + scale*(value-min));
+
+    magnitude = fft.spectrum[i] * 1000;
+
+
     // Draw rectangle bars for each frequency bin
-    context5.fillRect(i * 4, canvas5.height, 3, -magnitude);
+    context5.fillRect(i * 5, canvas5.height, 4, -magnitude);
   }
 }
        
@@ -375,16 +392,17 @@ function writeSamples (samples) {
 
         (function render_and_vsync() {
 
-now_v = new Date().getTime();
-dt = now_v - last_v;
-last_v = now_v;
+          now_v = new Date().getTime();
+          dt = now_v - last_v;
+          last_v = now_v;
 
           if (playing) {
 
 //console.log(audio_b.length, fbLength);
             //if (audio_b.length > fbLength) {
               //console.log(audio_b.length);
-              sl = (44100 * 2 * ((dt * 0.999000) / 1000))
+              sl = (44100 * 2 * (dt / 1000))
+              console.log(sl);
               chumped = audio_b.splice(0, sl);
               //console.log(audio_b.length);
               fill = new Float32Array(fbLength);
@@ -437,7 +455,7 @@ last_v = now_v;
               meshes[ i ].rotation.x += 0.01 * ( i % 2 ? -1 : 1 );
             }
 
-            if (false) {
+            if (Math.random() > 0.1) {
               renderer.render(scene, cameraOrtho);
             } else {
               renderer.render(sceneRTT, cameraPerspective);
