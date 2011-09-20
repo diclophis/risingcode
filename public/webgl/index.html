@@ -183,7 +183,7 @@ function writeSamples (samples) {
   context5.clearRect(0,0, 512, 200);
   for (i = 0; i < fft.spectrum.length; i++ ) {
     // multiply spectrum by a zoom value
-    magnitude = fft.spectrum[i] * 4000;
+    magnitude = fft.spectrum[i] * 5300;
     // Draw rectangle bars for each frequency bin
     context5.fillRect(i * 4, canvas5.height, 3, -magnitude);
   }
@@ -191,7 +191,7 @@ function writeSamples (samples) {
        
 
         count = 0;
-        now = last = new Date().getTime();
+        now = last = now_v = last_v = new Date().getTime();
 
         playing = false;
         dynamicAudio = new DynamicAudio({'swf': 'dynamicaudio.swf'});
@@ -359,24 +359,12 @@ function writeSamples (samples) {
           dt = now - last;
           last = now;
           if (playing) {
-            sample_length = (44100 * 2 * ((dt) / 1000));
+            sample_length = (44100 * 2 * ((dt) / 1000)); //(8192 * 2) - audio_b.length;//(44100 * 2 * ((dt) / 1000));
             samples = (modPlayer.getSamples(sample_length));
+            //console.log(sample_length, samples.length);
             dynamicAudio.write(samples);
-            fill = new Float32Array(fbLength);
-            for (i=0; i<samples.length; i++) {
-              fill[i] = samples[i];
-            }
-
-            //audio_b += fill;
-            new_b = [];
-            //new Float32Array(audio_b.length + fill.length);
-
-            audio_b = audio_b.concat(fill);
-            //audio_b = new_b;
-
-console.log(samples.length, fbLength);
-
-            //writeSamples(fill);
+            audio_b = audio_b.concat(samples);
+            //console.log(audio_b.length);
           }
           (function wait() {
             return function(callback, element){
@@ -387,22 +375,33 @@ console.log(samples.length, fbLength);
 
         (function render_and_vsync() {
 
+now_v = new Date().getTime();
+dt = now_v - last_v;
+last_v = now_v;
 
           if (playing) {
 
 //console.log(audio_b.length, fbLength);
+            //if (audio_b.length > fbLength) {
+              //console.log(audio_b.length);
+              sl = (44100 * 2 * ((dt * 0.999000) / 1000))
+              chumped = audio_b.splice(0, sl);
+              //console.log(audio_b.length);
+              fill = new Float32Array(fbLength);
+              for (i=0; i<chumped.length; i++) {
+                fill[i] = chumped[i];
+              }
+              writeSamples(fill);
+              //console.log(chumped.length);
+              //console.log(audio_b.length);
+              //console.log(chumped.length);
+              //writeSamples(chumped);
+            //}
 
-            if (audio_b.length > fbLength) {
-              chumped = audio_b.slice(0, fbLength, 0);
-              console.log(audio_b.length);
-              console.log(chumped.length);
-
-              writeSamples(chumped);
-            }
 
 
 
-            renderer.clear();
+            //renderer.clear();
 
             renderer.context.disable(renderer.context.DEPTH_TEST);
             //renderer.render(sceneBG, cameraOrtho, rtTexture1);
@@ -443,6 +442,7 @@ console.log(samples.length, fbLength);
             } else {
               renderer.render(sceneRTT, cameraPerspective);
             }
+
           }
 
           (function vsync() {
