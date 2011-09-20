@@ -66,6 +66,7 @@ DynamicAudio.prototype = {
             {'allowScriptAccess': 'always'},
             null,
             function(e) {
+              //console.log(e);
                 self.flashElementRef = e.ref;
             }
         );
@@ -80,6 +81,7 @@ DynamicAudio.prototype = {
             for (var i = samples.length-1; i !== 0; i--) {
                 out[i] = Math.floor(samples[i] * 32768);
             }
+            //console.log(this.flashElementRef);
             this.flashElementRef.write(out.join(' '));
         }
     },

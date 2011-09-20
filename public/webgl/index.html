@@ -3,14 +3,14 @@
   <head>
     <title>webgl</title>
     <style type="text/css">
-      body { background-color: #ffffff; overflow: hidden; }
+      body { margin: 0; background-color: #ffffff; overflow: hidden; }
       img, video { display: none; }
     </style>
   </head>
   <body>
     <canvas id="canvas_spec" width="512" height="200" style="background-color:orange;"></canvas>
     <img id="disturb" src="textures/disturb.png"/>
-    <link id="mindkick" href="phuture_sounds.mod"/>
+    <link id="mod" href="cyberm00n.mod"/>
     <script type="text/javascript" src="three.js"></script>
     <script type="text/javascript" src="modfile.js"></script>
     <script type="text/javascript" src="modplayer.js"></script>
@@ -159,11 +159,12 @@ context5.lineWidth = 2;
 
 
   channels = 2; //audio5.mozChannels;
-  fbLength = 4096; //audio5.mozFrameBufferLength;
+  fbLength = 8192; //audio5.mozFrameBufferLength;
   rate     = 44100; //audio5.mozSampleRate;
   //fft = new FFT(fbLength / channels, rate);
   //console.log(fft);
   fft = new FFT(fbLength / channels, 44100);
+  audio_b = [];
 
 function writeSamples (samples) {
   length = samples.length / channels;
@@ -196,7 +197,7 @@ function writeSamples (samples) {
         dynamicAudio = new DynamicAudio({'swf': 'dynamicaudio.swf'});
 
         fetch = new XMLHttpRequest();
-        fetch.open('GET', document.getElementById("mindkick").href);
+        fetch.open('GET', document.getElementById("mod").href);
         fetch.overrideMimeType("text/plain; charset=x-user-defined");
         fetch.onreadystatechange = function() {
           if(this.readyState == 4 && this.status == 200) {
@@ -351,97 +352,110 @@ function writeSamples (samples) {
         quadScreen = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), materialConvolution);
         quadScreen.overdraw = true;
         scene.addObject(quadScreen);
+        samples = [];
 
-      (function render_and_vsync() {
+        (function pump_and_wait() {
+          now = new Date().getTime();
+          dt = now - last;
+          last = now;
+          if (playing) {
+            sample_length = (44100 * 2 * ((dt) / 1000));
+            samples = (modPlayer.getSamples(sample_length));
+            dynamicAudio.write(samples);
+            fill = new Float32Array(fbLength);
+            for (i=0; i<samples.length; i++) {
+              fill[i] = samples[i];
+            }
 
-        now = new Date().getTime();
-        dt = now - last;
-        last = now;
+            //audio_b += fill;
+            new_b = [];
+            //new Float32Array(audio_b.length + fill.length);
 
-        if (playing) {
+            audio_b = audio_b.concat(fill);
+            //audio_b = new_b;
+
+console.log(samples.length, fbLength);
+
+            //writeSamples(fill);
+          }
+          (function wait() {
+            return function(callback, element){
+              window.setTimeout(callback, 30);
+            };
+          })()(pump_and_wait);
+        })();
+
+        (function render_and_vsync() {
 
 
-          //44100 hz * 2 channels * Ns
-          //samples = (modPlayer.getSamples(44100 * 2 * (20 / 1000)));
-          //samples = (modPlayer.getSamples(44100 * 2 * (20 / 1000)));
-          //console.log(44100 * 2 * (20 / 1000));
-          //sample_length = fbLength;
-          //samples = (modPlayer.getSamples(fbLength));
+          if (playing) {
 
-          sample_length = (44100 * 2 * (dt / 1000));
-          samples = (modPlayer.getSamples(sample_length));
-          fill = new Float32Array(fbLength);
-          for (i=0; i<samples.length; i++) {
-            fill[i] = samples[i];
+//console.log(audio_b.length, fbLength);
+
+            if (audio_b.length > fbLength) {
+              chumped = audio_b.slice(0, fbLength, 0);
+              console.log(audio_b.length);
+              console.log(chumped.length);
+
+              writeSamples(chumped);
+            }
+
+
+
+            renderer.clear();
+
+            renderer.context.disable(renderer.context.DEPTH_TEST);
+            //renderer.render(sceneBG, cameraOrtho, rtTexture1);
+            renderer.context.enable(renderer.context.DEPTH_TEST);
+
+            renderer.render(sceneRTT, cameraPerspective, rtTexture1);
+
+            // Render quad with blured scene into texture (convolution pass 1)
+            quadScreen.materials = [materialConvolution];
+            materialConvolution.uniforms.tDiffuse.texture = rtTexture1;
+            materialConvolution.uniforms.uImageIncrement.value = blurx;
+            renderer.render(scene, cameraOrtho, rtTexture2);
+
+            // Render quad with blured scene into texture (convolution pass 2)
+            materialConvolution.uniforms.tDiffuse.texture = rtTexture2;
+            materialConvolution.uniforms.uImageIncrement.value = blury;
+            renderer.render(scene, cameraOrtho, rtTexture3);
+
+            // Render original scene with superimposed blur to texture
+            quadScreen.materials = [materialScreen];
+            materialScreen.uniforms.tDiffuse.texture = rtTexture3;
+            materialScreen.uniforms.opacity.value = 1.5;
+            renderer.render(scene, cameraOrtho, rtTexture1, false);
+
+            //assign texture
+            materialScreen.uniforms.tDiffuse.texture = rtTexture1;
+
+            uniforms1.time.value += 0.05;
+            uniforms2.time.value = (new Date().getTime() - start_time) / 1000;
+
+            for(i = 0; i < meshes.length; ++i ) {
+              meshes[ i ].rotation.y += 0.01 * ( i % 2 ? 1 : -1 );
+              meshes[ i ].rotation.x += 0.01 * ( i % 2 ? -1 : 1 );
+            }
+
+            if (false) {
+              renderer.render(scene, cameraOrtho);
+            } else {
+              renderer.render(sceneRTT, cameraPerspective);
+            }
           }
 
-
-
-
-
-          writeSamples(fill);
-          dynamicAudio.write(samples);
-
-
-          //quadScreen.rotation.x += 0.01;
-          //quadScreen.rotation.y += 0.01;
-          //quadScreen.rotation.z += 0.01;
-          //cameraOrtho.position.z += 1;
-
-          renderer.clear();
-
-          renderer.context.disable(renderer.context.DEPTH_TEST);
-          //renderer.render(sceneBG, cameraOrtho, rtTexture1);
-          renderer.context.enable(renderer.context.DEPTH_TEST);
-
-          renderer.render(sceneRTT, cameraPerspective, rtTexture1);
-
-          // Render quad with blured scene into texture (convolution pass 1)
-          quadScreen.materials = [materialConvolution];
-          materialConvolution.uniforms.tDiffuse.texture = rtTexture1;
-          materialConvolution.uniforms.uImageIncrement.value = blurx;
-          renderer.render(scene, cameraOrtho, rtTexture2);
-
-          // Render quad with blured scene into texture (convolution pass 2)
-          materialConvolution.uniforms.tDiffuse.texture = rtTexture2;
-          materialConvolution.uniforms.uImageIncrement.value = blury;
-          renderer.render(scene, cameraOrtho, rtTexture3);
-
-          // Render original scene with superimposed blur to texture
-          quadScreen.materials = [materialScreen];
-          materialScreen.uniforms.tDiffuse.texture = rtTexture3;
-          materialScreen.uniforms.opacity.value = 1.5;
-          renderer.render(scene, cameraOrtho, rtTexture1, false);
-
-          //assign texture
-          materialScreen.uniforms.tDiffuse.texture = rtTexture1;
-
-          uniforms1.time.value += 0.05;
-          uniforms2.time.value = (new Date().getTime() - start_time) / 1000;
-
-          for(i = 0; i < meshes.length; ++i ) {
-            meshes[ i ].rotation.y += 0.01 * ( i % 2 ? 1 : -1 );
-            meshes[ i ].rotation.x += 0.01 * ( i % 2 ? -1 : 1 );
-          }
-
-          if (false) {
-            renderer.render(scene, cameraOrtho);
-          } else {
-            renderer.render(sceneRTT, cameraPerspective);
-          }
-        }
-
-        (function vsync() {
-          return window.requestAnimationFrame || 
-          window.webkitRequestAnimationFrame ||
-          window.mozRequestAnimationFrame || 
-          window.oRequestAnimationFrame || 
-          window.msRequestAnimationFrame || 
-          function(callback, element){
-            window.setTimeout(callback, 1000 / 60);
-          };
-        })()(render_and_vsync);
-      })();
+          (function vsync() {
+            return window.requestAnimationFrame || 
+            window.webkitRequestAnimationFrame ||
+            window.mozRequestAnimationFrame || 
+            window.oRequestAnimationFrame || 
+            window.msRequestAnimationFrame || 
+            function(callback, element){
+              window.setTimeout(callback, 1000 / 60);
+            };
+          })()(render_and_vsync);
+        })();
       });
     </script>
   </body>
