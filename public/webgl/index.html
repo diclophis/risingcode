@@ -148,7 +148,11 @@
     </script>
     <script type="text/javascript">
       document.addEventListener("DOMContentLoaded", function () {
-        playing = false;
+        time = new Date().getTime();
+
+        modPlayerSet = false;
+        is_audio_ready = false;
+        is_video_ready = false;
 
         canvas5 = document.getElementById("canvas_spec");
         context5 = canvas5.getContext('2d');
@@ -175,8 +179,8 @@
           fft.forward(signal);
           context5.clearRect(0,0, fbLength, 200);
           for (i = 0; i < fft.spectrum.length; i++ ) {
-            magnitude = fft.spectrum[i] * 1000;
-            context5.fillRect(i * 5, canvas5.height, 4, -magnitude);
+            magnitude = fft.spectrum[i] * 3000;
+            context5.fillRect(i * 8, canvas5.height, 7, -magnitude);
           }
         }
 
@@ -201,6 +205,7 @@
             binString = ff.join("");
             modFile = new ModFile(binString);
             modPlayer = new ModPlayer(modFile, 44100);
+            modPlayerSet = true;
           }
         }
         fetch.send();
@@ -216,7 +221,7 @@
 
         //-5, 5, 5, -5
         //cameraOrtho = new THREE.OrthoCamera(window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, -10000, 10000)
-        cameraOrtho = new THREE.OrthoCamera(-15, 15, 15, -15, -10000, 10000)
+        cameraOrtho = new THREE.OrthoCamera(-16, 16, 16, -16, -10000, 10000)
         cameraOrtho.position.z = 0;
 
         cameraPerspective = new THREE.Camera(50, window.innerWidth / window.innerHeight, 1, 10000);
@@ -234,7 +239,7 @@
 
         start_time = new Date().getTime();
 
-        rtTexture1 = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, {min_filter: THREE.LinearFilter, mag_filter: THREE.LinearFilter});
+        rtTexture1 = new THREE.WebGLRenderTarget(1024, 1024, {min_filter: THREE.LinearFilter, mag_filter: THREE.LinearFilter});
         rtTexture2 = new THREE.WebGLRenderTarget(256, 512, { min_filter: THREE.LinearFilter, mag_filter: THREE.LinearFilter });
         rtTexture3 = new THREE.WebGLRenderTarget(512, 256, { min_filter: THREE.LinearFilter, mag_filter: THREE.LinearFilter });
 
@@ -318,7 +323,7 @@
           fragmentShader: document.getElementById('fs-convolution').textContent
         });
 
-        quadScreen = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), materialConvolution);
+        quadScreen = new THREE.Mesh(new THREE.PlaneGeometry(32, 32), materialConvolution);
         quadScreen.overdraw = true;
         scene.addObject(quadScreen);
         samples = [];
@@ -327,11 +332,12 @@
           now = new Date().getTime();
           dt = now - last;
           last = now;
-          if (playing) {
+          if (is_video_ready && modPlayerSet) {
             sample_length = (44100 * 2 * ((dt) / 1000));
             samples = (modPlayer.getSamples(sample_length));
             dynamicAudio.write(samples);
             audio_b = audio_b.concat(samples);
+            is_audio_ready = true;
           }
           (function wait() {
             return function(callback, element){
@@ -344,19 +350,23 @@
 
           now_v = new Date().getTime();
           dt = now_v - last_v;
+          time += dt;
           last_v = now_v;
 
-          if (playing) {
+          if (time > 5000) {
+            is_video_ready = true;
+          }
 
+          if (is_audio_ready) {
             sl = (44100 * 2 * (dt / 1000))
-            if (audio_b.length > sl) {
+            //if (audio_b.length > sl) {
               chumped = audio_b.splice(0, sl);
               fill = new Float32Array(fbLength);
               for (i=0; i<chumped.length; i++) {
                 fill[i] = chumped[i];
               }
               writeSamples(fill);
-            }
+            //}
           }
 
           renderer.render(sceneRTT, cameraPerspective, rtTexture1);
