@@ -229,10 +229,14 @@
         //-5, 5, 5, -5
         //cameraOrtho = new THREE.OrthoCamera(window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, -10000, 10000)
         cameraOrtho = new THREE.OrthoCamera(-16, 16, 16, -16, -10000, 10000)
-        cameraOrtho.position.z = 0;
 
         cameraPerspective = new THREE.Camera(50, window.innerWidth / window.innerHeight, 1, 10000);
-        cameraPerspective.position.z = 4;
+        cameraPerspective.target.position.x = 0;
+        cameraPerspective.target.position.y = 0;
+        cameraPerspective.target.position.z = 0;
+        cameraPerspective.position.x = 3;
+        cameraPerspective.position.y = 3;
+        cameraPerspective.position.z = 3;
 
         scene = new THREE.Scene();
         sceneRTT = new THREE.Scene();
@@ -242,7 +246,13 @@
         directionalLight.position.y = 0;
         directionalLight.position.z = 1;
         directionalLight.position.normalize();
-        sceneRTT.addLight(directionalLight);
+        //sceneRTT.addLight(directionalLight);
+
+        particleLight = new THREE.Mesh( new THREE.SphereGeometry(0.5, 8, 8), new THREE.MeshBasicMaterial( { color: 0xffffff } ) );
+        pointLight = new THREE.PointLight( 0xffffff, 1 );
+        scene.addLight(new THREE.AmbientLight(0x202020));
+        scene.addLight(pointLight);
+        sceneRTT.addObject( particleLight );
 
         start_time = new Date().getTime();
 
@@ -266,7 +276,7 @@
 
         uniforms2.texture.texture.wrapS = uniforms2.texture.texture.wrapT = THREE.Repeat;
 
-        size = 0.75, mlib = [],
+        size = 1.0, mlib = [],
         params = [['fragment_shader1', uniforms1],  ['fragment_shader2', uniforms2], [ 'fragment_shader3', uniforms1 ], [ 'fragment_shader4', uniforms1 ] ];
 
         for(i = 0; i < params.length; i++ ) {
@@ -275,13 +285,30 @@
             vertexShader: document.getElementById('vertexShader').textContent,
             fragmentShader: document.getElementById(params[ i ][ 0 ]).textContent
           });
+          material = new THREE.MeshLambertMaterial( { color: 0xdddddd, shading: THREE.FlatShading } );
           mlib[i] = material;
           mesh = new THREE.Mesh( new THREE.CubeGeometry( size, size, size, 1, 1, 1, [ mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ] ], false ), new THREE.MeshFaceMaterial() );
-          mesh.position.x = i - ( params.length - 1 ) / 2;
-          mesh.position.y = i % 2 - 0.5;
+          //mesh.position.x = i - ( params.length - 1 ) / 2;
+          //mesh.position.z = i % 2 - 0.5;
+          mesh.position.x = (i-2);
           sceneRTT.addObject(mesh);
           meshes[i] = mesh;
         }
+
+        //plan_material = new THREE.MeshBasicMaterial({wireframe_linewidth:100,wireframe: true});
+        //plan_material = material;
+        plan_material = [ 
+          new THREE.MeshBasicMaterial( { color: 0xffffff, shading: THREE.FlatShading } ),
+          new THREE.MeshBasicMaterial( { color: 0x000000, shading: THREE.FlatShading, wireframe: true } ) 
+        ];
+
+        plane = new THREE.Mesh(new THREE.PlaneGeometry(10, 10, 9, 9), plan_material);
+        //new THREE.MeshBasicMaterial( { color: 0xffffff, opacity: 1.0, transparent: false }));
+        plane.rotation.x = -90.0 * (Math.PI / 180)
+        plane.position.x = 0;
+        plane.position.y = 0;
+        plane.position.z = 0;
+        //sceneRTT.addChild( plane );
 
         uniforms1.resolution.value.x = window.innerWidth;
         uniforms1.resolution.value.y = window.innerHeight;
@@ -375,7 +402,7 @@
               writeSamples(fill);
             //}
           }
-
+/*
           renderer.render(sceneRTT, cameraPerspective, rtTexture1);
 
           // Render quad with blured scene into texture (convolution pass 1)
@@ -401,8 +428,19 @@
           uniforms1.time.value += 0.05;
           uniforms2.time.value = (new Date().getTime() - start_time) / 1000;
 
+*/
 
           r = Math.floor(Math.random() * 4.0);
+
+
+          particleLight.position.x = Math.sin(time * 0.001) * 2;
+          particleLight.position.y = Math.cos(time * 0.001) * 2;
+          particleLight.position.z = Math.cos(time * 0.001) * 2;
+
+          //pointLight.position.x = particleLight.position.x;
+          //pointLight.position.y = particleLight.position.y;
+          //pointLight.position.z = particleLight.position.z;
+
 
           for(i = 0; i < meshes.length; ++i ) {
             spin = 0.01;
@@ -411,15 +449,15 @@
                 spin = 0.15;
               }
             }
-            meshes[ i ].rotation.y += spin * ( i % 2 ? 1 : -1 );
-            meshes[ i ].rotation.x += spin * ( i % 2 ? -1 : 1 );
+            //meshes[ i ].rotation.y += spin * ( i % 2 ? 1 : -1 );
+            //meshes[ i ].rotation.x += spin * ( i % 2 ? -1 : 1 );
           }
 
           if (base_hit > 0) {
             base_hit -= dt;
-            renderer.render(sceneRTT, cameraPerspective);
-          } else {
             renderer.render(scene, cameraOrtho);
+          } else {
+            renderer.render(sceneRTT, cameraPerspective);
           }
 
           (function vsync() {
