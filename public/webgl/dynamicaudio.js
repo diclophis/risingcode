@@ -20,7 +20,7 @@ DynamicAudio.prototype = {
     audioElement: null,
     flashWrapper: null,
     flashElement: null,
-    flashElementRef: null,
+    flashElementRef: {write:null},
     
     init: function(opts) {
         var self = this;
