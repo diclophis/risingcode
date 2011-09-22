@@ -248,11 +248,6 @@
         directionalLight.position.normalize();
         //sceneRTT.addLight(directionalLight);
 
-        particleLight = new THREE.Mesh( new THREE.SphereGeometry(0.5, 8, 8), new THREE.MeshBasicMaterial( { color: 0xffffff } ) );
-        pointLight = new THREE.PointLight( 0xffffff, 1 );
-        scene.addLight(new THREE.AmbientLight(0x202020));
-        scene.addLight(pointLight);
-        sceneRTT.addObject( particleLight );
 
         start_time = new Date().getTime();
 
@@ -280,14 +275,19 @@
         params = [['fragment_shader1', uniforms1],  ['fragment_shader2', uniforms2], [ 'fragment_shader3', uniforms1 ], [ 'fragment_shader4', uniforms1 ] ];
 
         for(i = 0; i < params.length; i++ ) {
-          material = new THREE.MeshShaderMaterial({
-            uniforms: params[i][1],
-            vertexShader: document.getElementById('vertexShader').textContent,
-            fragmentShader: document.getElementById(params[ i ][ 0 ]).textContent
-          });
-          material = new THREE.MeshLambertMaterial( { color: 0xdddddd, shading: THREE.FlatShading } );
+          //material = new THREE.MeshShaderMaterial({
+          //  lights: true,
+          //  uniforms: THREE.UniformsUtils.merge(params[i][1], THREE.UniformsLib[ "lights" ]),
+          //  vertexShader: document.getElementById('vertexShader').textContent,
+          //  fragmentShader: document.getElementById(params[ i ][ 0 ]).textContent
+          //});
+          material = new THREE.MeshPhongMaterial( { ambient: 0x030303, color: 0xdddddd, specular: 0x009900, shininess: 30, shading: THREE.SmoothShading } );
+
           mlib[i] = material;
-          mesh = new THREE.Mesh( new THREE.CubeGeometry( size, size, size, 1, 1, 1, [ mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ] ], false ), new THREE.MeshFaceMaterial() );
+
+          //mesh = new THREE.Mesh( new THREE.CubeGeometry( size, size, size, 8, 8, 8, [ mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ] ], false ), new THREE.MeshFaceMaterial() );
+          mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 16), [material]);
+
           //mesh.position.x = i - ( params.length - 1 ) / 2;
           //mesh.position.z = i % 2 - 0.5;
           mesh.position.x = (i-2);
@@ -295,20 +295,36 @@
           meshes[i] = mesh;
         }
 
-        //plan_material = new THREE.MeshBasicMaterial({wireframe_linewidth:100,wireframe: true});
-        //plan_material = material;
-        plan_material = [ 
-          new THREE.MeshBasicMaterial( { color: 0xffffff, shading: THREE.FlatShading } ),
-          new THREE.MeshBasicMaterial( { color: 0x000000, shading: THREE.FlatShading, wireframe: true } ) 
-        ];
+        //plan_material = [ 
+        //  new THREE.MeshBasicMaterial( { color: 0xffffff, shading: THREE.FlatShading } ),
+        //  new THREE.MeshBasicMaterial( { color: 0x000000, shading: THREE.FlatShading, wireframe: true } ) 
+        //];
+        //plane = new THREE.Mesh(new THREE.PlaneGeometry(10, 10, 9, 9), plan_material);
+        //plane.rotation.x = -90.0 * (Math.PI / 180)
+        //plane.position.x = 0;
+        //plane.position.y = 0;
+        //plane.position.z = 0;
 
-        plane = new THREE.Mesh(new THREE.PlaneGeometry(10, 10, 9, 9), plan_material);
-        //new THREE.MeshBasicMaterial( { color: 0xffffff, opacity: 1.0, transparent: false }));
-        plane.rotation.x = -90.0 * (Math.PI / 180)
-        plane.position.x = 0;
-        plane.position.y = 0;
-        plane.position.z = 0;
-        //sceneRTT.addChild( plane );
+        particleLight = new THREE.Mesh( new THREE.SphereGeometry(0.5, 8, 8), new THREE.MeshBasicMaterial( { color: 0xffffff } ) );
+        //sceneRTT.addObject( particleLight );
+
+        pointLight = new THREE.PointLight(0xffffff, 1);
+        //sceneRTT.addLight(new THREE.AmbientLight(0xffffff));
+        sceneRTT.addLight(pointLight);
+
+/*
+scene.addLight( new THREE.AmbientLight( 0x00000 ) );
+
+light1 = new THREE.PointLight( 0xff0040, 2, 50 );
+scene.addLight( light1 );
+
+light2 = new THREE.PointLight( 0x0040ff, 2, 50 );
+scene.addLight( light2 );
+
+light3 = new THREE.PointLight( 0x80ff80, 2, 50 );
+scene.addLight( light3 );
+*/
+
 
         uniforms1.resolution.value.x = window.innerWidth;
         uniforms1.resolution.value.y = window.innerHeight;
@@ -360,6 +376,7 @@
         quadScreen = new THREE.Mesh(new THREE.PlaneGeometry(32, 32), materialConvolution);
         quadScreen.overdraw = true;
         scene.addObject(quadScreen);
+
         samples = [];
 
         (function pump_and_wait() {
@@ -402,7 +419,6 @@
               writeSamples(fill);
             //}
           }
-/*
           renderer.render(sceneRTT, cameraPerspective, rtTexture1);
 
           // Render quad with blured scene into texture (convolution pass 1)
@@ -428,7 +444,6 @@
           uniforms1.time.value += 0.05;
           uniforms2.time.value = (new Date().getTime() - start_time) / 1000;
 
-*/
 
           r = Math.floor(Math.random() * 4.0);
 
@@ -437,9 +452,9 @@
           particleLight.position.y = Math.cos(time * 0.001) * 2;
           particleLight.position.z = Math.cos(time * 0.001) * 2;
 
-          //pointLight.position.x = particleLight.position.x;
-          //pointLight.position.y = particleLight.position.y;
-          //pointLight.position.z = particleLight.position.z;
+          pointLight.position.x = particleLight.position.x;
+          pointLight.position.y = particleLight.position.y;
+          pointLight.position.z = particleLight.position.z;
 
 
           for(i = 0; i < meshes.length; ++i ) {
@@ -455,10 +470,11 @@
 
           if (base_hit > 0) {
             base_hit -= dt;
-            renderer.render(scene, cameraOrtho);
           } else {
-            renderer.render(sceneRTT, cameraPerspective);
           }
+
+            //renderer.render(scene, cameraOrtho);
+            renderer.render(sceneRTT, cameraPerspective);
 
           (function vsync() {
             return window.requestAnimationFrame || 
