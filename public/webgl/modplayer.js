@@ -98,11 +98,11 @@ function ModPlayer(mod, rate) {
 	var ticksPerOutputSample = Math.round(ticksPerSecond / rate);
 	var ticksSinceStartOfFrame = 0;
 	
-	function setBpm(bpm) {
+	this.setBpm = function(bpm) {
 		/* x beats per minute => x*4 rows per minute */
 		ticksPerFrame = Math.round(ticksPerSecond * 2.5/bpm);
 	}
-	setBpm(125);
+	this.setBpm(125);
 	
 	/* initial player state */
 	var framesPerRow = 6;

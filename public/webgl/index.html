@@ -10,7 +10,7 @@
   <body>
     <canvas id="canvas_spec" width="8192" height="200" style="background-color:orange;"></canvas>
     <img id="disturb" src="textures/disturb.png"/>
-    <link id="mod" href="mindkick.mod"/>
+    <link id="mod" href="phuture_sounds.mod"/>
     <script type="text/javascript" src="three.js"></script>
     <script type="text/javascript" src="modfile.js"></script>
     <script type="text/javascript" src="modplayer.js"></script>
@@ -162,10 +162,22 @@
         context5.lineWidth = 2;
 
         channels = 2; //audio5.mozChannels;
-        fbLength = 1024 * 8;
+        fbLength = 1024 * 4;
         rate     = 44100;
         fft = new FFT(fbLength / channels, 44100);
         audio_b = [];
+
+        synced = false;
+
+        document.getElementById("first_toggler").onclick = function() {
+          synced = !synced;
+        };
+
+        width = 2;
+
+        window.onscroll = function () {
+          width += 5;
+        };
 
         function writeSamples (samples) {
           length = samples.length / channels;
@@ -179,15 +191,17 @@
             }
           }
           fft.forward(signal);
-          context5.clearRect(0,0, fbLength, 200);
           for (i = 0; i < fft.spectrum.length; i++ ) {
-            context5.fillStyle = "rgb(0,0,0)";
+            context5.fillStyle = "rgba(0,0,0, 0.1)";
             magnitude = fft.spectrum[i] * 1000;
-            if (i == 6 && magnitude > 70) {
-              context5.fillStyle = "rgb(200,0,0)";
+            if (i == 3 && magnitude > 70) {
+              context5.fillStyle = "rgba(200,0,0, 0.5)";
               base_hit = 75;
+              //context5.clearRect(0,0, fbLength, 200);
             }
-            context5.fillRect(i * 8, canvas5.height, 7, -magnitude);
+            if (magnitude > 20) {
+              context5.fillRect(i * width, canvas5.height, width+1, -magnitude);
+            }
           }
         }
 
@@ -418,6 +432,11 @@ scene.addLight( light3 );
               }
               writeSamples(fill);
             //}
+            if (synced) {
+              modPlayer.setBpm(10);
+            } else {
+              modPlayer.setBpm(125);
+            }
           }
           renderer.render(sceneRTT, cameraPerspective, rtTexture1);
 
@@ -473,6 +492,8 @@ scene.addLight( light3 );
           } else {
           }
 
+        
+
             //renderer.render(scene, cameraOrtho);
             renderer.render(sceneRTT, cameraPerspective);
 
@@ -489,5 +510,6 @@ scene.addLight( light3 );
         })();
       });
     </script>
+    <button id="first_toggler">foo</button>
   </body>
 </html>
