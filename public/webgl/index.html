@@ -179,10 +179,10 @@
           synced = !synced;
         };
 
-        width = 2;
+        width = 5;
 
         window.onscroll = function () {
-          width += 5;
+          //width += 5;
         };
 
         function writeSamples (samples) {
@@ -203,7 +203,7 @@
             if (i == 3 && magnitude > 70) {
               context5.fillStyle = "rgba(200,0,0, 0.5)";
               base_hit = 75;
-              //context5.clearRect(0,0, fbLength, 200);
+              context5.clearRect(0,0, fbLength, 200);
             }
             if (magnitude > 20) {
               context5.fillRect(i * width, canvas5.height, width+1, -magnitude);
