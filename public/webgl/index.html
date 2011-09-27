@@ -205,7 +205,7 @@
               base_hit = 75;
               context5.clearRect(0,0, fbLength, 200);
             }
-            if (magnitude > 20) {
+            if (magnitude > 5) {
               context5.fillRect(i * width, canvas5.height, width+1, -magnitude);
             }
           }
@@ -531,11 +531,11 @@ scene.addLight( light3 );
 
             if (base_hit > 0) {
               base_hit -= dt;
+              renderer.render(scene, cameraOrtho);
             } else {
+              renderer.render(sceneRTT, cameraPerspective);
             }
 
-            //renderer.render(scene, cameraOrtho);
-            renderer.render(sceneRTT, cameraPerspective);
           }
           (function vsync() {
             return window.requestAnimationFrame || 
