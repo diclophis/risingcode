@@ -10,7 +10,13 @@
   <body>
     <canvas id="canvas_spec" width="8192" height="200" style="background-color:orange;"></canvas>
     <img id="disturb" src="textures/disturb.png"/>
-    <link id="mod" href="phuture_sounds.mod"/>
+    <button id="first_toggler">foo</button>
+    <div id="mods">
+      <a href="phuture_sounds.mod"/>phuture_sounds</a>
+      <a href="mindkick.mod"/>mindkick</a>
+      <a href="cyberm00n.mod"/>cyberm00n</a>
+      <a href="psimon_-_queen.mod"/>psimon_-_queen</a>
+    </div>
     <script type="text/javascript" src="three.js"></script>
     <script type="text/javascript" src="modfile.js"></script>
     <script type="text/javascript" src="modplayer.js"></script>
@@ -210,26 +216,43 @@
 
         dynamicAudio = new DynamicAudio({'swf': 'dynamicaudio.swf'});
 
-        fetch = new XMLHttpRequest();
-        fetch.open('GET', document.getElementById("mod").href);
-        fetch.overrideMimeType("text/plain; charset=x-user-defined");
-        fetch.onreadystatechange = function() {
-          if (this.readyState == 4 && this.status == 200) {
-            /* munge response into a binary string */
-            t = this.responseText || "" ;
-            ff = [];
-            mx = t.length;
-            scc = String.fromCharCode;
-            for (z = 0; z < mx; z++) {
-              ff[z] = scc(t.charCodeAt(z) & 255);
+        (function add_click_to_mods_and_play_random_mod() {
+          function play_mod(href) {
+            fetch = new XMLHttpRequest();
+            fetch.open('GET', 
+              href
+            );
+            fetch.overrideMimeType("text/plain; charset=x-user-defined");
+            fetch.onreadystatechange = function() {
+              if (this.readyState == 4 && this.status == 200) {
+                /* munge response into a binary string */
+                t = this.responseText || "" ;
+                ff = [];
+                mx = t.length;
+                scc = String.fromCharCode;
+                for (z = 0; z < mx; z++) {
+                  ff[z] = scc(t.charCodeAt(z) & 255);
+                }
+                binString = ff.join("");
+                modFile = new ModFile(binString);
+                modPlayer = new ModPlayer(modFile, 44100);
+                modPlayerSet = true;
+              }
             }
-            binString = ff.join("");
-            modFile = new ModFile(binString);
-            modPlayer = new ModPlayer(modFile, 44100);
-            modPlayerSet = true;
+            fetch.send();
           }
-        }
-        fetch.send();
+          mods = document.getElementById("mods").getElementsByTagName("a");
+          for (i=0; i<mods.length; i++) {
+            mods[i].onclick = function () {
+              play_mod(this.href);
+              return false;
+            };
+          }
+          (function play_random_mod() {
+            mod = mods[Math.floor(Math.random() * mods.length)];
+            play_mod(mod.href);
+          })();
+        })();
 
         renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -271,7 +294,14 @@
 
         uniforms1 = {
           time: { type: "f", value: 1.0 },
-          resolution: { type: "v2", value: new THREE.Vector2() }
+          resolution: { type: "v2", value: new THREE.Vector2() },
+    "enableLighting" : { type: "i", value: 1 },
+    "ambientLightColor" : { type: "fv", value: [] },
+    "directionalLightDirection" : { type: "fv", value: [] },
+    "directionalLightColor" : { type: "fv", value: [] },
+    "pointLightColor" : { type: "fv", value: [] },
+    "pointLightPosition" : { type: "fv", value: [] },
+    "pointLightDistance" : { type: "fv1", value: [] }
         };
 
         t = new THREE.Texture(document.getElementById("disturb"));
@@ -280,7 +310,15 @@
         uniforms2 = {
           time: { type: "f", value: 1.0 },
           resolution: { type: "v2", value: new THREE.Vector2() },
-          texture: { type: "t", value: 0, texture: t }
+          texture: { type: "t", value: 0, texture: t },
+    "enableLighting" : { type: "i", value: 1 },
+    "ambientLightColor" : { type: "fv", value: [] },
+    "directionalLightDirection" : { type: "fv", value: [] },
+    "directionalLightColor" : { type: "fv", value: [] },
+    "pointLightColor" : { type: "fv", value: [] },
+    "pointLightPosition" : { type: "fv", value: [] },
+    "pointLightDistance" : { type: "fv1", value: [] }
+
         };
 
         uniforms2.texture.texture.wrapS = uniforms2.texture.texture.wrapT = THREE.Repeat;
@@ -289,17 +327,18 @@
         params = [['fragment_shader1', uniforms1],  ['fragment_shader2', uniforms2], [ 'fragment_shader3', uniforms1 ], [ 'fragment_shader4', uniforms1 ] ];
 
         for(i = 0; i < params.length; i++ ) {
-          //material = new THREE.MeshShaderMaterial({
-          //  lights: true,
-          //  uniforms: THREE.UniformsUtils.merge(params[i][1], THREE.UniformsLib[ "lights" ]),
-          //  vertexShader: document.getElementById('vertexShader').textContent,
-          //  fragmentShader: document.getElementById(params[ i ][ 0 ]).textContent
-          //});
-          material = new THREE.MeshPhongMaterial( { ambient: 0x030303, color: 0xdddddd, specular: 0x009900, shininess: 30, shading: THREE.SmoothShading } );
+          material = new THREE.MeshShaderMaterial({
+            //uniforms: THREE.UniformsUtils.merge(params[i][1], THREE.UniformsLib[ "lights" ]),
+            lights:true,
+            uniforms: (params[i][1]),
+            vertexShader: document.getElementById('vertexShader').textContent,
+            fragmentShader: document.getElementById(params[ i ][ 0 ]).textContent
+          });
+          material_b = new THREE.MeshPhongMaterial( { ambient: 0x030303, color: 0xdddddd, specular: 0x009900, shininess: 30, shading: THREE.SmoothShading } );
 
           mlib[i] = material;
 
-          //mesh = new THREE.Mesh( new THREE.CubeGeometry( size, size, size, 8, 8, 8, [ mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ] ], false ), new THREE.MeshFaceMaterial() );
+          //mesh = new THREE.Mesh(new THREE.CubeGeometry( size, size, size, 8, 8, 8, [ mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ] ], false ), new THREE.MeshFaceMaterial() );
           mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 16), [material]);
 
           //mesh.position.x = i - ( params.length - 1 ) / 2;
@@ -309,21 +348,22 @@
           meshes[i] = mesh;
         }
 
-        //plan_material = [ 
-        //  new THREE.MeshBasicMaterial( { color: 0xffffff, shading: THREE.FlatShading } ),
-        //  new THREE.MeshBasicMaterial( { color: 0x000000, shading: THREE.FlatShading, wireframe: true } ) 
-        //];
-        //plane = new THREE.Mesh(new THREE.PlaneGeometry(10, 10, 9, 9), plan_material);
-        //plane.rotation.x = -90.0 * (Math.PI / 180)
-        //plane.position.x = 0;
-        //plane.position.y = 0;
-        //plane.position.z = 0;
+        plan_material = [ 
+          new THREE.MeshBasicMaterial( { color: 0xffffff, shading: THREE.FlatShading } ),
+          //new THREE.MeshBasicMaterial( { color: 0x000000, shading: THREE.FlatShading, wireframe: true } ) 
+        ];
+        plane = new THREE.Mesh(new THREE.PlaneGeometry(20, 20, 9, 9), material);
+        plane.rotation.x = -90.0 * (Math.PI / 180)
+        plane.position.x = 0;
+        plane.position.y = -2;
+        plane.position.z = 0;
+        sceneRTT.addObject(plane);
 
-        particleLight = new THREE.Mesh( new THREE.SphereGeometry(0.5, 8, 8), new THREE.MeshBasicMaterial( { color: 0xffffff } ) );
-        //sceneRTT.addObject( particleLight );
+        particleLight = new THREE.Mesh(new THREE.SphereGeometry(0.33, 8, 8), new THREE.MeshBasicMaterial({color: 0xffffff}));
+        sceneRTT.addObject(particleLight);
 
         pointLight = new THREE.PointLight(0xffffff, 1);
-        //sceneRTT.addLight(new THREE.AmbientLight(0xffffff));
+        sceneRTT.addLight(new THREE.AmbientLight(0xffffff));
         sceneRTT.addLight(pointLight);
 
 /*
@@ -406,97 +446,97 @@ scene.addLight( light3 );
           }
           (function wait() {
             return function(callback, element){
-              window.setTimeout(callback, 60);
+              window.setTimeout(callback, 100);
             };
           })()(pump_and_wait);
         })();
 
-        (function render_and_vsync() {
+        (function render_and_vsync(timestamp) {
+          
+          if (timestamp) {
+            now_v = timestamp;
+            
+            dt = now_v - last_v;
 
-          now_v = new Date().getTime();
-          dt = now_v - last_v;
-          time += dt;
-          last_v = now_v;
+            time += dt;
+            last_v = now_v;
 
-          if (time > 2600) {
-            is_video_ready = true;
-          }
-
-          if (is_audio_ready) {
-            sl = (44100 * 2 * (dt / 1000))
-            //if (audio_b.length > sl) {
-              chumped = audio_b.splice(0, sl);
-              fill = new Float32Array(fbLength);
-              for (i=0; i<chumped.length; i++) {
-                fill[i] = chumped[i];
-              }
-              writeSamples(fill);
-            //}
-            if (synced) {
-              modPlayer.setBpm(10);
-            } else {
-              modPlayer.setBpm(125);
+            if (time > 2600) {
+              is_video_ready = true;
             }
-          }
-          renderer.render(sceneRTT, cameraPerspective, rtTexture1);
 
-          // Render quad with blured scene into texture (convolution pass 1)
-          quadScreen.materials = [materialConvolution];
-          materialConvolution.uniforms.tDiffuse.texture = rtTexture1;
-          materialConvolution.uniforms.uImageIncrement.value = blurx;
-          renderer.render(scene, cameraOrtho, rtTexture2);
+            if (is_audio_ready) {
+              sl = (44100 * 2 * (dt / 1000))
+              //if (audio_b.length > sl) {
+                chumped = audio_b.splice(0, sl);
+                fill = new Float32Array(fbLength);
+                for (i=0; i<chumped.length; i++) {
+                  fill[i] = chumped[i];
+                }
+                writeSamples(fill);
+              //}
+              if (synced) {
+                modPlayer.setBpm(10);
+              } else {
+                modPlayer.setBpm(125);
+              }
+            }
 
-          // Render quad with blured scene into texture (convolution pass 2)
-          materialConvolution.uniforms.tDiffuse.texture = rtTexture2;
-          materialConvolution.uniforms.uImageIncrement.value = blury;
-          renderer.render(scene, cameraOrtho, rtTexture3);
+            renderer.render(sceneRTT, cameraPerspective, rtTexture1);
 
-          // Render original scene with superimposed blur to texture
-          quadScreen.materials = [materialScreen];
-          materialScreen.uniforms.tDiffuse.texture = rtTexture3;
-          materialScreen.uniforms.opacity.value = 1.5;
-          renderer.render(scene, cameraOrtho, rtTexture1, false);
+            // Render quad with blured scene into texture (convolution pass 1)
+            quadScreen.materials = [materialConvolution];
+            materialConvolution.uniforms.tDiffuse.texture = rtTexture1;
+            materialConvolution.uniforms.uImageIncrement.value = blurx;
+            renderer.render(scene, cameraOrtho, rtTexture2);
 
-          //assign texture
-          materialScreen.uniforms.tDiffuse.texture = rtTexture1;
+            // Render quad with blured scene into texture (convolution pass 2)
+            materialConvolution.uniforms.tDiffuse.texture = rtTexture2;
+            materialConvolution.uniforms.uImageIncrement.value = blury;
+            renderer.render(scene, cameraOrtho, rtTexture3);
 
-          uniforms1.time.value += 0.05;
-          uniforms2.time.value = (new Date().getTime() - start_time) / 1000;
+            // Render original scene with superimposed blur to texture
+            quadScreen.materials = [materialScreen];
+            materialScreen.uniforms.tDiffuse.texture = rtTexture3;
+            materialScreen.uniforms.opacity.value = 1.5;
+            renderer.render(scene, cameraOrtho, rtTexture1, false);
+
+            //assign texture
+            materialScreen.uniforms.tDiffuse.texture = rtTexture1;
+
+            uniforms1.time.value += 0.05;
+            uniforms2.time.value = (new Date().getTime() - start_time) / 1000;
+
+            r = Math.floor(Math.random() * 4.0);
+
+            particleLight.position.x = Math.sin(time * 0.005) * 4;
+            //particleLight.position.y = Math.cos(time * 0.005) * 4;
+            particleLight.position.z = Math.cos(time * 0.005) * 4;
+
+            pointLight.position.x = particleLight.position.x;
+            pointLight.position.y = particleLight.position.y;
+            pointLight.position.z = particleLight.position.z;
 
 
-          r = Math.floor(Math.random() * 4.0);
+            for(i = 0; i < meshes.length; ++i ) {
+              spin = 0.01;
+              if (base_hit > 0) {
+                if (i === r) {
+                  spin = 0.15;
+                }
+              }
+              //meshes[ i ].rotation.y += spin * ( i % 2 ? 1 : -1 );
+              //meshes[ i ].rotation.x += spin * ( i % 2 ? -1 : 1 );
+            }
 
-
-          particleLight.position.x = Math.sin(time * 0.001) * 2;
-          particleLight.position.y = Math.cos(time * 0.001) * 2;
-          particleLight.position.z = Math.cos(time * 0.001) * 2;
-
-          pointLight.position.x = particleLight.position.x;
-          pointLight.position.y = particleLight.position.y;
-          pointLight.position.z = particleLight.position.z;
-
-
-          for(i = 0; i < meshes.length; ++i ) {
-            spin = 0.01;
             if (base_hit > 0) {
-              if (i === r) {
-                spin = 0.15;
-              }
+              base_hit -= dt;
+            } else {
             }
-            //meshes[ i ].rotation.y += spin * ( i % 2 ? 1 : -1 );
-            //meshes[ i ].rotation.x += spin * ( i % 2 ? -1 : 1 );
-          }
-
-          if (base_hit > 0) {
-            base_hit -= dt;
-          } else {
-          }
-
-        
 
             //renderer.render(scene, cameraOrtho);
             renderer.render(sceneRTT, cameraPerspective);
-
+          }
           (function vsync() {
             return window.requestAnimationFrame || 
             window.webkitRequestAnimationFrame ||
@@ -510,6 +550,5 @@ scene.addLight( light3 );
         })();
       });
     </script>
-    <button id="first_toggler">foo</button>
   </body>
 </html>
