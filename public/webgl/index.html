@@ -176,10 +176,12 @@
         audio_b = [];
 
         synced = false;
+        toggle_one = false;
 
         document.getElementById("first_toggler").onclick = function() {
-          base_hit = 1000;
+          //base_hit = 1000;
           //synced = !synced;
+          toggle_one = !toggle_one;
         };
 
         width = 5;
@@ -188,7 +190,7 @@
           //width += 5;
         };
 
-        function writeSamples (samples) {
+        function write_samples (samples) {
           length = samples.length / channels;
           signal = new Float32Array(length);
           for (i = 0; i < length; i++ ) {
@@ -200,7 +202,7 @@
             }
           }
           fft.forward(signal);
-          for (i = 0; i < fft.spectrum.length; i++ ) {
+          for (i = 0; i < 256; i++ ) {
             context5.fillStyle = "rgba(0,0,0, 0.1)";
             magnitude = fft.spectrum[i] * 1000;
             if (i == 3 && magnitude > 70) {
@@ -442,27 +444,44 @@ scene.addLight( light3 );
 
         samples = [];
 
+        function render_textures() {
+          renderer.render(sceneRTT, cameraPerspective, rtTexture1);
+
+          // Render quad with blured scene into texture (convolution pass 1)
+          quadScreen.materials = [materialConvolution];
+          materialConvolution.uniforms.tDiffuse.texture = rtTexture1;
+          materialConvolution.uniforms.uImageIncrement.value = blurx;
+          renderer.render(scene, cameraOrtho, rtTexture2);
+
+          // Render quad with blured scene into texture (convolution pass 2)
+          materialConvolution.uniforms.tDiffuse.texture = rtTexture2;
+          materialConvolution.uniforms.uImageIncrement.value = blury;
+          renderer.render(scene, cameraOrtho, rtTexture3);
+
+          // Render original scene with superimposed blur to texture
+          quadScreen.materials = [materialScreen];
+          materialScreen.uniforms.tDiffuse.texture = rtTexture3;
+          materialScreen.uniforms.opacity.value = 1.5;
+          renderer.render(scene, cameraOrtho, rtTexture1, false);
+
+          //assign texture
+          materialScreen.uniforms.tDiffuse.texture = rtTexture1;
+
+          uniforms1.time.value += 0.05;
+          uniforms2.time.value = (new Date().getTime() - start_time) / 1000;
+        }
+/*
         (function pump_and_wait() {
           now = new Date().getTime();
           dt = now - last;
           last = now;
-          if (is_video_ready && modPlayerSet && ((typeof dynamicAudio.flashElementRef.write === "function") || dynamicAudio.audioElement)) {
-            sample_length = (44100 * 2 * ((dt) / 1000));
-            samples = (modPlayer.getSamples(sample_length));
-            dynamicAudio.write(samples);
-            audio_b = audio_b.concat(samples);
-            is_audio_ready = true;
-            if (samples.length == 0) {
-              play_mod(random_mod_href());
-            }
-          }
           (function wait() {
             return function(callback, element){
-              window.setTimeout(callback, 100);
+              window.setTimeout(callback, 500);
             };
           })()(pump_and_wait);
         })();
-
+*/
         (function render_and_vsync(timestamp) {
           
           if (timestamp) {
@@ -477,6 +496,21 @@ scene.addLight( light3 );
               is_video_ready = true;
             }
 
+            if (is_video_ready && modPlayerSet && ((typeof dynamicAudio.flashElementRef.write === "function") || dynamicAudio.audioElement) && toggle_one) {
+              sample_length = (44100 * 2 * ((dt) / 1000));
+              samples = (modPlayer.getSamples(sample_length));
+              dynamicAudio.write(samples);
+              audio_b = audio_b.concat(samples);
+              is_audio_ready = true;
+              if (samples.length == 0) {
+                play_mod(random_mod_href());
+              }
+
+              if (toggle_one) {
+                render_textures();
+              }
+            }
+
             if (is_audio_ready) {
               sl = (44100 * 2 * (dt / 1000))
               //if (audio_b.length > sl) {
@@ -485,7 +519,7 @@ scene.addLight( light3 );
                 for (i=0; i<chumped.length; i++) {
                   fill[i] = chumped[i];
                 }
-                writeSamples(fill);
+                write_samples(fill);
               //}
               if (synced) {
                 modPlayer.setBpm(175);
@@ -494,30 +528,6 @@ scene.addLight( light3 );
               }
             }
 
-            renderer.render(sceneRTT, cameraPerspective, rtTexture1);
-
-            // Render quad with blured scene into texture (convolution pass 1)
-            quadScreen.materials = [materialConvolution];
-            materialConvolution.uniforms.tDiffuse.texture = rtTexture1;
-            materialConvolution.uniforms.uImageIncrement.value = blurx;
-            renderer.render(scene, cameraOrtho, rtTexture2);
-
-            // Render quad with blured scene into texture (convolution pass 2)
-            materialConvolution.uniforms.tDiffuse.texture = rtTexture2;
-            materialConvolution.uniforms.uImageIncrement.value = blury;
-            renderer.render(scene, cameraOrtho, rtTexture3);
-
-            // Render original scene with superimposed blur to texture
-            quadScreen.materials = [materialScreen];
-            materialScreen.uniforms.tDiffuse.texture = rtTexture3;
-            materialScreen.uniforms.opacity.value = 1.5;
-            renderer.render(scene, cameraOrtho, rtTexture1, false);
-
-            //assign texture
-            materialScreen.uniforms.tDiffuse.texture = rtTexture1;
-
-            uniforms1.time.value += 0.05;
-            uniforms2.time.value = (new Date().getTime() - start_time) / 1000;
 
             r = Math.floor(Math.random() * 4.0);
 
@@ -545,7 +555,7 @@ scene.addLight( light3 );
             particleLight.position.y = 2;
             particleLight.position.z = 0;
 
-
+            /*
             for(i = 0; i < meshes.length; ++i ) {
               spin = 0.01;
               if (base_hit > 0) {
@@ -555,6 +565,10 @@ scene.addLight( light3 );
               }
               //meshes[ i ].rotation.y += spin * ( i % 2 ? 1 : -1 );
               //meshes[ i ].rotation.x += spin * ( i % 2 ? -1 : 1 );
+            }
+            */
+            if (toggle_one) {
+              render_textures();
             }
 
             if (base_hit > 0) {
