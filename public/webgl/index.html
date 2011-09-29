@@ -16,6 +16,8 @@
       <a href="mindkick.mod"/>mindkick</a>
       <a href="cyberm00n.mod"/>cyberm00n</a>
       <a href="psimon_-_queen.mod"/>psimon_-_queen</a>
+      <a href="speed_chase.mod"/>speed_chase</a>
+      <a href="beat_it.mod"/>beat_it</a>
     </div>
     <script type="text/javascript" src="three.js"></script>
     <script type="text/javascript" src="modfile.js"></script>
@@ -176,7 +178,8 @@
         synced = false;
 
         document.getElementById("first_toggler").onclick = function() {
-          synced = !synced;
+          base_hit = 1000;
+          //synced = !synced;
         };
 
         width = 5;
@@ -202,7 +205,7 @@
             magnitude = fft.spectrum[i] * 1000;
             if (i == 3 && magnitude > 70) {
               context5.fillStyle = "rgba(200,0,0, 0.5)";
-              base_hit = 75;
+              //base_hit = 100;
               context5.clearRect(0,0, fbLength, 200);
             }
             if (magnitude > 5) {
@@ -216,8 +219,13 @@
 
         dynamicAudio = new DynamicAudio({'swf': 'dynamicaudio.swf'});
 
-        (function add_click_to_mods_and_play_random_mod() {
-          function play_mod(href) {
+        loading = false;
+
+        function play_mod(href) {
+          console.log(loading);
+          if (loading) {
+          } else {
+            loading = true;
             fetch = new XMLHttpRequest();
             fetch.open('GET', 
               href
@@ -237,22 +245,23 @@
                 modFile = new ModFile(binString);
                 modPlayer = new ModPlayer(modFile, 44100);
                 modPlayerSet = true;
+                loading = false;
               }
             }
             fetch.send();
           }
-          mods = document.getElementById("mods").getElementsByTagName("a");
-          for (i=0; i<mods.length; i++) {
-            mods[i].onclick = function () {
-              play_mod(this.href);
-              return false;
-            };
-          }
-          (function play_random_mod() {
-            mod = mods[Math.floor(Math.random() * mods.length)];
-            play_mod(mod.href);
-          })();
-        })();
+        }
+        mods = document.getElementById("mods").getElementsByTagName("a");
+        for (i=0; i<mods.length; i++) {
+          mods[i].onclick = function () {
+            play_mod(this.href);
+            return false;
+          };
+        }
+        function random_mod_href() {
+          return mods[Math.floor(Math.random() * mods.length)].href;
+        };
+        play_mod(random_mod_href());
 
         renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -325,25 +334,25 @@
 
         size = 1.0, mlib = [],
         params = [['fragment_shader1', uniforms1],  ['fragment_shader2', uniforms2], [ 'fragment_shader3', uniforms1 ], [ 'fragment_shader4', uniforms1 ] ];
-
-        for(i = 0; i < params.length; i++ ) {
+        cube_count = 32;
+        for(i = 0; i < cube_count; i++ ) {
+          ii = i % 4;
           material = new THREE.MeshShaderMaterial({
             //uniforms: THREE.UniformsUtils.merge(params[i][1], THREE.UniformsLib[ "lights" ]),
             lights:true,
-            uniforms: (params[i][1]),
+            uniforms: (params[ii][1]),
             vertexShader: document.getElementById('vertexShader').textContent,
-            fragmentShader: document.getElementById(params[ i ][ 0 ]).textContent
+            fragmentShader: document.getElementById(params[ii][ 0 ]).textContent
           });
           material_b = new THREE.MeshPhongMaterial( { ambient: 0x030303, color: 0xdddddd, specular: 0x009900, shininess: 30, shading: THREE.SmoothShading } );
 
           mlib[i] = material;
 
-          //mesh = new THREE.Mesh(new THREE.CubeGeometry( size, size, size, 8, 8, 8, [ mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ] ], false ), new THREE.MeshFaceMaterial() );
-          mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 16), [material]);
-
+          mesh = new THREE.Mesh(new THREE.CubeGeometry( size, size, size, 1, 1, 1, [ mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ], mlib[ i ] ], false ), new THREE.MeshFaceMaterial() );
+          //mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 32), [material_b]);
           //mesh.position.x = i - ( params.length - 1 ) / 2;
           //mesh.position.z = i % 2 - 0.5;
-          mesh.position.x = (i-2);
+          mesh.position.x = (i - (cube_count / 2) + 0.5);
           sceneRTT.addObject(mesh);
           meshes[i] = mesh;
         }
@@ -443,6 +452,9 @@ scene.addLight( light3 );
             dynamicAudio.write(samples);
             audio_b = audio_b.concat(samples);
             is_audio_ready = true;
+            if (samples.length == 0) {
+              play_mod(random_mod_href());
+            }
           }
           (function wait() {
             return function(callback, element){
@@ -476,7 +488,7 @@ scene.addLight( light3 );
                 writeSamples(fill);
               //}
               if (synced) {
-                modPlayer.setBpm(10);
+                modPlayer.setBpm(175);
               } else {
                 modPlayer.setBpm(125);
               }
@@ -509,13 +521,29 @@ scene.addLight( light3 );
 
             r = Math.floor(Math.random() * 4.0);
 
-            particleLight.position.x = Math.sin(time * 0.005) * 4;
-            //particleLight.position.y = Math.cos(time * 0.005) * 4;
-            particleLight.position.z = Math.cos(time * 0.005) * 4;
+            r_spin = 0.002;
+            r_time = time;
+            if (base_hit > 0) {
+              r_spin = 0;
+              //-= Math.abs((base_hit / 75) - (75 / 2)) * 0.00001;
+            }
+            //console.log(r_spin);
+
+            particleLight.position.x = Math.sin(r_time * r_spin) * 10;
+            particleLight.position.y = (Math.cos(r_time * r_spin) * 3) + 0.5;
+            particleLight.position.z = Math.cos(r_time * r_spin) * 10;
 
             pointLight.position.x = particleLight.position.x;
             pointLight.position.y = particleLight.position.y;
             pointLight.position.z = particleLight.position.z;
+
+            cameraPerspective.position.x = -pointLight.position.x;
+            cameraPerspective.position.y = pointLight.position.y + 2;
+            cameraPerspective.position.z = pointLight.position.z;
+
+            particleLight.position.x = 0;
+            particleLight.position.y = 2;
+            particleLight.position.z = 0;
 
 
             for(i = 0; i < meshes.length; ++i ) {
