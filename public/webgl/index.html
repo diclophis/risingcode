@@ -169,26 +169,25 @@
         context5.strokeStyle = "#FFFFFF";
         context5.lineWidth = 2;
 
-        channels = 2; //audio5.mozChannels;
+        channels = 2;
         fbLength = 1024 * 4;
         rate     = 44100;
-        fft = new FFT(fbLength / channels, 44100);
+        fft = new FFT(fbLength / channels, rate);
         audio_b = [];
 
         synced = false;
-        toggle_one = false;
+        toggle_one = true;
+
+        r_spin = 0.000;
 
         document.getElementById("first_toggler").onclick = function() {
           //base_hit = 1000;
           //synced = !synced;
           toggle_one = !toggle_one;
+          //r_spin += 0.0001;
         };
 
         width = 5;
-
-        window.onscroll = function () {
-          //width += 5;
-        };
 
         function write_samples (samples) {
           length = samples.length / channels;
@@ -202,13 +201,13 @@
             }
           }
           fft.forward(signal);
+          context5.clearRect(0,0, fbLength, 200);
           for (i = 0; i < 256; i++ ) {
             context5.fillStyle = "rgba(0,0,0, 0.1)";
             magnitude = fft.spectrum[i] * 1000;
             if (i == 3 && magnitude > 70) {
               context5.fillStyle = "rgba(200,0,0, 0.5)";
-              //base_hit = 100;
-              context5.clearRect(0,0, fbLength, 200);
+              base_hit = 100;
             }
             if (magnitude > 5) {
               context5.fillRect(i * width, canvas5.height, width+1, -magnitude);
@@ -217,7 +216,7 @@
         }
 
         count = 0;
-        now = last = now_v = last_v = new Date().getTime();
+        now_a = last_a = now_v = last_v = new Date().getTime();
 
         dynamicAudio = new DynamicAudio({'swf': 'dynamicaudio.swf'});
 
@@ -245,7 +244,7 @@
                 }
                 binString = ff.join("");
                 modFile = new ModFile(binString);
-                modPlayer = new ModPlayer(modFile, 44100);
+                modPlayer = new ModPlayer(modFile, rate);
                 modPlayerSet = true;
                 loading = false;
               }
@@ -336,7 +335,7 @@
 
         size = 1.0, mlib = [],
         params = [['fragment_shader1', uniforms1],  ['fragment_shader2', uniforms2], [ 'fragment_shader3', uniforms1 ], [ 'fragment_shader4', uniforms1 ] ];
-        cube_count = 32;
+        cube_count = 2;
         for(i = 0; i < cube_count; i++ ) {
           ii = i % 4;
           material = new THREE.MeshShaderMaterial({
@@ -444,6 +443,7 @@ scene.addLight( light3 );
 
         samples = [];
 
+
         function render_textures() {
           renderer.render(sceneRTT, cameraPerspective, rtTexture1);
 
@@ -470,20 +470,30 @@ scene.addLight( light3 );
           uniforms1.time.value += 0.05;
           uniforms2.time.value = (new Date().getTime() - start_time) / 1000;
         }
-/*
-        (function pump_and_wait() {
-          now = new Date().getTime();
-          dt = now - last;
-          last = now;
-          (function wait() {
-            return function(callback, element){
-              window.setTimeout(callback, 500);
-            };
-          })()(pump_and_wait);
+
+        (function pump_audio() {
+          now_a = new Date().getTime();
+          dtt = now_a - last_a;
+          //dtt = 1000 / 500;
+          last_a = now_a;
+          if (is_video_ready && modPlayerSet && ((typeof dynamicAudio.flashElementRef.write === "function") || dynamicAudio.audioElement) && toggle_one) {
+            //console.log(dtt, dt);
+            sample_length = (rate * channels * ((dtt) / 1000));
+            samples = (modPlayer.getSamples(sample_length));
+            dynamicAudio.write(samples);
+            audio_b = audio_b.concat(samples);
+            is_audio_ready = true;
+            if (samples.length == 0) {
+              play_mod(random_mod_href());
+            }
+
+            //if (toggle_one) {
+              render_textures();
+            //}
+          }
+          window.setTimeout(pump_audio, 1);
         })();
-*/
         (function render_and_vsync(timestamp) {
-          
           if (timestamp) {
             now_v = timestamp;
             
@@ -496,10 +506,13 @@ scene.addLight( light3 );
               is_video_ready = true;
             }
 
+/*
+
             if (is_video_ready && modPlayerSet && ((typeof dynamicAudio.flashElementRef.write === "function") || dynamicAudio.audioElement) && toggle_one) {
-              sample_length = (44100 * 2 * ((dt) / 1000));
+              sample_length = (rate * channels * ((dt) / 1000));
+              //samples = new Array(parseInt(sample_length));
               samples = (modPlayer.getSamples(sample_length));
-              dynamicAudio.write(samples);
+              //dynamicAudio.write(samples);
               audio_b = audio_b.concat(samples);
               is_audio_ready = true;
               if (samples.length == 0) {
@@ -510,9 +523,10 @@ scene.addLight( light3 );
                 render_textures();
               }
             }
+*/
 
             if (is_audio_ready) {
-              sl = (44100 * 2 * (dt / 1000))
+              sl = (rate * channels * (dt / 1000))
               //if (audio_b.length > sl) {
                 chumped = audio_b.splice(0, sl);
                 fill = new Float32Array(fbLength);
@@ -531,24 +545,23 @@ scene.addLight( light3 );
 
             r = Math.floor(Math.random() * 4.0);
 
-            r_spin = 0.002;
             r_time = time;
+            r_spin = 0.001;
             if (base_hit > 0) {
-              r_spin = 0;
               //-= Math.abs((base_hit / 75) - (75 / 2)) * 0.00001;
             }
             //console.log(r_spin);
 
-            particleLight.position.x = Math.sin(r_time * r_spin) * 10;
+            particleLight.position.x = Math.sin(r_time * r_spin) * 20;
             particleLight.position.y = (Math.cos(r_time * r_spin) * 3) + 0.5;
-            particleLight.position.z = Math.cos(r_time * r_spin) * 10;
+            particleLight.position.z = Math.cos(r_time * r_spin) * 20;
 
             pointLight.position.x = particleLight.position.x;
             pointLight.position.y = particleLight.position.y;
             pointLight.position.z = particleLight.position.z;
 
             cameraPerspective.position.x = -pointLight.position.x;
-            cameraPerspective.position.y = pointLight.position.y + 2;
+            cameraPerspective.position.y = pointLight.position.y + 20;
             cameraPerspective.position.z = pointLight.position.z;
 
             particleLight.position.x = 0;
@@ -567,16 +580,31 @@ scene.addLight( light3 );
               //meshes[ i ].rotation.x += spin * ( i % 2 ? -1 : 1 );
             }
             */
-            if (toggle_one) {
-              render_textures();
+
+            meshes[0].position.y += 0.5;
+            if (meshes[0].position.y > 10) {
+              meshes[0].position.y = 1;
+              meshes[1].position.y = 1;
             }
+
+            meshes[1].position.y += 0.0270 * dt;
+            if (meshes[1].position.y > 10) {
+            }
+
+            //if (toggle_one) {
+              //render_textures();
+              //render_textures();
+              //render_textures();
+            //}
 
             if (base_hit > 0) {
               base_hit -= dt;
-              renderer.render(scene, cameraOrtho);
+              //renderer.render(scene, cameraOrtho);
             } else {
-              renderer.render(sceneRTT, cameraPerspective);
+              //renderer.render(sceneRTT, cameraPerspective);
             }
+
+            renderer.render(sceneRTT, cameraPerspective);
 
           }
           (function vsync() {
