@@ -50,7 +50,7 @@ require '/home/jbardin/risingcode.com/referrer'
 require '/home/jbardin/risingcode.com/slugalizer'
 require '/home/jbardin/risingcode.com/fast'
 require '/home/jbardin/risingcode.com/lockfile'
-require '/home/jbardin/risingcode.com/ruby-oembed/lib/oembed'
+# require '/home/jbardin/risingcode.com/ruby-oembed/lib/oembed'
 
 Camping.goes :RisingCode
 
