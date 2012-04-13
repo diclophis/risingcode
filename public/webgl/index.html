@@ -455,10 +455,8 @@
         (function pump_audio() {
           now_a = new Date().getTime();
           dtt = now_a - last_a;
-          //dtt = 1000 / 500;
           last_a = now_a;
           if (is_video_ready && modPlayerSet && ((typeof dynamicAudio.flashElementRef.write === "function") || dynamicAudio.audioElement) && toggle_one) {
-            //console.log(dtt, dt);
             sample_length = (rate * channels * ((dtt) / 1000));
             samples = (modPlayer.getSamples(sample_length));
             dynamicAudio.write(samples);
@@ -467,12 +465,8 @@
             if (samples.length == 0) {
               play_mod(random_mod_href());
             }
-
-            //if (toggle_one) {
-            //  render_textures();
-            //}
           }
-          window.setTimeout(pump_audio, 1);
+          window.setTimeout(pump_audio, 100);
         })();
         (function render_and_vsync(timestamp) {
           if (timestamp) {

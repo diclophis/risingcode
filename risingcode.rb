@@ -2,10 +2,12 @@
 
 require 'gserver'
 require 'uri'
-require 'ftools'
+#require 'ftools'
 require 'rubygems'
-require 'RMagick'
-include Magick
+
+#require 'RMagick'
+#include Magick
+
 require 'time'
 require 'timeout'
 require 'open3'
@@ -15,13 +17,13 @@ require 'daemons'
 require 'ruby2ruby'
 require 'drb'
 require 'uuidtools'
-require 'right_aws'
-require 'linguistics'
-require 'hpricot'
+#require 'right_aws'
+#require 'linguistics'
+#require 'hpricot'
 require 'plist'
 require 'net/smtp'
 
-Linguistics::use( :en )
+#Linguistics::use( :en )
 
 #import into the system
 #gem 'rack' #, '= 0.4.0'
@@ -38,17 +40,17 @@ require 'openid/consumer'
 require 'openid/extensions/sreg'
 
 #import into this file
-require '/home/ubuntu/risingcode/acts_as_taggable'
-require '/home/ubuntu/risingcode/tag_list'
-require '/home/ubuntu/risingcode/delicious'
-require '/home/ubuntu/risingcode/email_server'
-require '/home/ubuntu/risingcode/documentation_server'
-require '/home/ubuntu/risingcode/twitter'
-require '/home/ubuntu/risingcode/referrer'
-require '/home/ubuntu/risingcode/slugalizer'
-require '/home/ubuntu/risingcode/fast'
-require '/home/ubuntu/risingcode/lockfile'
-require '/home/ubuntu/risingcode/ruby-oembed/lib/oembed'
+require '/home/jbardin/risingcode.com/acts_as_taggable'
+require '/home/jbardin/risingcode.com/tag_list'
+require '/home/jbardin/risingcode.com/delicious'
+require '/home/jbardin/risingcode.com/email_server'
+require '/home/jbardin/risingcode.com/documentation_server'
+require '/home/jbardin/risingcode.com/twitter'
+require '/home/jbardin/risingcode.com/referrer'
+require '/home/jbardin/risingcode.com/slugalizer'
+require '/home/jbardin/risingcode.com/fast'
+require '/home/jbardin/risingcode.com/lockfile'
+require '/home/jbardin/risingcode.com/ruby-oembed/lib/oembed'
 
 Camping.goes :RisingCode
 
@@ -142,6 +144,7 @@ Camping::Models::Base.logger.debug("ruby. opts = #{opts.inspect}")
 #Camping::Models::Base.logger.debug("oembed. opts = #{opts.inspect}")
     content = opts[:text]
     return content
+=begin
     begin
       Timeout::timeout(30) do
         res = OEmbed::Providers::OohEmbed.get(content)
@@ -215,6 +218,7 @@ Camping::Models::Base.logger.debug("ruby. opts = #{opts.inspect}")
 #Camping::Models::Base.logger.debug(problem.backtrace.join("\n"))
       content
     end
+=end
   end
 end
 
