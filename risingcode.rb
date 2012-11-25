@@ -33,7 +33,6 @@ require 'openid/extensions/sreg'
 require '/home/jbardin/risingcode.com/acts_as_taggable'
 require '/home/jbardin/risingcode.com/tag_list'
 require '/home/jbardin/risingcode.com/documentation_server'
-require '/home/jbardin/risingcode.com/referrer'
 require '/home/jbardin/risingcode.com/slugalizer'
 require '/home/jbardin/risingcode.com/lockfile'
 
