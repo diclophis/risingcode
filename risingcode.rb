@@ -7,8 +7,6 @@ require 'rubygems'
 require 'sqlite3'
 
 require 'time'
-require 'timeout'
-require 'open3'
 require 'redcloth'
 require 'digest/md5'
 require 'daemons'
@@ -310,76 +308,6 @@ module RisingCode::Models
 end
 
 module RisingCode::Controllers
-  class Button < R('/button/(.*)')
-    def get (id)
-      if id.nil? or id.length == 0 or id.length > 30 then
-        id = "                    "
-      end
-      id.gsub!("+", " ")
-      label = Draw.new
-      label.stroke = 'none'
-      label.pointsize = 15 
-      #label.kerning = 1 
-      label.font = "Arial"
-      label.text_antialias(true)
-      label.font_style=Magick::NormalStyle
-      label.font_weight=Magick::BoldWeight
-      label.gravity=Magick::CenterGravity
-      label.text(0, 1, id)
-      metrics = label.get_type_metrics(id)
-      width = metrics.width
-      height = metrics.height
-      top_grad = nil
-      if id.include?("!") then
-        label.fill = "white" 
-        top_grad = GradientFill.new(0, 0, width, 0, "#EEAAAA", "#CC1111")
-      elsif id.include?("?") then
-        label.fill = "black" 
-        top_grad = GradientFill.new(0, 0, width, 0, "#FFFF00", "#FFCC00")
-      else
-        label.fill = "white" 
-        top_grad = GradientFill.new(0, 0, width, 0, "#85EB6A", "#1D8C00")
-      end
-      width += 21 
-      height += 15
-      radius = 6
-      image_layer_one = Magick::Image.new(width, height, top_grad)
-      gc = Draw.new
-      gc.roundrectangle(0,0,image_layer_one.columns-1, image_layer_one.rows-1, radius, radius)
-      gc.composite(0,0,0,0,image_layer_one,InCompositeOp)
-      new_layer_one = Magick::Image.new(width, height) { self.background_color = "none" }
-      gc.draw(new_layer_one)
-      inner_glow_mask = Magick::Image.new(width, height) { self.background_color = "none" }
-      gc = Draw.new
-      gc.stroke("black")
-      gc.stroke_width(1)
-      gc.fill("white")
-      #gc.roundrectangle(2, 2, inner_glow_mask.columns - 3, inner_glow_mask.rows - 3, radius, radius)
-      gc.roundrectangle(0, 0, inner_glow_mask.columns - 1, inner_glow_mask.rows - 1, radius, radius)
-      gc.draw(inner_glow_mask)
-      inner_glow_mask = inner_glow_mask.blur_image(0, 1)
-      
-      #highlight_gradient = GradientFill.new(0,0,80, 0, "#85EB6A", "#1D8C00")
-      #highlight_layer = Magick::Image.new((width - 14).to_i, (height * 0.5).to_i, highlight_gradient)
-      #gc = Draw.new
-      #gc.roundrectangle(0, 0, highlight_layer.columns - 1, highlight_layer.rows - 1, radius, radius)
-      #gc.composite(0,0,0,0,highlight_layer,InCompositeOp)
-      #new_highlight_layer = Magick::Image.new(highlight_layer.columns, highlight_layer.rows) { self.background_color = "none" }
-      #gc.draw(new_highlight_layer)
-      new_layer_one.composite!(inner_glow_mask, CenterGravity, MultiplyCompositeOp)
-      
-      #new_layer_one.composite!(new_highlight_layer, NorthGravity, 4, 3, OverCompositeOp)
-      label.draw(new_layer_one)
-      final_image = new_layer_one
-      blob = final_image.to_blob {
-        self.format = 'GIF'
-        self.quality = 100
-      }
-      @headers["Content-Type"] = "image/gif"
-      @headers["Content-Disposition"] = "inline"
-      return blob
-    end
-  end
   class Contact < R("/contact")
     def get
       primes = []
@@ -476,11 +404,9 @@ module RisingCode::Controllers
   end
   class Resume < R('/about/resume')
     def get
-      #other_layout {
       @tags = Tag.find_all_by_include_in_header(true)
       @active_tab = "about"
       render :resume
-      #}
     end
   end
   class Images < R('/imagery')
@@ -592,58 +518,6 @@ module RisingCode::Controllers
       else
         redirect(R(Bookmarks))
       end
-    end
-  end
-  class Comments < R('/comment/(\d+)(.*)')
-=begin
-    def get (article_id, junk = nil)
-      article = Article.find(article_id)
-      unless article.nil?
-        if (@input.has_key?("openid.mode")) then
-          this_url = User.realm + R(Comments, article_id, nil)
-          store = ::OpenID::Store::Filesystem.new("/tmp")
-          openid_consumer = ::OpenID::Consumer.new(@state, store)
-          openid_response = openid_consumer.complete(@input, this_url)
-          if openid_response.status == :success then
-            display_identifier = openid_response.display_identifier
-            identity_url = openid_response.identity_url
-            openid_sreg = ::OpenID::SReg::Response.from_success_response(openid_response)
-            user = User.find(:first, :conditions => ["openid_url = ?", identity_url])
-            user ||= User.new
-            user.openid_url = identity_url
-            user.display_identifier = display_identifier
-            user.openid_attributes = openid_sreg
-            user.save!
-            comment = Comment.new
-            comment.user_id = user.id
-            comment.article_id = article.id
-            comment.body = @state.comment_body
-            comment.save!
-            return redirect(article.permalink) 
-          end
-        end
-      end
-      raise "fail"
-    end
-=end
-    def post (article_id, junk = nil)
-      return @input.inspect
-=begin
-      article = Article.find(article_id)
-      unless article.nil?
-        @state.openid_url = @input.openid_url
-        @state.comment_body = @input.body
-        store = ::OpenID::Store::Filesystem.new("/tmp")
-        openid_consumer = ::OpenID::Consumer.new(@state, store)
-        check_id_request = openid_consumer.begin(@input.openid_url)
-        openid_sreg = ::OpenID::SReg::Request.new(['nickname'])
-        check_id_request.add_extension(openid_sreg)
-        return_to_url = User.realm + R(Comments, article_id, nil)
-        redirect_url = check_id_request.redirect_url(User.realm, return_to_url)
-        return redirect(redirect_url)
-      end
-      raise "fail"
-=end
     end
   end
   class Sources < R('/sources')
@@ -960,11 +834,8 @@ module RisingCode::Views
         title {
           @title or "Land of the Rising Code"
         }
-        link(:rel => "stylesheet", :type => "text/css", :href => "/stylesheets/main.css")
-        #script(:src => "/javascripts/prototype-1.6.0.2.js")
-        #script(:src => "/javascripts/scriptaculous.js")
-        #script(:src => "/javascripts/bubble.js")
-        meta(:name => "viewport", :content => "width=850")
+        #link(:rel => "stylesheet", :type => "text/css", :href => "/stylesheets/main.css")
+        #meta(:name => "viewport", :content => "width=850")
       }
       body {
         div.wrap!(:class => @content_class) {
@@ -1062,19 +933,6 @@ module RisingCode::Views
           div.sidebar! {
           } unless (administering or viewing_images or no_sidebar) 
         }
-        unless (administering)
-=begin
-          script(:type => "text/javascript") {"
-            var gaJsHost = ((\"https:\" == document.location.protocol) ? \"https://ssl.\" : \"http://www.\");
-            document.write(unescape(\"%3Cscript src='\" + gaJsHost + \"google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E\"));
-          "}
-          script(:type => "text/javascript") {"
-            var pageTracker = _gat._getTracker(\"UA-104916-1\");
-            pageTracker._initData();
-            pageTracker._trackPageview();
-          "}
-=end
-        end
       }
     }
   end
@@ -1297,11 +1155,6 @@ module RisingCode::Views
             img(:src => "http://sourceforge.net/sflogo.php?group_id=13609&type=2")
           }
         }
-        #li {
-        #  a(:href => "http://iphonebookmarklets.com/", :rel => :me) {
-        #    img(:src => "http://iphonebookmarklets.com/logo.png")
-        #  }
-        #}
         li {
           a(:href => "http://upcoming.yahoo.com/user/70266/", :rel => :me) {
             img(:src => "/images/upcoming.png")
@@ -1341,16 +1194,6 @@ module RisingCode::Views
       h3 {
         "You can ask me anything about..."
       }
-      #p {
-      #  @found.each { |word|
-      #    a(:href => R(BookmarksByTag, word)) {
-      #      text(" " + word)
-      #    }
-      #  }
-      #}
-      #h3 {
-      #  "If I were a cloud of words..."
-      #}
       img(:src => "/images/wordcloud.png", :width => 699, :usemap => "#wordcloud_map")
       text('
       <map id="wordcloud_map" name="wordcloud_map"><area shape="rectangle" alt="programming" title="" coords="234,65,694,125" href="/bookmarks/tagged/programming" target="" /><area shape="rectangle" alt="web2.0" title="" coords="315,50,358,64" href="/bookmarks/tagged/web2.0" target="" /><area shape="rectangle" alt="design" title="" coords="387,28,461,57" href="/bookmarks/tagged/design" target="" /><area shape="rectangle" alt="api" title="" coords="463,29,488,56" href="/bookmarks/tagged/api" target="" /><area shape="rectangle" alt="articles" title="" coords="499,36,579,62" href="/bookmarks/tagged/article" target="" /><area shape="rectangle" alt="art" title="" coords="486,154,522,183" href="/bookmarks/tagged/art" target="" /><area shape="rectangle" alt="development" title="" coords="426,123,549,156" href="/bookmarks/tagged/development" target="" /><area shape="rectangle" alt="css" title="" coords="558,126,577,139" href="/bookmarks/tagged/css" target="" /><area shape="rectangle" alt="game" title="" coords="268,129,334,153" href="/bookmarks/tagged/game" target="" /><area shape="rectangle" alt="cocoa" title="" coords="233,155,296,177" href="/bookmarks/tagged/cocoa" target="" /><area shape="rectangle" alt="ruby" title="" coords="127,116,223,175" href="/bookmarks/tagged/ruby" target="" /><area shape="rectangle" alt="javascript" title="" coords="125,94,183,111" href="/bookmarks/tagged/javascript" target="" /><area shape="rectangle" alt="tutorial" title="" coords="138,78,187,93" href="/bookmarks/tagged/tutorial" target="" /><area shape="rectangle" alt="funny" title="" coords="192,78,210,92" href="/bookmarks/tagged/funny" target="" /><area shape="rectangle" alt="voip" title="" coords="360,38,376,49" href="/bookmarks/tagged/voip" target="" /><area shape="rectangle" alt="interesting" title="" coords="402,16,439,25" href="/bookmarks/tagged/interesting" target="" /><area shape="rectangle" alt="iphone" title="" coords="28,3,173,58" href="/bookmarks/tagged/iphone" target="" /><area shape="rectangle" alt="howto" title="" coords="73,56,115,80" href="/bookmarks/tagged/howto" target="" /><area shape="rectangle" alt="blog" title="" coords="29,79,122,127" href="/bookmarks/tagged/blog" target="" /><area shape="rectangle" alt="video" title="" coords="38,125,87,151" href="/bookmarks/tagged/video" target="" /><area shape="rectangle" alt="photography" title="" coords="126,63,166,75" href="/bookmarks/tagged/photography" target="" /><area shape="rectangle" alt="architecture" title="" coords="395,126,424,141" href="/bookmarks/tagged/architecture" target="" /><area shape="rectangle" alt="awesome" title="" coords="208,98,233,105" href="/bookmarks/tagged/awesome" target="" /><area shape="rectangle" alt="humour" title="" coords="216,91,233,95" href="/bookmarks/tagged/humour" target="" /><area shape="rectangle" alt="arduino" title="" coords="173,62,191,76" href="/bookmarks/tagged/arduino" target="" /><area shape="rectangle" alt="flash" title="" coords="3,96,27,110" href="/bookmarks/tagged/flash" target="" /><area shape="rectangle" alt="barcode" title="" coords="7,113,25,125" href="/bookmarks/tagged/barcode" target="" /></map>
