@@ -1,7 +1,4 @@
-/* Edited with EditCSS */
-/**** LINK-tag style sheet main.css ****/
-
-/* RisingCode based on Simpla */  
+/* 
 * { margin:0; padding:0;}
 span.snippet { margin: 0.25em 0 1em 0; display: block; overflow: auto; white-space: nowrap; background-color: #000000; font-family: monospace; color: #ffffff; padding: 4px; border: 1px solid #777777; font-size: 1.1em; }
 .Identifier { color: #00ffff; }
@@ -55,7 +52,6 @@ h1,h2,h3,h4,h5,h6 {
 }
 
 h1 a, h2 a {
-/* #646463 */
 color: #646463;
 }
 h1 { font-size: 1.6em; color: #000; }
@@ -96,9 +92,6 @@ textarea {
 
 #header {
   width: 175px;
-  /*
-  height: 400px;
-  */
   float: left;
   padding: 10px;
   margin: 180px 0 0 0;
@@ -173,37 +166,6 @@ pre {
   padding: 2px;
 }
 
-/*
-td pre {
-  border: 1px solid #777777;
-  border-top: 1px solid #777777;
-  border-bottom: 1px solid #777777;
-  border-left: 1px solid #777777;
-  background-color: #dfdfdf;
-  margin: 0;
-  padding: 2px;
-}
-*/
-
-/*
-iframe {
-  width: 100%;
-  height: 100%;
-  border: 0;
-}
-*/
-/*
-.rownumber {
-  margin: 0px;
-  padding: 0px 20px 0px 1px;
-  background-color: #000000;
-  font-family: monospace;
-  color: #ffffff;
-  border: 0px;
-}
-*/
-
-
 div.experience h3 {
   display: inline;
   clear: none;
@@ -211,9 +173,6 @@ div.experience h3 {
 
 div.experience h4 {
   display: inline;
-  /*
-  font-size: smaller;
-  */
   margin-left: 1em;
 }
 
@@ -266,4 +225,4 @@ span#wait {
   #content { width: 8.25in; border: 0px; margin: 0; float: center; }
   .unprintable { display: none; } 
 }
-
+*/
