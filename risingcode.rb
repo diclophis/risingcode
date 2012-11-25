@@ -670,6 +670,8 @@ Camping::Models::Base.logger.debug(problem.inspect)
         check_id_request.add_extension(openid_sreg)
         url = check_id_request.redirect_url(@@realm, @@realm + R(Login, nil))
         redirect(url)
+      else
+        raise "wtf"
       end
     end
   end
@@ -691,6 +693,7 @@ Camping::Models::Base.logger.debug(problem.inspect)
       @title = "Jon Bardin lives in the Land of the Rising Code"
       @tags = Tag.find_all_by_include_in_header(true)
       @active_tab = "about"
+=begin
       @bookmarks = Delicious::Bookmarks.all(0, 99999)
       @found = []
       @words = {}
@@ -722,6 +725,7 @@ Camping::Models::Base.logger.debug(problem.inspect)
       }
       #@top = @found.collect { |word| word.en.present_participle }
       #@generalization = @found.en.conjunction(:generalize => true)
+=end
       render :about
     end
   end
@@ -1247,7 +1251,6 @@ module RisingCode::Views
                   }
                 }
               }
-              br
             }
           } unless no_header
           if administering then
@@ -1290,6 +1293,7 @@ module RisingCode::Views
                         }
                       }
                     }
+=begin
                     li {
                       a(:href => R(CreateOrUpdateArticle, nil)) {
                         h2 {
@@ -1311,8 +1315,8 @@ module RisingCode::Views
                         }
                       }
                     }
+=end
                   }
-                  br
                 }
               }
             }
@@ -1341,7 +1345,6 @@ module RisingCode::Views
   end
   def images
     div {
-      ads
       ul {
         @images.each { |image|
           li {
@@ -1358,7 +1361,6 @@ module RisingCode::Views
   end
   def bookmarks_by_tag
     div {
-      ads
       ul.bookmarks {
 #Camping::Models::Base.logger.debug("#{@offset} #{@bookmarks_for_tag.length} #{@bookmarks_for_tag.slice(@offset, 10)}")
         @bookmarks_for_tag.slice(@offset, 10).each { |bookmark|
@@ -1426,7 +1428,6 @@ module RisingCode::Views
   end
   def bookmarks
     div {
-      ads
       h2 {
         if @found.at_center > 1 then
           text(@s + " started with #{@found.first}, featured a #{@found.center} flavoured lunch, ended in a #{@found.last} afternoon")
@@ -1499,26 +1500,8 @@ module RisingCode::Views
       text("&nbsp;&raquo;")
     } if @bookmarks_for_tomorrow
   end
-  def ads
-    p.ads! {
-      text('
-      <script type="text/javascript"><!--
-      google_ad_client = "pub-1383228323607572";
-      /* 728x15, created 3/7/08 */
-      google_ad_slot = "4271053867";
-      google_ad_width = 700;
-      google_ad_height = 15;
-      //-->
-      </script>
-      <script type="text/javascript"
-      src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
-      </script>
-      ')
-    }
-  end
   def about
     div {
-      ads
       h2 {
         "About RisingCode.com"
       }
@@ -2205,7 +2188,6 @@ module RisingCode::Views
     wikipedia = nil
     youtube = nil
     div {
-      ads
       fetched = Fast.fetch("http://api.flickr.com/services/feeds/photos_public.gne?tags=#{URI.encode(@tag)}&lang=en-us&format=rss_200")
       fetched = nil if fetched.blank?
       if fetched then
