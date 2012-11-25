@@ -33,7 +33,6 @@ require 'openid/extensions/sreg'
 require '/home/jbardin/risingcode.com/acts_as_taggable'
 require '/home/jbardin/risingcode.com/tag_list'
 require '/home/jbardin/risingcode.com/documentation_server'
-require '/home/jbardin/risingcode.com/twitter'
 require '/home/jbardin/risingcode.com/referrer'
 require '/home/jbardin/risingcode.com/slugalizer'
 require '/home/jbardin/risingcode.com/lockfile'
@@ -261,14 +260,6 @@ module RisingCode
   end
   def display_identifier
     @@display_identifier
-  end
-  def service(*a)
-    searched = Referrer.parse(@env["HTTP_REFERER"])
-    if searched then
-      #status = "#{searched[0]} found '#{searched[1]}' at http://risingcode.com" + @env["PATH_INFO"]
-      #Twitter.update(status)
-    end
-    return super(*a)
   end
 end
 
