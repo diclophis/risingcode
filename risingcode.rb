@@ -2,13 +2,9 @@
 
 require 'gserver'
 require 'uri'
-#require 'ftools'
 require 'rubygems'
 
 require 'sqlite3'
-
-#require 'RMagick'
-#include Magick
 
 require 'time'
 require 'timeout'
@@ -19,23 +15,15 @@ require 'daemons'
 require 'ruby2ruby'
 require 'drb'
 require 'uuidtools'
-#require 'right_aws'
-#require 'linguistics'
-#require 'hpricot'
+
 require 'plist'
 require 'net/smtp'
 
-#Linguistics::use( :en )
-
-#import into the system
-#gem 'rack' #, '= 0.4.0'
-#gem "activesupport", "= 2.3.5"
-#gem "active_record", "= 2.3.5"
 gem "activerecord"
-#require "active_support"
-#gem "rails"#, "= 2.3.5"
+
 require "camping"
 require 'camping/session'
+
 require 'openid'
 require 'openid/store/filesystem'
 require 'openid/consumer'
@@ -44,15 +32,12 @@ require 'openid/extensions/sreg'
 #import into this file
 require '/home/jbardin/risingcode.com/acts_as_taggable'
 require '/home/jbardin/risingcode.com/tag_list'
-require '/home/jbardin/risingcode.com/delicious'
 require '/home/jbardin/risingcode.com/email_server'
 require '/home/jbardin/risingcode.com/documentation_server'
 require '/home/jbardin/risingcode.com/twitter'
 require '/home/jbardin/risingcode.com/referrer'
 require '/home/jbardin/risingcode.com/slugalizer'
-require '/home/jbardin/risingcode.com/fast'
 require '/home/jbardin/risingcode.com/lockfile'
-# require '/home/jbardin/risingcode.com/ruby-oembed/lib/oembed'
 
 Camping.goes :RisingCode
 
@@ -440,97 +425,6 @@ module RisingCode::Models
 end
 
 module RisingCode::Controllers
-  class States < R('/states')
-    def get
-      states = [
-        "alabama",
-        "alaska",
-        "arizona",
-        "arkansas",
-        "california",
-        "colorado",
-        "connecticut",
-        "washington dc",
-        "delaware",
-        "florida",
-        "georgia",
-        "hawaii",
-        "idaho",
-        "illinois",
-        "indiana",
-        "iowa",
-        "kansas",
-        "kentucky",
-        "louisiana",
-        "maine",
-        "maryland",
-        "massachusetts",
-        "michigan",
-        "minnesota",
-        "mississippi",
-        "missouri",
-        "montana",
-        "nebraska",
-        "nevada",
-        "new hampshire",
-        "new jersey",
-        "new york",
-        "north carolina",
-        "north dakota",
-        "ohio",
-        "oklahoma",
-        "oregon",
-        "pennsylvania",
-        "rhode island",
-        "south carolina",
-        "south dakota",
-        "states",
-        "tennessee",
-        "texas",
-        "utah",
-        "vermont",
-        "virginia",
-        "washington",
-        "west virginia",
-        "wisconsin",
-        "wyoming"
-      ]
-
-      data = {}
-      states.each { |state|
-        begin
-          Timeout::timeout(6) do #depc
-#Camping::Models::Base.logger.debug("111")
-            fetched = Fast.fetch("http://en.wikipedia.org/wiki/Special:Search/#{URI.encode(state)}")
-            fetched = nil if fetched.blank?
-            if fetched then
-#Camping::Models::Base.logger.debug(fetched.slice(0, 100))
-              doc = Hpricot(fetched)
-              (doc / "li#ca-nstab-main").each { |el|
-#Camping::Models::Base.logger.debug("222")
-                data[state] = "oembed. http://en.wikipedia.org#{el.children[0].attributes['href']}".textilize
-#Camping::Models::Base.logger.debug("333")
-                break
-              }
-              (doc / "ul.mw-search-results li").each { |el|
-#Camping::Models::Base.logger.debug("444")
-                data[state] = "oembed. http://en.wikipedia.org#{el.children[0].attributes['href']}".textilize
-#Camping::Models::Base.logger.debug("555")
-                break
-              }
-            end
-          end
-        rescue Exception => problem
-#Camping::Models::Base.logger.debug("wikipedia timedout")
-#Camping::Models::Base.logger.debug("#{problem.inspect}")
-#Camping::Models::Base.logger.debug(problem.backtrace.join("\n"))
-        end
-      }
-#Camping::Models::Base.logger.debug("666")
-
-      return data.to_plist
-    end
-  end
   class Button < R('/button/(.*)')
     def get (id)
       if id.nil? or id.length == 0 or id.length > 30 then
@@ -693,39 +587,6 @@ Camping::Models::Base.logger.debug(problem.inspect)
       @title = "Jon Bardin lives in the Land of the Rising Code"
       @tags = Tag.find_all_by_include_in_header(true)
       @active_tab = "about"
-=begin
-      @bookmarks = Delicious::Bookmarks.all(0, 99999)
-      @found = []
-      @words = {}
-      @bookmarks.each { |date, bookmarks|
-        bookmarks.each { |bookmark|
-          new_words = bookmark["excerpt"].split(/([^a-zA-Z0-9])/)
-          new_words.each { |word|
-            word.gsub!(/([a-zA-Z0-9])\..*/, '\1')
-            word.gsub!(/([^a-zA-Z0-9])/, '')
-            word.downcase!
-            @words[word] = 0 if @words[word].nil?
-            @words[word] += 1
-          }
-        }
-      }
-      @words.each { |word, count|
-        next if word.length < 6
-        case count
-          when 1..10
-            next
-          when 10..20
-          when 30..60
-            next
-        end
-          
-        #next if count < 20
-        #next if count > 40
-        @found << word
-      }
-      #@top = @found.collect { |word| word.en.present_participle }
-      #@generalization = @found.en.conjunction(:generalize => true)
-=end
       render :about
     end
   end
@@ -752,20 +613,12 @@ Camping::Models::Base.logger.debug(problem.inspect)
       end
     end
   end
-  class Learn < R('/learn/about/(.*)')
-    def get (tag)
-      @tag = tag
-      @tags = Tag.find_all_by_include_in_header(true)
-      @active_tab = "bookmarks"
-      @title = "Learn about #{@tag}"
-      render :message
-    end
-  end
   class BookmarksByTag < R('/bookmarks/tagged/([a-zA-Z0-9\-]+)', '/bookmarks/tagged/([a-zA-Z0-9\-]+)/([0-9]+)')
     def get (tag, page = nil)
       @tag = tag
       @tags = Tag.find_all_by_include_in_header(true)
       @active_tab = "bookmarks"
+      raise "bookmarks model needs impl"
       @bookmarks = Delicious::Bookmarks.all(0, 99999)
       @bookmarks_for_tag = []
       @bookmarks.each { |date, bookmarks|
@@ -788,6 +641,7 @@ Camping::Models::Base.logger.debug(problem.inspect)
     def get (*args)
       @tags = Tag.find_all_by_include_in_header(true)
       @active_tab = "bookmarks"
+      raise "bookmarks model needs impl"
       @bookmarks = Delicious::Bookmarks.all(0, 99999)
       @bookmarks_for_today = nil
       @bookmarks_for_tomorrow = nil
@@ -2179,86 +2033,6 @@ module RisingCode::Views
         7.times { |i|
         tr.day {
         }
-        }
-      }
-    }
-  end
-  def message
-    flickr = nil
-    wikipedia = nil
-    youtube = nil
-    div {
-      fetched = Fast.fetch("http://api.flickr.com/services/feeds/photos_public.gne?tags=#{URI.encode(@tag)}&lang=en-us&format=rss_200")
-      fetched = nil if fetched.blank?
-      if fetched then
-        doc = ::REXML::Document.new(fetched)
-        event = nil
-        doc.elements.each('/rss/channel/item') { |el|
-          el.elements.each('link') { |li|
-            flickr = "oembed. #{li.text}"
-            text(flickr.textilize)
-          }
-          break
-        }
-      end
-      fetched = Fast.fetch("http://en.wikipedia.org/wiki/Special:Search/#{@tag}")
-      fetched = nil if fetched.blank?
-      if fetched then
-#Camping::Models::Base.logger.debug(fetched.slice(0, 100))
-        doc = Hpricot(fetched)
-        (doc / "li#ca-nstab-main").each { |el|
-          text("oembed. http://en.wikipedia.org#{el.children[0].attributes['href']}".textilize)
-          break
-        }
-        (doc / "ul.mw-search-results li").each { |el|
-          text("oembed. http://en.wikipedia.org#{el.children[0].attributes['href']}".textilize)
-          break
-        }
-      end
-=begin
-      fetched = Fast.fetch("http://www.vimeo.com/tag:#{@tag}/rss")
-      fetched = nil if fetched.blank?
-      Camping::Models::Base.logger.debug("#{fetched.length} wang chung")
-      Camping::Models::Base.logger.debug("#{fetched.readlines.join} wang chung")
-      if fetched and fetched.length > 2 then
-        doc = ::REXML::Document.new(fetched)
-        event = nil
-        doc.elements.each('/rss/channel/item') { |el|
-          el.elements.each('link') { |li|
-            wikipedia = "oembed. #{li.text}"
-            text(wikipedia.textilize)
-          }
-          break
-        }
-      end
-      fetched = Fast.fetch("http://www.youtube.com/rss/tag/#{@tag}.rss")
-      fetched = nil if fetched.blank?
-      if fetched then
-        doc = ::REXML::Document.new(fetched)
-        event = nil
-        doc.elements.each('/rss/channel/item') { |el|
-          el.elements.each('link') { |li|
-            text(("oembed. #{li.text.gsub("?v", "watch?v")}").textilize)
-          }
-          break
-        }
-      end
-      fetched = Fast.fetch("http://www.slideshare.net/rss/tag/#{@tag}")
-      fetched = nil if fetched.blank?
-      if fetched then
-        doc = ::REXML::Document.new(fetched)
-        event = nil
-        doc.elements.each('/rss/channel/item') { |el|
-          el.elements.each('link') { |li|
-            text(("oembed. #{li.text}").textilize)
-          }
-          break
-        }
-      end
-=end
-      p {
-        a(:href => "http://delicious.com/tag/#{@tag}") {
-          text("more about #{@tag}")
         }
       }
     }
