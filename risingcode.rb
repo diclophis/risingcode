@@ -32,7 +32,6 @@ require 'openid/extensions/sreg'
 #import into this file
 require '/home/jbardin/risingcode.com/acts_as_taggable'
 require '/home/jbardin/risingcode.com/tag_list'
-require '/home/jbardin/risingcode.com/email_server'
 require '/home/jbardin/risingcode.com/documentation_server'
 require '/home/jbardin/risingcode.com/twitter'
 require '/home/jbardin/risingcode.com/referrer'
