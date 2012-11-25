@@ -41,7 +41,6 @@ Camping.goes :RisingCode
 module RisingCodeTags
   def hard_breaks; false; end
   def css(opts)
-#Camping::Models::Base.logger.debug("css. opts = #{opts.inspect}")
     content = opts[:text]
     begin
       h = DocumentationServer::SERVER.highlight(content, "css")
@@ -60,157 +59,62 @@ module RisingCodeTags
         }
       }
     rescue Exception => problem
-#Camping::Models::Base.logger.debug("css. problem #{problem}")
       problem.inspect
     end
   end
   def ruby(opts)
-Camping::Models::Base.logger.debug("ruby. opts = #{opts.inspect}")
     content = opts[:text]
     begin
       return DocumentationServer::SERVER.highlight(content, "rb")
     rescue Exception => problem
-#Camping::Models::Base.logger.debug("ruby problem #{problem}")
       problem.inspect
     end
   end
   def rhtml(opts)
-#Camping::Models::Base.logger.debug("rhtml. opts = #{opts.inspect}")
     content = opts[:text]
     begin
       return DocumentationServer::SERVER.highlight(content, "rhtml")
     rescue Exception => problem
-#Camping::Models::Base.logger.debug("rhtml. problem #{problem}")
       problem.inspect
     end
   end
   def javascript(opts)
-#Camping::Models::Base.logger.debug("ruby. opts = #{opts.inspect}")
     content = opts[:text]
     begin
       return DocumentationServer::SERVER.highlight(content, "js")
     rescue Exception => problem
-#Camping::Models::Base.logger.debug("ruby problem #{problem}")
       problem.inspect
     end
   end
   def cpp(opts)
-#Camping::Models::Base.logger.debug("ruby. opts = #{opts.inspect}")
     content = opts[:text]
     begin
       return DocumentationServer::SERVER.highlight(content, "cpp")
     rescue Exception => problem
-#Camping::Models::Base.logger.debug("ruby problem #{problem}")
       problem.inspect
     end
   end
   def objc(opts)
-#Camping::Models::Base.logger.debug("ruby. opts = #{opts.inspect}")
     content = opts[:text]
     begin
       return DocumentationServer::SERVER.highlight(content, "mm")
     rescue Exception => problem
-#Camping::Models::Base.logger.debug("ruby problem #{problem}")
       problem.inspect
     end
   end
   def java(opts)
-#Camping::Models::Base.logger.debug("ruby. opts = #{opts.inspect}")
     content = opts[:text]
     begin
       return DocumentationServer::SERVER.highlight(content, "java")
     rescue Exception => problem
-#Camping::Models::Base.logger.debug("ruby problem #{problem}")
       problem.inspect
     end
-  end
-  def oembed(opts)
-#Camping::Models::Base.logger.debug("oembed. opts = #{opts.inspect}")
-    content = opts[:text]
-    return content
-=begin
-    begin
-      Timeout::timeout(30) do
-        res = OEmbed::Providers::OohEmbed.get(content)
-#Camping::Models::Base.logger.debug(res.inspect)
-        case res
-          when OEmbed::Response::Photo
-            ::Markaby::Builder.new.div(:class => "oembed centered") {
-              div.oembeded {
-                a(:href => content) {
-                  img(:src => res.field(:url))
-                }
-                text(res.field(:html))
-              }
-            }
-          when OEmbed::Response::Video, OEmbed::Response::Rich
-            doc = Hpricot(res.field(:html))
-#Camping::Models::Base.logger.debug("doc -> #{doc.inspect}")
-            (doc / "object").each { |el|
-#Camping::Models::Base.logger.debug("el 1 -> #{el.inspect}")
-              if el['width'] and el['width'].to_i > 500 then 
-                #el.remove_attribute('height') # = nil #(el['height'].to_i / (el['width'].to_i / 480)).to_s
-                new_height = el['height'].to_i / (el['width'].to_i / 480)
-#Camping::Models::Base.logger.debug("new_height -> #{new_height.inspect}")
-                el['height'] = new_height.to_s
-                el['width'] = "480"
-
-
-                
-#Camping::Models::Base.logger.debug("el -> #{el.inspect}")
-              else
-              end
-            }
-
-            ::Markaby::Builder.new.div(:class => "oembed centered") {
-              div.oembeded {
-                #text(res.field(:html))
-                text(doc.to_s)
-              }
-            }
-          when OEmbed::Response::Link
-            ::Markaby::Builder.new.div(:class => "oembed") {
-#Camping::Models::Base.logger.debug("Rich???!")
-              div.oembeded {
-                h4 {
-                  a(:href => content) {
-                    text(res.field(:title))
-                  }
-                }
-
-                doc = Hpricot(res.field(:html))
-                (doc / "a").each { |el|
-#Camping::Models::Base.logger.debug(el.inspect)
-#http://en.wikipedia.org/wiki/Discipline
-                  if el['href'] and el['href'].include?("http://en.wikipedia.org/wiki/") and not el['href'].include?("http://en.wikipedia.org/wiki/Wikipedia") then
-#Camping::Models::Base.logger.debug("WIKI!")
-                    #el['href'] = "/learn/about/" + Slugalizer.slugalize(el['href'].gsub("http://en.wikipedia.org/wiki/", ""))
-                  end
-#Camping::Models::Base.logger.debug(el.inspect)
-                }
-                text(doc.to_s)
-              }
-            }
-        else
-#Camping::Models::Base.logger.debug("WTF???!")
-          content
-        end
-      end
-    rescue => problem
-#Camping::Models::Base.logger.debug("wang chung")
-#Camping::Models::Base.logger.debug("#{problem.inspect}")
-#Camping::Models::Base.logger.debug(problem.backtrace.join("\n"))
-      content
-    end
-=end
   end
 end
 
 class String
   def textilize
-#Camping::Models::Base.logger.debug("AAA")
     wang = RedCloth.new(self, [:no_span_caps]).extend(::RisingCodeTags).to_html
-#Camping::Models::Base.logger.debug("BBB")
     wang
   end
 end
@@ -402,15 +306,6 @@ module RisingCode::Models
       read_attribute(:count).to_i
     end
   end
-#  class CacheObserver < ::Camping::Models::A::Observer
-#    observe Article, Comment, Image, Tag
-#    def after_save (record)
-#      Camping::Models::Base.logger.debug(record.inspect)
-#      if File.exists?("/tmp/cache/risingcode.com") then
-#        File.rename("/tmp/cache/risingcode.com", "/tmp/cache/risingcode.com.#{Time.now.to_i}")
-#      end
-#    end
-#  end
 end
 
 module RisingCode::Controllers
@@ -523,7 +418,6 @@ module RisingCode::Controllers
           end
         end
       rescue => problem
-Camping::Models::Base.logger.debug(problem.inspect)
         return "really, don't do that"
       end
     end
@@ -622,7 +516,6 @@ Camping::Models::Base.logger.debug(problem.inspect)
       else
         @offset = 0
       end
-#Camping::Models::Base.logger.debug("#{@page} #{@offset}")
       render :bookmarks_by_tag
     end
   end
@@ -1205,7 +1098,6 @@ module RisingCode::Views
   def bookmarks_by_tag
     div {
       ul.bookmarks {
-#Camping::Models::Base.logger.debug("#{@offset} #{@bookmarks_for_tag.length} #{@bookmarks_for_tag.slice(@offset, 10)}")
         @bookmarks_for_tag.slice(@offset, 10).each { |bookmark|
           li {
             if ((oembed = "oembed. #{bookmark["href"]}".textilize) == bookmark["href"]) then
