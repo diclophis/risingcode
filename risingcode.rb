@@ -5,6 +5,8 @@ require 'uri'
 #require 'ftools'
 require 'rubygems'
 
+require 'sqlite3'
+
 #require 'RMagick'
 #include Magick
 
