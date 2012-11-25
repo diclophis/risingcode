@@ -291,6 +291,7 @@ module RisingCode::Models
     has_many :taggings
     validates_presence_of :name
     validates_uniqueness_of :name
+    validates :name, :format => { :with => /\A[a-zA-Z0-9\-]+\z/, :message => "Only letters allowed" }
     cattr_accessor :destroy_unused
     self.destroy_unused = false
     def self.find_or_create_with_like_by_name(name)
@@ -1029,7 +1030,6 @@ module RisingCode::Views
                         }
                       }
                     }
-=begin
                     li {
                       a(:href => R(CreateOrUpdateArticle, nil)) {
                         h2 {
@@ -1051,7 +1051,6 @@ module RisingCode::Views
                         }
                       }
                     }
-=end
                   }
                 }
               }
@@ -1992,23 +1991,6 @@ module RisingCode::Views
   end
   def dashboard
     div {
-      ul {
-        li {
-          a(:href => R(CreateOrUpdateArticle, nil)) {
-            text("new article")
-          }
-        }
-        li {
-          a(:href => R(CreateOrUpdateTag, nil)) {
-            text("new tag")
-          }
-        }
-        li {
-          a(:href => R(CreateOrUpdateImage, nil)) {
-            text("new image")
-          }
-        }
-      }
     }
   end
   def list_tags
