@@ -1827,7 +1827,7 @@ module RisingCode::Views
           input(:type => :text, :name => :identity_url)
         }
         li {
-          input(:type => "submit", :value => "go")
+          input(:type => "submit")
         }
       }
     }
@@ -1849,7 +1849,7 @@ module RisingCode::Views
             }
           }
           li {
-            input(:type => :submit, :value => "go")
+            input(:type => :submit, :value => "delete selected tags")
           } if @tags.length > 0
         }
       }
@@ -1903,7 +1903,7 @@ module RisingCode::Views
             }
           }
           li {
-            input(:type => :submit, :value => "go")
+            input(:type => :submit, :value => "delete selected images")
           } if @images.length > 0
         }
       }
@@ -1954,7 +1954,7 @@ module RisingCode::Views
             input(:type => :text, :name => :tag_list, :value => @article.tag_list)
           }
           li {
-            input(:type => :submit, :value => "go")
+            input(:type => :submit)
           }
         }
       }
@@ -1978,7 +1978,7 @@ module RisingCode::Views
             input({:type => :checkbox, :name => :include_in_header}.merge(checked))
           }
           li {
-            input(:type => :submit, :value => "go")
+            input(:type => :submit)
           }
         }
       }
@@ -2003,7 +2003,7 @@ module RisingCode::Views
             input(:type => :file, :name => :the_file)
           }
           li {
-            input(:type => :submit, :value => "go")
+            input(:type => :submit)
           }
         }
       }
