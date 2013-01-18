@@ -450,6 +450,7 @@ module RisingCode::Controllers
     def get (*args)
       @tags = Tag.find_all_by_include_in_header(true)
       @active_tab = "bookmarks"
+      return render :coming_soon
       raise "bookmarks model needs impl"
       @bookmarks = Delicious::Bookmarks.all(0, 99999)
       @bookmarks_for_today = nil
@@ -952,6 +953,9 @@ module RisingCode::Views
       }
     }
   end
+  def coming_soon
+    h3 { "Coming Soon" }
+  end
   def bookmarks_by_tag
     div {
       ul.bookmarks {
@@ -1204,18 +1208,70 @@ module RisingCode::Views
     div {
       h1 {
         text("Jon Bardin")
-        a(:href => R(Contact), :class => :unprintable) {
-          text("&nbsp;contact me if you are not a robot")
-        }
+        #a(:href => R(Contact), :class => :unprintable) {
+        #  text("&nbsp;contact me if you are not a robot")
+        #}
       }
     }
     div {
       p {"
        I am a bleeding edge technology evangelist.
-       I spend my time dabbling in protoypes, widgets, gizmos and automatons.
+       I spend my time dabbling in prototypes, widgets, gizmos and automatons.
       "}
     }
     div.experience {
+      div {
+        h3 {
+          em {
+            "Senior Software Engineer - GREE Intl."
+          }
+        }
+        h4 {
+          "June 2011 - Present, San Francisco, CA"
+        }
+        hr
+        ul.projects {
+          li {
+            h5 {
+              "Systems Administration / DevOps on OpenFeint Platform"
+            }
+            p {"
+              After GREE's acquisition of OpenFeint, my duties shifted from application development to Server Ops of the OpenFeint platform.
+              I was the release manager for all QA and Production deploys of the OpenFeint platform.
+              I also performed routine performance monitoring and uptime reporting of the system, and reported any errors/events back to the engineering team.
+              During this time we scaled up the throughput of the platform from 50k requests-per-minute to 120k requests-per-minute using a variety of optimizations and infrastructure upgrades.
+            "}
+          }
+          li {
+            h5 {
+              "HTML5 Game Engine"
+            }
+            p {"
+              After we finished stabilizing the OpenFeint platform, I transitioned my role into a game developer using HTML5 technologies.
+              I help develop and architect the foundation of 2 published game titles. (" +
+              a(:href => "https://itunes.apple.com/us/app/nfl-shuffle/id572960605?mt=8") { "NFL Shuffle" } +
+              " / " +
+              a(:href => "https://itunes.apple.com/ca/app/book-ashes-age-dragons/id571986621?mt=8") { "Book of Ashes: The Age of Dragons" } +
+              ") This foundation included a PHP Application Framework, PHPUnit unit-test suite, Selenium/Rspec acceptance-test suite and a native Android/iOS 'shell' application.
+              I was responsible for several core web-based systems such as performance/error monitoring, as well as building an automated deployment system using Jenkins.
+              Additionally I developed several of the native iOS bridging components used for asset delivery to mobile clients.
+            "}
+          }
+          li {
+            h5 {
+              "Sports Themed HTML5 Card Game (NFL Shuffle)"
+            }
+            p {"
+              I developed (using our in house html5-core technology) several core gameplay features.
+              My primary responsibility was developing an animation system used during the main 'card-combat' scenes in the game.
+              This was accomplished using CSS3 keyframe animations and Javascript.
+            "}
+            a(:href => "https://itunes.apple.com/us/app/nfl-shuffle/id572960605?mt=8") {
+              "NFL Shuffle on iTunes"
+            }
+          }
+        }
+      }
       div {
         h3 {
           em {
@@ -1223,7 +1279,7 @@ module RisingCode::Views
           }
         }
         h4 {
-          "October 2009 - Present, Burlingame, CA"
+          "October 2009 - June 2011, Burlingame, CA"
         }
         hr
         ul.projects {
@@ -1235,7 +1291,8 @@ module RisingCode::Views
               By provided a REST based API to store resources we enable social game developers to quickly integrate virtual economy functionality into their titles.
               The service is centered around items that can be purchased in game via real-money micro-payments or in game virtual currency.
               My main responsibility was implementing the server-side functionality of the platform.
-              Building on top of an existing Rails project infrastructure our team added several new features including a Scribe based event logger, an asynchronous offline package generation process, a virtual store and user inventory management interface.
+              Building on top of an existing Rails project infrastructure our team added several new features including a Scribe based event logger, an asynchronous offline package generation process,
+              a virtual store and user inventory management interface.
             "}
           }
           li {
@@ -1282,7 +1339,7 @@ module RisingCode::Views
             }
             p {"
              Architected and implemented both the iPhone frontend and Linux/Rails backend system.
-             Features include realtime group chat / instant messaging, sprite based room decoration, community forum, message wall, point system, virtual goods store.
+             Features include real time group chat / instant messaging, sprite based room decoration, community forum, message wall, point system, virtual goods store.
              The client/server protocol is Thrift, the database is MySQL, and the server is a multi-threaded ruby application.
             "}
           }
@@ -1610,7 +1667,7 @@ module RisingCode::Views
         ul.projects {
           li {
             h5 {
-              a(:href => "http://veejay.tv") {
+              a(:href => "http://web.archive.org/web/20090311001445/http://veejay.tv/") {
                 "VeeJay.tv"
               }
             }
@@ -1620,7 +1677,7 @@ module RisingCode::Views
           }
           li {
             h5 {
-              a(:href => "http://centerology.com") {
+              a(:href => "http://web.archive.org/web/20090416041116/http://centerology.com/?") {
                 "Centerology.com"
               }
             }
@@ -1650,7 +1707,9 @@ module RisingCode::Views
           }
           li {
             h5 {
-              "ProjectWiki"
+              a(:href => "https://github.com/diclophis/projectwiki") {
+                "ProjectWiki"
+              }
             }
             p {"
                A server-side savable TiddlyWiki
@@ -1658,15 +1717,19 @@ module RisingCode::Views
           }
           li {
             h5 {
-              "MyRingr"
+              a(:href => "https://github.com/diclophis/myringr") {
+                "MyRingr"
+              }
             }
             p {"
-               A web/telephony integration framework
+               A Ruby web/telephony integration framework for Asterisk
             "}
           }
           li {
             h5 {
-              "Mandelbrot Set Generator"
+              a(:href => "https://github.com/diclophis/mandelbrot") {
+                "Mandelbrot Set Generator"
+              }
             }
             p {"
                C++ Generator + OpenLayers Web Interface
@@ -1674,7 +1737,9 @@ module RisingCode::Views
           }
           li {
             h5 {
-              "Heatmap Image Generator"
+              a(:href => "https://github.com/diclophis/heatmap") {
+                "Heatmap Image Generator"
+              }
             }
             p {"
               Generates heatmaps based on input data, used to overlay the original source
@@ -1682,9 +1747,12 @@ module RisingCode::Views
           }
           li {
             h5 {
-              "Word Search Puzzle generator"
+              a(:href => "https://github.com/diclophis/wordsearch") {
+                "Word Search Puzzle generator"
+              }
             }
             p {"
+              PHP5 Library for generating word search puzzles.
             "}
           }
           li {
