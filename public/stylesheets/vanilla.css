@@ -1,0 +1,12 @@
+@media print {
+  body { width: 8.5in; }
+  #header { display: none; }
+  #content { width: 8.25in; border: 0px; margin: 0; float: center; }
+  .unprintable { display: none; } 
+  a { color: black; }
+  .only_print { display: block; }
+}
+
+@media screen {
+  .only_print { display: none; }
+}

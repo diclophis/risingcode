@@ -836,6 +836,7 @@ module RisingCode::Views
           @title or "Land of the Rising Code"
         }
         #link(:rel => "stylesheet", :type => "text/css", :href => "/stylesheets/main.css")
+        link(:rel => "stylesheet", :type => "text/css", :href => "/stylesheets/vanilla.css")
         #meta(:name => "viewport", :content => "width=850")
       }
       body {
@@ -1125,11 +1126,6 @@ module RisingCode::Views
       }
       ul.profiles! {
         li {
-          a(:href => "http://del.icio.us/diclophis", :rel => :me) {
-            img(:src => "/images/del.gif")
-          }
-        }
-        li {
           a(:href => "http://github.com/diclophis", :rel => :me) {
             img(:src => "/images/github.png")
           }
@@ -1139,11 +1135,11 @@ module RisingCode::Views
             img(:src => "/images/stackoverflow.png")
           }
         }
-        li {
-          a(:href => "http://www.engadget.com/profile/68892/", :rel => :me) {
-            img(:src => "/images/engadget.gif")
-          }
-        }
+        #li {
+        #  a(:href => "http://www.engadget.com/profile/68892/", :rel => :me) {
+        #    img(:src => "/images/engadget.gif")
+        #  }
+        #}
         li {
           a(:href => "http://ruby.meetup.com/6/members/4890/", :rel => :me) {
             img(:src => "/images/meetup.gif")
@@ -1157,11 +1153,6 @@ module RisingCode::Views
         li {
           a(:href => "http://sourceforge.net/users/diclophis/", :rel => :me) {
             img(:src => "http://sourceforge.net/sflogo.php?group_id=13609&type=2")
-          }
-        }
-        li {
-          a(:href => "http://upcoming.yahoo.com/user/70266/", :rel => :me) {
-            img(:src => "/images/upcoming.png")
           }
         }
         li {
@@ -1184,14 +1175,24 @@ module RisingCode::Views
             img(:src => "/images/facebook_logo.gif")
           }
         }
+        #li {
+        #  a(:href => "http://upcoming.yahoo.com/user/70266/", :rel => :me) {
+        #    img(:src => "/images/upcoming.png")
+        #  }
+        #}
         li {
           a(:href => "http://freshmeat.net/~jbardin/", :rel => :me) {
             img(:src => "/images/freshmeat.gif")
           }
         }
         li {
-          a(:href => "http://code.google.com/u/diclophis/", :rel => :me) {
+          a(:href => "http://code.google.com/u/102182916232982105135/", :rel => :me) {
             img(:src => "/images/google_code.png")
+          }
+        }
+        li {
+          a(:href => "http://del.icio.us/diclophis", :rel => :me) {
+            img(:src => "/images/del.gif")
           }
         }
       }
@@ -1199,9 +1200,9 @@ module RisingCode::Views
         "You can ask me anything about..."
       }
       img(:src => "/images/wordcloud.png", :width => 699, :usemap => "#wordcloud_map")
-      text('
-      <map id="wordcloud_map" name="wordcloud_map"><area shape="rectangle" alt="programming" title="" coords="234,65,694,125" href="/bookmarks/tagged/programming" target="" /><area shape="rectangle" alt="web2.0" title="" coords="315,50,358,64" href="/bookmarks/tagged/web2.0" target="" /><area shape="rectangle" alt="design" title="" coords="387,28,461,57" href="/bookmarks/tagged/design" target="" /><area shape="rectangle" alt="api" title="" coords="463,29,488,56" href="/bookmarks/tagged/api" target="" /><area shape="rectangle" alt="articles" title="" coords="499,36,579,62" href="/bookmarks/tagged/article" target="" /><area shape="rectangle" alt="art" title="" coords="486,154,522,183" href="/bookmarks/tagged/art" target="" /><area shape="rectangle" alt="development" title="" coords="426,123,549,156" href="/bookmarks/tagged/development" target="" /><area shape="rectangle" alt="css" title="" coords="558,126,577,139" href="/bookmarks/tagged/css" target="" /><area shape="rectangle" alt="game" title="" coords="268,129,334,153" href="/bookmarks/tagged/game" target="" /><area shape="rectangle" alt="cocoa" title="" coords="233,155,296,177" href="/bookmarks/tagged/cocoa" target="" /><area shape="rectangle" alt="ruby" title="" coords="127,116,223,175" href="/bookmarks/tagged/ruby" target="" /><area shape="rectangle" alt="javascript" title="" coords="125,94,183,111" href="/bookmarks/tagged/javascript" target="" /><area shape="rectangle" alt="tutorial" title="" coords="138,78,187,93" href="/bookmarks/tagged/tutorial" target="" /><area shape="rectangle" alt="funny" title="" coords="192,78,210,92" href="/bookmarks/tagged/funny" target="" /><area shape="rectangle" alt="voip" title="" coords="360,38,376,49" href="/bookmarks/tagged/voip" target="" /><area shape="rectangle" alt="interesting" title="" coords="402,16,439,25" href="/bookmarks/tagged/interesting" target="" /><area shape="rectangle" alt="iphone" title="" coords="28,3,173,58" href="/bookmarks/tagged/iphone" target="" /><area shape="rectangle" alt="howto" title="" coords="73,56,115,80" href="/bookmarks/tagged/howto" target="" /><area shape="rectangle" alt="blog" title="" coords="29,79,122,127" href="/bookmarks/tagged/blog" target="" /><area shape="rectangle" alt="video" title="" coords="38,125,87,151" href="/bookmarks/tagged/video" target="" /><area shape="rectangle" alt="photography" title="" coords="126,63,166,75" href="/bookmarks/tagged/photography" target="" /><area shape="rectangle" alt="architecture" title="" coords="395,126,424,141" href="/bookmarks/tagged/architecture" target="" /><area shape="rectangle" alt="awesome" title="" coords="208,98,233,105" href="/bookmarks/tagged/awesome" target="" /><area shape="rectangle" alt="humour" title="" coords="216,91,233,95" href="/bookmarks/tagged/humour" target="" /><area shape="rectangle" alt="arduino" title="" coords="173,62,191,76" href="/bookmarks/tagged/arduino" target="" /><area shape="rectangle" alt="flash" title="" coords="3,96,27,110" href="/bookmarks/tagged/flash" target="" /><area shape="rectangle" alt="barcode" title="" coords="7,113,25,125" href="/bookmarks/tagged/barcode" target="" /></map>
-      ')
+      #text('
+      #<map id="wordcloud_map" name="wordcloud_map"><area shape="rectangle" alt="programming" title="" coords="234,65,694,125" href="/bookmarks/tagged/programming" target="" /><area shape="rectangle" alt="web2.0" title="" coords="315,50,358,64" href="/bookmarks/tagged/web2.0" target="" /><area shape="rectangle" alt="design" title="" coords="387,28,461,57" href="/bookmarks/tagged/design" target="" /><area shape="rectangle" alt="api" title="" coords="463,29,488,56" href="/bookmarks/tagged/api" target="" /><area shape="rectangle" alt="articles" title="" coords="499,36,579,62" href="/bookmarks/tagged/article" target="" /><area shape="rectangle" alt="art" title="" coords="486,154,522,183" href="/bookmarks/tagged/art" target="" /><area shape="rectangle" alt="development" title="" coords="426,123,549,156" href="/bookmarks/tagged/development" target="" /><area shape="rectangle" alt="css" title="" coords="558,126,577,139" href="/bookmarks/tagged/css" target="" /><area shape="rectangle" alt="game" title="" coords="268,129,334,153" href="/bookmarks/tagged/game" target="" /><area shape="rectangle" alt="cocoa" title="" coords="233,155,296,177" href="/bookmarks/tagged/cocoa" target="" /><area shape="rectangle" alt="ruby" title="" coords="127,116,223,175" href="/bookmarks/tagged/ruby" target="" /><area shape="rectangle" alt="javascript" title="" coords="125,94,183,111" href="/bookmarks/tagged/javascript" target="" /><area shape="rectangle" alt="tutorial" title="" coords="138,78,187,93" href="/bookmarks/tagged/tutorial" target="" /><area shape="rectangle" alt="funny" title="" coords="192,78,210,92" href="/bookmarks/tagged/funny" target="" /><area shape="rectangle" alt="voip" title="" coords="360,38,376,49" href="/bookmarks/tagged/voip" target="" /><area shape="rectangle" alt="interesting" title="" coords="402,16,439,25" href="/bookmarks/tagged/interesting" target="" /><area shape="rectangle" alt="iphone" title="" coords="28,3,173,58" href="/bookmarks/tagged/iphone" target="" /><area shape="rectangle" alt="howto" title="" coords="73,56,115,80" href="/bookmarks/tagged/howto" target="" /><area shape="rectangle" alt="blog" title="" coords="29,79,122,127" href="/bookmarks/tagged/blog" target="" /><area shape="rectangle" alt="video" title="" coords="38,125,87,151" href="/bookmarks/tagged/video" target="" /><area shape="rectangle" alt="photography" title="" coords="126,63,166,75" href="/bookmarks/tagged/photography" target="" /><area shape="rectangle" alt="architecture" title="" coords="395,126,424,141" href="/bookmarks/tagged/architecture" target="" /><area shape="rectangle" alt="awesome" title="" coords="208,98,233,105" href="/bookmarks/tagged/awesome" target="" /><area shape="rectangle" alt="humour" title="" coords="216,91,233,95" href="/bookmarks/tagged/humour" target="" /><area shape="rectangle" alt="arduino" title="" coords="173,62,191,76" href="/bookmarks/tagged/arduino" target="" /><area shape="rectangle" alt="flash" title="" coords="3,96,27,110" href="/bookmarks/tagged/flash" target="" /><area shape="rectangle" alt="barcode" title="" coords="7,113,25,125" href="/bookmarks/tagged/barcode" target="" /></map>
+      #')
     }
   end
   def resume
@@ -1223,11 +1224,21 @@ module RisingCode::Views
       div {
         h3 {
           em {
+            "Senior Software Engineer - Mavenlink Inc."
+          }
+        }
+        h4 {
+          "June April - Preset, San Francisco, CA"
+        }
+      }
+      div {
+        h3 {
+          em {
             "Senior Software Engineer - GREE Intl."
           }
         }
         h4 {
-          "June 2011 - Present, San Francisco, CA"
+          "June 2011 - February 2013, San Francisco, CA"
         }
         hr
         ul.projects {
@@ -1266,7 +1277,7 @@ module RisingCode::Views
               My primary responsibility was developing an animation system used during the main 'card-combat' scenes in the game.
               This was accomplished using CSS3 keyframe animations and Javascript.
             "}
-            a(:href => "https://itunes.apple.com/us/app/nfl-shuffle/id572960605?mt=8") {
+            a.unprintable(:href => "https://itunes.apple.com/us/app/nfl-shuffle/id572960605?mt=8") {
               "NFL Shuffle on iTunes"
             }
           }
@@ -1380,7 +1391,10 @@ module RisingCode::Views
           }
         }
       }
-      div {
+      h4.only_print {
+        "... continued at http://risingcode.com/about/resume"
+      }
+      div.unprintable {
         h3 {
           em {
             "Software Engineer - Timebridge"
@@ -1419,7 +1433,7 @@ module RisingCode::Views
           }
         }
       }
-      div {
+      div.unprintable {
         h3 {
           em {
             "Software Engineer - CIS Data Systems"
@@ -1542,7 +1556,7 @@ module RisingCode::Views
           }
         }
       }
-      div {
+      div.unprintable {
         h3 {
           "Junior Software Engineer - ImageLinks"
         }
