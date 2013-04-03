@@ -830,8 +830,9 @@ module RisingCode::Views
       self << yield
       return
     end
-    xhtml_transitional {
+    html {
       head {
+        meta("http-equiv" => "Content-Type", :content => "text/html;charset=utf-8")
         title {
           @title or "Land of the Rising Code"
         }
