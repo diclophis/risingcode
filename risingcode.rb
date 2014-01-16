@@ -28,11 +28,11 @@ require 'openid/consumer'
 require 'openid/extensions/sreg'
 
 #import into this file
-require '/home/jbardin/risingcode.com/acts_as_taggable'
-require '/home/jbardin/risingcode.com/tag_list'
-require '/home/jbardin/risingcode.com/documentation_server'
-require '/home/jbardin/risingcode.com/slugalizer'
-require '/home/jbardin/risingcode.com/lockfile'
+require '/home/ubuntu/risingcode.com/acts_as_taggable'
+require '/home/ubuntu/risingcode.com/tag_list'
+require '/home/ubuntu/risingcode.com/documentation_server'
+require '/home/ubuntu/risingcode.com/slugalizer'
+require '/home/ubuntu/risingcode.com/lockfile'
 
 Camping.goes :RisingCode
 
