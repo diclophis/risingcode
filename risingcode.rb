@@ -9,9 +9,6 @@ require 'sqlite3'
 require 'time'
 require 'redcloth'
 require 'digest/md5'
-require 'ruby2ruby'
-require 'ruby_parser'
-require 'parse_tree'
 
 require 'drb'
 
@@ -37,55 +34,7 @@ class DocumentationServer
   SERVER = DRbObject.new(nil, URI)
   def self.daemon (argv)
     DRb.start_service(URI, self.new)
-#Signal.trap(:KILL) do
-#  #Camping::Models::Base.logger.debug("killing server")
-#end
-#Signal.trap(:INT) do
-#  #Camping::Models::Base.logger.debug("interuptng server")
-#end
-#Signal.trap(:TERM) do
-#  #Camping::Models::Base.logger.debug("terminating server")
-#end
     DRb.thread.join
-  end
-
-  def initialize
-  end
-
-  def controllers
-    #RisingCode::X.r
-    ObjectSpace.each_object(Class).select { |klass| klass < RisingCode::X }
-  end
-
-  def models
-    models = Array.new
-    ObjectSpace.each_object { |object|
-      if object.is_a? Class then
-        if object.superclass == ActiveRecord::Base then
-          models << object
-        end
-      end
-    }
-    return models.sort {|a,b| b.to_s <=> a.to_s}
-  end
-
-  def source_for (class_name)
-    if class_name.respond_to? :urls then
-      url_string = "< R(" + class_name.urls.collect{|url| "'" + url + "'"}.join(",") + ")"
-    else
-      url_string = ""
-    end
-    #if class_name == RisingCode::Models::SchemaInfo or class_name == RisingCode::Controllers::I or class_name == Camping::Models::SchemaInfo then
-    #    puts "Wtf"
-    #    return "unknown"
-    #else
-      translated = Ruby2Ruby.new.process(SexpProcessor.new.process(ParseTree.translate(class_name)))
-      #translated = Ruby2Ruby.new.process(RubyParser.new.parse(class_name.to_s))
-      #Ruby2Ruby.new.process(ParseTree.translate(class_name))
-      #Ruby2Ruby.translate(class_name)
-      return highlight(
-        translated.gsub("< nil", url_string), "rb")
-    #end
   end
 
   def highlight(content, extension)
@@ -95,7 +44,7 @@ class DocumentationServer
     cache_buffer = "/tmp/#{now}.cache"
 
     now.to_s
-    #unless File.exists?(cache_buffer) 
+    unless File.exists?(cache_buffer) 
       input = File.new(input_buffer, "w")
       input.write(content)
       input.close
@@ -142,11 +91,10 @@ class DocumentationServer
           true
         end
       }
-    #end
+    end
     File.open(cache_buffer).readlines.join("").gsub("\n", "")
   end
 end
-
 
 module RisingCode
   module Models
@@ -181,7 +129,6 @@ $ARV_EXTRAS = %{
       end
     end
   end
-
 }
     module_eval $ARV_EXTRAS
   end
@@ -403,56 +350,61 @@ module RisingCode::Models
     end
   end
 
-  class Image < Base
-    def put_key (x_key, blob)
-      get_key(x_key).put(blob, 'public-read')
-    end
-    def get_key (x_key)
-      RightAws::S3::Key.create(@@bucket, self.permalink + "_" + x_key.to_s)
-    end
-    def public_link(x_key = :main)
-      get_key(x_key).public_link
-    end
-    def thumb_permalink
-      public_link(:thumb)
-    end
-    def full_permalink
-      public_link(:main)
-    end
-    def icon_permalink
-      public_link(:icon)
-    end
-    def x_put (blob)
-      self.permalink = SecureRandom.hex.to_s if self.permalink.blank?
-      imgs = Magick::Image.from_blob(blob)
-      first = imgs.first
-      case first.get_exif_by_entry("Orientation") && first["EXIF:Orientation"]
-        when "6"
-          first.rotate!(90)
-          first["EXIF:Orientation"] = "1"
-        when "3"
-          first.rotate!(180)
-          first["EXIF:Orientation"] = "1"
-        when "8"
-          first.rotate!(270)
-          first["EXIF:Orientation"] = "1"
-      end
-      sizes = {
-        :main => {:cols => 640, :rows => 480},
-        :thumb => {:cols => 400},
-        :icon => {:cols => 128}
-      }.each { |x_key, size|
-        geometry = if size[:rows] then
-          "#{size[:cols]}x#{size[:rows]}>"
-        else
-          "#{size[:cols]}x"
-        end
-        first.change_geometry(geometry) { |cols, rows, img|
-          put_key(x_key, img.resize(cols, rows).to_blob)
-        }
-      }
-    end
-  end
+  #class Image < Base
+  #  def put_key (x_key, blob)
+  #    get_key(x_key).put(blob, 'public-read')
+  #  end
+  #  def get_key (x_key)
+  #    RightAws::S3::Key.create(@@bucket, self.permalink + "_" + x_key.to_s)
+  #  end
+
+  #  def public_link(x_key = :main)
+  #    get_key(x_key).public_link
+  #  end
+
+  #  def thumb_permalink
+  #    public_link(:thumb)
+  #  end
+
+  #  def full_permalink
+  #    public_link(:main)
+  #  end
+
+  #  def icon_permalink
+  #    public_link(:icon)
+  #  end
+
+  #  def x_put (blob)
+  #    self.permalink = SecureRandom.hex.to_s if self.permalink.blank?
+  #    imgs = Magick::Image.from_blob(blob)
+  #    first = imgs.first
+  #    case first.get_exif_by_entry("Orientation") && first["EXIF:Orientation"]
+  #      when "6"
+  #        first.rotate!(90)
+  #        first["EXIF:Orientation"] = "1"
+  #      when "3"
+  #        first.rotate!(180)
+  #        first["EXIF:Orientation"] = "1"
+  #      when "8"
+  #        first.rotate!(270)
+  #        first["EXIF:Orientation"] = "1"
+  #    end
+  #    sizes = {
+  #      :main => {:cols => 640, :rows => 480},
+  #      :thumb => {:cols => 400},
+  #      :icon => {:cols => 128}
+  #    }.each { |x_key, size|
+  #      geometry = if size[:rows] then
+  #        "#{size[:cols]}x#{size[:rows]}>"
+  #      else
+  #        "#{size[:cols]}x"
+  #      end
+  #      first.change_geometry(geometry) { |cols, rows, img|
+  #        put_key(x_key, img.resize(cols, rows).to_blob)
+  #      }
+  #    }
+  #  end
+  #end
 
   class Tagging < Base
     belongs_to :tag
@@ -573,6 +525,7 @@ module RisingCode::Controllers
       @large_factor = primes[0] * primes[1]
       render :contact
     end
+
     def post(*args)
       begin
         Lockfile.new('/home/application/db/lock') do
@@ -608,7 +561,7 @@ module RisingCode::Controllers
 
   class Resume < R('/about/resume')
     def get
-      @tags = Tag.find_all_by_include_in_header(true)
+      @tags = Tag.where(:include_in_header => true)
       @active_tab = "about"
       render :resume
     end
@@ -750,37 +703,6 @@ module RisingCode::Controllers
       else
         redirect(R(Bookmarks))
       end
-    end
-  end
-=end
-
-  class Sources < R('/sources')
-    def get
-      @tags = Tag.all
-      @active_tab = "about"
-      @controllers = Hash.new
-      @models = Hash.new
-      #DocumentationServer::SERVER.controllers.each { |controller|
-      #  @controllers[controller] = DocumentationServer::SERVER.source_for(controller)
-      #}
-      DocumentationServer::SERVER.models.each { |model|
-        @models[model] = DocumentationServer::SERVER.source_for(model)
-      }
-      render :sources
-    end
-  end
-
-=begin
-  class Highlight < R('/highlight/(\w+)\.(\w+)')
-    def post(*args)
-      @code = args.inspect + @input.inspect 
-      unless @input.the_file.is_a?(String) then
-        @code = DocumentationServer::SERVER.highlight(@input.the_file[:tempfile].read, args[1])
-        #@code += @input.the_file[:tempfile].read
-      end
-      without_layout {
-        render :highlight
-      }
     end
   end
 =end
@@ -1356,10 +1278,6 @@ module RisingCode::Views
         a(:href => R(Index)) {
           "blog"
         }
-        #text(", ")
-        #a(:href => R(Sources)) {
-        #  "source code"
-        #}
         text(" and ")
         a(:href => R(Resume)) {
           "resume"
@@ -1380,11 +1298,6 @@ module RisingCode::Views
             img(:src => "/images/stackoverflow.png")
           }
         }
-        #li {
-        #  a(:href => "http://www.engadget.com/profile/68892/", :rel => :me) {
-        #    img(:src => "/images/engadget.gif")
-        #  }
-        #}
         li {
           a(:href => "http://ruby.meetup.com/6/members/4890/", :rel => :me) {
             img(:src => "/images/meetup.gif")
@@ -1451,8 +1364,9 @@ module RisingCode::Views
     div {
       h1 {
         text("Jon Bardin")
+        text(" -- ")
         a(:href => R(Contact), :class => :unprintable) {
-          text("&nbsp;contact me if you are not a robot")
+          text("contact me if you are not a robot")
         }
       }
     }
@@ -1470,7 +1384,7 @@ module RisingCode::Views
           }
         }
         h4 {
-          "June April - Preset, San Francisco, CA"
+          "April 2013 - Preset, San Francisco, CA"
         }
       }
       div {
@@ -2032,41 +1946,6 @@ module RisingCode::Views
     }
   end
 
-=begin
-  def highlight
-    @code
-  end
-=end
-
-  def sources
-    ul {
-      li {
-        h2 {
-          "Controllers"
-        }
-        ul {
-          @controllers.each { |controller, source|
-            li {
-              source
-            }
-          }
-        }
-      }
-      li {
-        h2 {
-          "Models"
-        }
-        ul {
-          @models.each { |model, source|
-            li {
-              source
-            }
-          }
-        }
-      }
-    }
-  end
-
   def timecard
     div {
       table {
@@ -2264,29 +2143,29 @@ module RisingCode::Views
     }
   end
 
-  def create_or_update_image
-    div {
-      form(:method => :post, :enctype => "multipart/form-data") {
-        ul {
-          li {
-            label(:for => :permalink) {
-              text("permalink")
-            }
-          }
-          li {
-            img(:src => @image.icon_permalink)
-          } unless @image.new_record?
-          li {
-            label(:for => :file) {
-              text("file")
-            }
-            input(:type => :file, :name => :the_file)
-          }
-          li {
-            input(:type => :submit)
-          }
-        }
-      }
-    }
-  end
+  #def create_or_update_image
+  #  div {
+  #    form(:method => :post, :enctype => "multipart/form-data") {
+  #      ul {
+  #        li {
+  #          label(:for => :permalink) {
+  #            text("permalink")
+  #          }
+  #        }
+  #        li {
+  #          img(:src => @image.icon_permalink)
+  #        } unless @image.new_record?
+  #        li {
+  #          label(:for => :file) {
+  #            text("file")
+  #          }
+  #          input(:type => :file, :name => :the_file)
+  #        }
+  #        li {
+  #          input(:type => :submit)
+  #        }
+  #      }
+  #    }
+  #  }
+  #end
 end

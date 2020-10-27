@@ -11,7 +11,6 @@
   .only_print { display: none; }
 }
 
-* { margin:0; padding:0;}
 span.snippet { margin: 0.25em 0 1em 0; display: block; overflow: auto; white-space: nowrap; background-color: #000000; font-family: monospace; color: #ffffff; padding: 4px; border: 1px solid #777777; font-size: 1.1em; }
 .Identifier { color: #00ffff; }
 .OldComment { color: #8080ff; }

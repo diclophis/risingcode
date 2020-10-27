@@ -1,24 +1,6 @@
-#!/usr/bin/env ruby
-#
 # Slugalizer
 # http://github.com/henrik/slugalizer
 
-=begin
-
-begin
-  require "active_support/multibyte"
-rescue LoadError
-  require "rubygems"
-  require "active_support/multibyte"
-end
-
-
-class String
-  def normalize(normalization_form=ActiveSupport::Multibyte.default_normalization_form)
-    ActiveSupport::Multibyte::Chars.new(self).normalize(normalization_form)
-  end
-end
-=end
 class String
   def normalize(normalization_form=nil)
     self
@@ -43,7 +25,6 @@ def returning(value)
   value
 end
 
-
 module Slugalizer
   extend self
   SEPARATORS = %w[- _ +]
@@ -53,7 +34,6 @@ module Slugalizer
       raise "Word separator must be one of #{SEPARATORS}"
     end
     re_separator = Regexp.escape(separator)
-    #result = ActiveSupport::Multibyte::Handlers::UTF8Handler.normalize(text.to_s, :kd)
     result = text.to_s.normalize
     result.gsub!(/[^\x00-\x7F]+/, '')                      # Remove non-ASCII (e.g. diacritics).
     result.gsub!(/[^a-z0-9\-_\+]+/i, separator)            # Turn non-slug chars into the separator.
