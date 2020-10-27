@@ -10,6 +10,7 @@ require 'time'
 require 'redcloth'
 require 'digest/md5'
 require 'ruby2ruby'
+require 'ruby_parser'
 require 'drb'
 
 require 'net/smtp'
@@ -19,15 +20,11 @@ require "active_record"
 require "camping"
 require 'camping/session'
 
-#require 'openid'
-#require 'openid/store/filesystem'
-#require 'openid/consumer'
-#require 'openid/extensions/sreg'
+require "rexml/document"
 
 #import into this file
 require '/home/application/acts_as_taggable'
 require '/home/application/tag_list'
-#require '/home/application/documentation_server'
 require '/home/application/slugalizer'
 require '/home/application/lockfile'
 
@@ -54,7 +51,8 @@ class DocumentationServer
   end
 
   def controllers
-    RisingCode::X.r
+    #RisingCode::X.r
+    ObjectSpace.each_object(Class).select { |klass| klass < RisingCode::X }
   end
 
   def models
@@ -75,13 +73,16 @@ class DocumentationServer
     else
       url_string = ""
     end
-    puts class_name
-    if class_name == RisingCode::Models::SchemaInfo or class_name == RisingCode::Controllers::I or class_name == Camping::Models::SchemaInfo then
-        puts "Wtf"
-        return "unknown"
-    else
-      return highlight(RubyToRuby.translate(class_name).gsub("< nil", url_string), "rb")
-    end
+    #if class_name == RisingCode::Models::SchemaInfo or class_name == RisingCode::Controllers::I or class_name == Camping::Models::SchemaInfo then
+    #    puts "Wtf"
+    #    return "unknown"
+    #else
+      translated = Ruby2Ruby.new.process(RubyParser.new.parse(class_name.to_s))
+      #Ruby2Ruby.new.process(ParseTree.translate(class_name))
+      #Ruby2Ruby.translate(class_name)
+      return highlight(
+        translated.gsub("< nil", url_string), "rb")
+    #end
   end
 
   def highlight(content, extension)
@@ -89,7 +90,9 @@ class DocumentationServer
     input_buffer = "/tmp/#{now}.#{extension}"
     output_buffer = "/tmp/#{now}.html"
     cache_buffer = "/tmp/#{now}.cache"
-    unless File.exists?(cache_buffer) 
+
+    now.to_s
+    #unless File.exists?(cache_buffer) 
       input = File.new(input_buffer, "w")
       input.write(content)
       input.close
@@ -136,7 +139,7 @@ class DocumentationServer
           true
         end
       }
-    end
+    #end
     File.open(cache_buffer).readlines.join("").gsub("\n", "")
   end
 end
@@ -181,8 +184,19 @@ $ARV_EXTRAS = %{
   end
 end
 
+module RedCloth::Formatters::HTML
+  def quote1(opts)
+    "'#{opts[:text]}'"
+  end
+  
+  def quote2(opts)
+    "\"#{opts[:text]}\""
+  end
+end
+
 module RisingCodeTags
   def hard_breaks; false; end
+
   def css(opts)
     content = opts[:text]
     begin
@@ -205,6 +219,7 @@ module RisingCodeTags
       problem.inspect
     end
   end
+
   def ruby(opts)
     content = opts[:text]
     begin
@@ -213,6 +228,7 @@ module RisingCodeTags
       problem.inspect
     end
   end
+
   def rhtml(opts)
     content = opts[:text]
     begin
@@ -221,6 +237,7 @@ module RisingCodeTags
       problem.inspect
     end
   end
+
   def javascript(opts)
     content = opts[:text]
     begin
@@ -229,6 +246,7 @@ module RisingCodeTags
       problem.inspect
     end
   end
+
   def cpp(opts)
     content = opts[:text]
     begin
@@ -237,6 +255,7 @@ module RisingCodeTags
       problem.inspect
     end
   end
+
   def objc(opts)
     content = opts[:text]
     begin
@@ -245,6 +264,7 @@ module RisingCodeTags
       problem.inspect
     end
   end
+
   def java(opts)
     content = opts[:text]
     begin
@@ -729,21 +749,25 @@ module RisingCode::Controllers
       end
     end
   end
+=end
+
   class Sources < R('/sources')
     def get
-      @tags = Tag.find_all_by_include_in_header(true)
+      @tags = Tag.all
       @active_tab = "about"
       @controllers = Hash.new
       @models = Hash.new
-      DocumentationServer::SERVER.controllers.each { |controller|
-        @controllers[controller] = DocumentationServer::SERVER.source_for(controller)
-      }
+      #DocumentationServer::SERVER.controllers.each { |controller|
+      #  @controllers[controller] = DocumentationServer::SERVER.source_for(controller)
+      #}
       DocumentationServer::SERVER.models.each { |model|
         @models[model] = DocumentationServer::SERVER.source_for(model)
       }
       render :sources
     end
   end
+
+=begin
   class Highlight < R('/highlight/(\w+)\.(\w+)')
     def post(*args)
       @code = args.inspect + @input.inspect 
@@ -929,19 +953,11 @@ module RisingCode::Views
           } if article.tags.length > 0
           li {
             if @single and not article.excerpt.blank? then
-              #text {
-                article.excerpt.textilize + article.body.textilize
-              #}
-              #text {
-              #}
+              article.excerpt.textilize + article.body.textilize
             elsif not @single and not article.excerpt.blank? then
-              #text {
-                article.excerpt.textilize
-              #}
+              article.excerpt.textilize
             else
-              #text {
-                article.body.textilize
-              #}
+              article.body.textilize
             end
           }
         }
@@ -2017,6 +2033,8 @@ module RisingCode::Views
   def highlight
     @code
   end
+=end
+
   def sources
     ul {
       li {
@@ -2026,7 +2044,7 @@ module RisingCode::Views
         ul {
           @controllers.each { |controller, source|
             li {
-              text(source)
+              source
             }
           }
         }
@@ -2038,13 +2056,14 @@ module RisingCode::Views
         ul {
           @models.each { |model, source|
             li {
-              text(source)
+              source
             }
           }
         }
       }
     }
   end
+
   def timecard
     div {
       table {
@@ -2067,7 +2086,6 @@ module RisingCode::Views
       }
     }
   end
-=end
 
   def login
     form(:method => :post) {
@@ -2081,10 +2099,12 @@ module RisingCode::Views
       }
     }
   end
+
   def dashboard
     div {
     }
   end
+
   def list_tags
     div {
       form(:method => :post, :enctype => "multipart/form-data") {
@@ -2104,6 +2124,7 @@ module RisingCode::Views
       }
     }
   end
+
   def list_articles
     div {
       form(:method => :post, :enctype => "multipart/form-data") {
@@ -2123,6 +2144,7 @@ module RisingCode::Views
       }
     }
   end
+
   def articles
     div {
       ul {
@@ -2136,6 +2158,7 @@ module RisingCode::Views
       }
     }
   end
+
 =begin
   def list_images
     div {
@@ -2160,6 +2183,7 @@ module RisingCode::Views
     }
   end
 =end
+
   def create_or_update_article
     div {
       form(:method => :post) {
@@ -2211,6 +2235,7 @@ module RisingCode::Views
       }
     }
   end
+
   def create_or_update_tag
     div {
       form(:method => :post, :enctype => "multipart/form-data") {
@@ -2235,6 +2260,7 @@ module RisingCode::Views
       }
     }
   end
+
   def create_or_update_image
     div {
       form(:method => :post, :enctype => "multipart/form-data") {
