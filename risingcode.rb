@@ -9,30 +9,27 @@ require 'sqlite3'
 require 'time'
 require 'redcloth'
 require 'digest/md5'
-require 'daemons'
 require 'ruby2ruby'
 require 'drb'
-require 'uuidtools'
 
-require 'plist'
 require 'net/smtp'
 
-gem "activerecord"
+require "active_record"
 
 require "camping"
 require 'camping/session'
 
-require 'openid'
-require 'openid/store/filesystem'
-require 'openid/consumer'
-require 'openid/extensions/sreg'
+#require 'openid'
+#require 'openid/store/filesystem'
+#require 'openid/consumer'
+#require 'openid/extensions/sreg'
 
 #import into this file
-require '/home/ubuntu/risingcode.com/acts_as_taggable'
-require '/home/ubuntu/risingcode.com/tag_list'
-require '/home/ubuntu/risingcode.com/documentation_server'
-require '/home/ubuntu/risingcode.com/slugalizer'
-require '/home/ubuntu/risingcode.com/lockfile'
+require '/home/application/acts_as_taggable'
+require '/home/application/tag_list'
+require '/home/application/documentation_server'
+require '/home/application/slugalizer'
+require '/home/application/lockfile'
 
 Camping.goes :RisingCode
 
@@ -118,7 +115,9 @@ class String
 end
 
 module RisingCode
+  set :secret, "sql"
   include Camping::Session 
+
   def user_logged_in
     @state.authenticated == true
   end
@@ -164,6 +163,7 @@ module RisingCode
   end
 end
 
+=begin
 module RisingCode::Models
   class Base
     def Base.table_name_prefix
@@ -246,7 +246,7 @@ module RisingCode::Models
       public_link(:icon)
     end
     def x_put (blob)
-      self.permalink = UUIDTools::UUID.random_create.to_s if self.permalink.blank?
+      self.permalink = SecureRandom.hex.to_s if self.permalink.blank?
       imgs = Magick::Image.from_blob(blob)
       first = imgs.first
       case first.get_exif_by_entry("Orientation") && first["EXIF:Orientation"]
@@ -306,8 +306,23 @@ module RisingCode::Models
     end
   end
 end
+=end
 
 module RisingCode::Controllers
+  class Index < R('/', '/(articles)', '/([a-zA-Z0-9 ]+)/(\d*)', '/(\d+)/(\d+)/(\d+)', '/(\w+)/(\w+)/(\w+)/([\w-]+)')
+    def get(*args)
+      render :index
+    end
+  end
+
+  class Logout < R("/dashboard/logout")
+    def get
+      log_user_out
+      redirect R(Index)
+    end
+  end
+
+=begin
   class Contact < R("/contact")
     def get
       primes = []
@@ -324,7 +339,7 @@ module RisingCode::Controllers
       }
       random_primes = primes.sort_by { rand }
       @tags = Tag.find_all_by_include_in_header(true)
-      @state.contact_me_token = UUIDTools::UUID.random_create.to_s
+      @state.contact_me_token = SecureRandom.hex.to_s
       @state.authentication_token = "#{primes[0]}x#{primes[1]}"
       @large_factor = primes[0] * primes[1]
       render :contact
@@ -334,7 +349,7 @@ module RisingCode::Controllers
         Lockfile.new('/tmp/email.lock') do
           sleep 5
           if @input.agree_to_tos.nil? and @input.i_am_not_a_robot == @state.contact_me_token and @input.authentication_token == @state.authentication_token then
-            @state.contact_me_token = UUIDTools::UUID.random_create.to_s
+            @state.contact_me_token = SecureRandom.hex.to_s
             Net::SMTP.start('localhost') do |smtp|
               smtp.sendmail("Subject: Contact Form Submission\n\n#{@input.inspect}", "www-data", "Jon Bardin <diclophis@gmail.com>")
             end
@@ -342,7 +357,7 @@ module RisingCode::Controllers
               return render :thanks
             }
           else
-            @state.contact_me_token = UUID.random_create.to_s
+            @state.contact_me_token = SecureRandom.hex.to_s
             return "<a href=\"#{R(Contact)}\">try again</a>"
           end
         end
@@ -355,30 +370,34 @@ module RisingCode::Controllers
     def get(*args)
       if (@input.has_key?("openid.mode")) then
         this_url = @@realm + R(Login, nil)
-        store = ::OpenID::Store::Filesystem.new("/tmp")
-        openid_consumer = ::OpenID::Consumer.new(@state, store)
-        openid_response = openid_consumer.complete(@input, this_url)
-        if openid_response.status == :success and openid_response.identity_url == "http://diclophis.pip.verisignlabs.com/" then
-          @state.authenticated = true
-          return redirect(R(Dashboard))
-        end
+        @state.authenticated = true
+        return redirect(R(Dashboard))
+
+        #store = ::OpenID::Store::Filesystem.new("/tmp")
+        #openid_consumer = ::OpenID::Consumer.new(@state, store)
+        #openid_response = openid_consumer.complete(@input, this_url)
+        #if openid_response.status == :success and openid_response.identity_url == "http://diclophis.pip.verisignlabs.com/" then
+        #  @state.authenticated = true
+        #  return redirect(R(Dashboard))
+        #end
       end
       other_layout {
         render :login
       }
     end
     def post(*args)
-      if @input.identity_url == @@identity_url then
-        store = ::OpenID::Store::Filesystem.new("/tmp")
-        openid_consumer = ::OpenID::Consumer.new(@state, store)
-        check_id_request = openid_consumer.begin(@input.identity_url)
-        openid_sreg = ::OpenID::SReg::Request.new(['nickname'])
-        check_id_request.add_extension(openid_sreg)
-        url = check_id_request.redirect_url(@@realm, @@realm + R(Login, nil))
-        redirect(url)
-      else
-        raise "wtf"
-      end
+      raise "wtf"
+      #if @input.identity_url == @@identity_url then
+      #  #store = ::OpenID::Store::Filesystem.new("/tmp")
+      #  #openid_consumer = ::OpenID::Consumer.new(@state, store)
+      #  #check_id_request = openid_consumer.begin(@input.identity_url)
+      #  #openid_sreg = ::OpenID::SReg::Request.new(['nickname'])
+      #  #check_id_request.add_extension(openid_sreg)
+      #  #url = check_id_request.redirect_url(@@realm, @@realm + R(Login, nil))
+      #  #redirect(url)
+      #else
+      #  raise "wtf"
+      #end
     end
   end
   class Dashboard < R("/dashboard")
@@ -386,12 +405,6 @@ module RisingCode::Controllers
       administer { 
         render :dashboard 
       }
-    end
-  end
-  class Logout < R("/dashboard/logout")
-    def get
-      log_user_out
-      redirect R(Index)
     end
   end
   class About < R('/about')
@@ -554,7 +567,7 @@ module RisingCode::Controllers
       @offset = 0
       @use_page_navigation = false
       @use_date_navigation = false
-      @include_openid_delegation = false
+      #@include_openid_delegation = false
       @tags = Tag.find_all_by_include_in_header(true)
       @active_tab = "risingcode"
       if args.empty? then
@@ -563,7 +576,7 @@ module RisingCode::Controllers
         @permalink = "%"
         @now = Time.now
         @use_date_navigation = true
-        @include_openid_delegation = true
+        #@include_openid_delegation = true
       elsif args.length == 1 then
         @articles = Article.find(
           :all,
@@ -746,8 +759,33 @@ module RisingCode::Controllers
       }
     end
   end
+=end
 end
+
 module RisingCode::Views
+  def index
+    div {
+      table {
+        tr {
+        }
+        tr {
+        }
+        tr.header {
+        }
+        7.times { |i|
+        tr.day {
+        }
+        }
+        tr {
+        }
+        7.times { |i|
+        tr.day {
+        }
+        }
+      }
+    }
+  end
+=begin
   def thanks
     div {
       h1 {
@@ -2092,23 +2130,5 @@ module RisingCode::Views
       }
     }
   end
-end
-
-=begin
-[]   range specificication (e.g., [a-z] means a letter in the range a to z)
-\w  letter or digit; same as [0-9A-Za-z]
-\W  neither letter or digit
-\s  space character; same as [ \t\n\r\f]
-\S  non-space character
-\d  digit character; same as [0-9]
-\D  non-digit character
-\b  backspace (0x08) (only if in a range specification)
-\b  word boundary (if not in a range specification)
-\B  non-word boundary
-*   zero or more repetitions of the preceding
-+   one or more repetitions of the preceding
-{m,n}   at least m and at most n repetitions of the preceding
-?   at most one repetition of the preceding; same as {0,1}
-|   either preceding or next expression may match
-()  grouping
 =end
+end

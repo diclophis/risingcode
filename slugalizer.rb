@@ -25,7 +25,7 @@ class String
   end
 end
 
-class Fixnum
+class Integer
   def ordinalize
     if (10...20) === self
       "#{self}th"

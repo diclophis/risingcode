@@ -1,0 +1,64 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: risingcode
+  labels:
+    app: risingcode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: risingcode
+  template:
+    metadata:
+      labels:
+        app: risingcode
+    spec:
+      volumes:
+      containers:
+      - name: risingcode
+        image: risingcode:latest
+        imagePullPolicy: IfNotPresent
+        #command: ["bundle", "exec", "camping", "-h", "0.0.0.0", "-s", "falcon", "risingcode.rb"]
+        command: ["bundle", "exec", "falcon", "-b", "tcp://0.0.0.0", "-p", "3000"]
+        ports:
+        - containerPort: 3000
+        resources:
+          limits:
+            memory: 4G
+            cpu: 1
+          requests:
+            memory: 100M
+            cpu: 100m
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: risingcode-service
+spec:
+  type: NodePort
+  selector:
+    app: risingcode
+  ports:
+  - protocol: TCP
+    name: risingcode
+    port: 3000
+    nodePort: 30046
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: risingcode-vhost
+  annotations:
+    ingress.class: wkndr
+spec:
+  rules:
+  - host: risingcode.com
+    http:
+      paths:
+      - backend:
+          serviceName: risingcode-service
+          servicePort: 3000

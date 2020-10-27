@@ -5,7 +5,7 @@ class DocumentationServer
   SERVER = DRbObject.new(nil, URI)
   def self.daemon (argv)
     #Daemons.run_proc("documentation_server", {:ontop => true, :dir_mode => :system, :ARGV => argv}) do
-    Daemons.run_proc("documentation_server", {:ontop => true, :dir_mode => :script, :ARGV => argv}) do
+    #Daemons.run_proc("documentation_server", {:ontop => true, :dir_mode => :script, :ARGV => argv}) do
       require "/home/ubuntu/risingcode/risingcode"
       require "/home/ubuntu/risingcode/boot"
       #Camping::Models::Base.logger.debug("starting server")
@@ -20,7 +20,7 @@ class DocumentationServer
 #        #Camping::Models::Base.logger.debug("terminating server")
 #      end
       DRb.thread.join
-    end
+    #end
   end
   def initialize
   end
