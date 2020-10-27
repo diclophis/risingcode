@@ -33,6 +33,45 @@ require '/home/application/lockfile'
 
 Camping.goes :RisingCode
 
+module RisingCode
+  module Models
+$ARV_EXTRAS = %{
+  def self.V(n)
+    @final = [n, @final.to_f].max
+    m = (@migrations ||= [])
+    Class.new(ActiveRecord::Migration[6.0]) do
+      meta_def(:version) { n }
+      meta_def(:inherited) { |k| m << k }
+    end
+  end
+
+  def self.create_schema(opts = {})
+    opts[:assume] ||= 0
+    opts[:version] ||= @final
+    if @migrations
+      unless SchemaInfo.table_exists?
+        ActiveRecord::Schema.define do
+          create_table SchemaInfo.table_name do |t|
+            t.column :version, :float
+          end
+        end
+      end
+      si = SchemaInfo.all.first || SchemaInfo.new(:version => opts[:assume])
+      if si.version < opts[:version]
+        @migrations.sort_by { |m| m.version }.each do |k|
+          k.migrate(:up) if si.version < k.version and k.version <= opts[:version]
+          k.migrate(:down) if si.version > k.version and k.version > opts[:version]
+        end
+        si.update(:version => opts[:version])
+      end
+    end
+  end
+
+}
+    module_eval $ARV_EXTRAS
+  end
+end
+
 module RisingCodeTags
   def hard_breaks; false; end
   def css(opts)
@@ -163,7 +202,6 @@ module RisingCode
   end
 end
 
-=begin
 module RisingCode::Models
   class Base
     def Base.table_name_prefix
@@ -209,6 +247,7 @@ module RisingCode::Models
       drop_table :images
     end
   end
+
   class Article < Base
     validates_presence_of :title, :if => :title
     validates_uniqueness_of :title
@@ -226,6 +265,7 @@ module RisingCode::Models
       }
     end
   end
+
   class Image < Base
     def put_key (x_key, blob)
       get_key(x_key).put(blob, 'public-read')
@@ -276,6 +316,7 @@ module RisingCode::Models
       }
     end
   end
+
   class Tagging < Base
     belongs_to :tag
     belongs_to :taggable, :polymorphic => true
@@ -285,6 +326,7 @@ module RisingCode::Models
       end
     end
   end
+
   class Tag < Base
     has_many :taggings
     validates_presence_of :name
@@ -306,7 +348,6 @@ module RisingCode::Models
     end
   end
 end
-=end
 
 module RisingCode::Controllers
   class Index < R('/', '/(articles)', '/([a-zA-Z0-9 ]+)/(\d*)', '/(\d+)/(\d+)/(\d+)', '/(\w+)/(\w+)/(\w+)/([\w-]+)')
@@ -322,7 +363,6 @@ module RisingCode::Controllers
     end
   end
 
-=begin
   class Contact < R("/contact")
     def get
       primes = []
@@ -338,7 +378,7 @@ module RisingCode::Controllers
          primes << i unless (state == 0)
       }
       random_primes = primes.sort_by { rand }
-      @tags = Tag.find_all_by_include_in_header(true)
+      #@tags = Tag.find_all_by_include_in_header(true)
       @state.contact_me_token = SecureRandom.hex.to_s
       @state.authentication_token = "#{primes[0]}x#{primes[1]}"
       @large_factor = primes[0] * primes[1]
@@ -366,6 +406,26 @@ module RisingCode::Controllers
       end
     end
   end
+
+  class About < R('/about')
+    def get
+      @title = "Jon Bardin lives in the Land of the Rising Code"
+
+      @tags = Tag.where(:include_in_header => true)
+      @active_tab = "about"
+      render :about
+    end
+  end
+
+  class Resume < R('/about/resume')
+    def get
+      @tags = Tag.find_all_by_include_in_header(true)
+      @active_tab = "about"
+      render :resume
+    end
+  end
+
+=begin
   class Login < R("/dashboard/login(.*)")
     def get(*args)
       if (@input.has_key?("openid.mode")) then
@@ -405,21 +465,6 @@ module RisingCode::Controllers
       administer { 
         render :dashboard 
       }
-    end
-  end
-  class About < R('/about')
-    def get
-      @title = "Jon Bardin lives in the Land of the Rising Code"
-      @tags = Tag.find_all_by_include_in_header(true)
-      @active_tab = "about"
-      render :about
-    end
-  end
-  class Resume < R('/about/resume')
-    def get
-      @tags = Tag.find_all_by_include_in_header(true)
-      @active_tab = "about"
-      render :resume
     end
   end
   class Images < R('/imagery')
@@ -764,28 +809,11 @@ end
 
 module RisingCode::Views
   def index
-    div {
-      table {
-        tr {
-        }
-        tr {
-        }
-        tr.header {
-        }
-        7.times { |i|
-        tr.day {
-        }
-        }
-        tr {
-        }
-        7.times { |i|
-        tr.day {
-        }
-        }
-      }
+    h1 {
+      "Index"
     }
   end
-=begin
+
   def thanks
     div {
       h1 {
@@ -799,6 +827,7 @@ module RisingCode::Views
       }
     }
   end
+
   def contact
     form(:action => R(Contact), :method => :post) {
       ul {
@@ -840,6 +869,7 @@ module RisingCode::Views
       "//foo"
     }
   end
+
   def i_am_a_robot
     tr {
       td.shrink {
@@ -852,6 +882,7 @@ module RisingCode::Views
       }
     }
   end
+
   def i_am_not_a_robot
     tr {
       td.human!(:class => "shrink") {
@@ -863,20 +894,20 @@ module RisingCode::Views
       }
     }
   end
+
   def layout
     if @no_layout then
       self << yield
       return
     end
+
     html {
       head {
         meta("http-equiv" => "Content-Type", :content => "text/html;charset=utf-8")
         title {
           @title or "Land of the Rising Code"
         }
-        #link(:rel => "stylesheet", :type => "text/css", :href => "/stylesheets/main.css")
         link(:rel => "stylesheet", :type => "text/css", :href => "/stylesheets/vanilla.css")
-        #meta(:name => "viewport", :content => "width=850")
       }
       body {
         div.wrap!(:class => @content_class) {
@@ -890,15 +921,15 @@ module RisingCode::Views
                     }
                   }
                 }
-                @tags.each { |tag|
-                  li(:class => ((tag.name == @active_tab) ? "active" : "")) {
-                    h1 {
-                      a(:href => R(Index, tag.name, nil)) {
-                        text(tag.name.capitalize)
-                      }
-                    }
-                  }
-                }
+                #@tags.each { |tag|
+                #  li(:class => ((tag.name == @active_tab) ? "active" : "")) {
+                #    h1 {
+                #      a(:href => R(Index, tag.name, nil)) {
+                #        text(tag.name.capitalize)
+                #      }
+                #    }
+                #  }
+                #}
               }
             }
           } unless no_header
@@ -977,6 +1008,8 @@ module RisingCode::Views
       }
     }
   end
+
+=begin
   def images
     div {
       ul {
@@ -1136,6 +1169,8 @@ module RisingCode::Views
       text("&nbsp;&raquo;")
     } if @bookmarks_for_tomorrow
   end
+=end
+
   def about
     div {
       h2 {
@@ -1750,7 +1785,7 @@ module RisingCode::Views
           }
           li {
             h5 {
-              a(:href => "http://kivaiphoneapp.com") {
+              a(:href => "https://web.archive.org/web/20190609132324/http://www.kivaiphoneapp.com/contributors.php") {
                 "Kiva iPhone App"
               }
             }
@@ -1828,6 +1863,8 @@ module RisingCode::Views
       }
     }
   end
+
+=begin
   def highlight
     @code
   end

@@ -10,6 +10,8 @@ source 'https://rubygems.org' do
 
   gem 'rack'
 
+  gem 'rake'
+
   gem 'falcon'
 
   gem 'activerecord'

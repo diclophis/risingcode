@@ -16,12 +16,29 @@ spec:
         app: risingcode
     spec:
       volumes:
+      - name: sharedfs
+        emptyDir: {}
+      initContainers:
+      - name: schema
+        image: risingcode:latest
+        imagePullPolicy: IfNotPresent
+        command:
+        - bundle
+        - exec
+        - rake
+        - schema
+        volumeMounts:
+        - name: sharedfs
+          mountPath: /home/application/db
       containers:
       - name: risingcode
         image: risingcode:latest
         imagePullPolicy: IfNotPresent
         #command: ["bundle", "exec", "camping", "-h", "0.0.0.0", "-s", "falcon", "risingcode.rb"]
         command: ["bundle", "exec", "falcon", "-b", "tcp://0.0.0.0", "-p", "3000"]
+        volumeMounts:
+        - name: sharedfs
+          mountPath: /home/application/db
         ports:
         - containerPort: 3000
         resources:

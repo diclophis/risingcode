@@ -7,7 +7,7 @@
       
       module ClassMethods
         def acts_as_taggable
-          has_many :taggings, :class_name => "::RisingCode::Models::Tagging", :as => :taggable, :dependent => :destroy, :include => :tag
+          has_many :taggings, :class_name => "::RisingCode::Models::Tagging", :as => :taggable, :dependent => :destroy #TODO, :include => :tag
           has_many :tags, :class_name => "::RisingCode::Models::Tag", :through => :taggings
           
           before_save :save_cached_tag_list
@@ -16,7 +16,11 @@
           include Taggable::InstanceMethods
           extend Taggable::SingletonMethods
           
-          alias_method_chain :reload, :tag_list
+          #alias_method_chain :reload, :tag_list
+          
+          #TODO: alias_method :reload_without_tag_list, :reload
+          #TODO: alias_method :reload, :foo_with_tag_list
+
         end
         
         def cached_tag_list_column_name

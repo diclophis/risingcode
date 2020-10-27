@@ -15,6 +15,8 @@ USER application
 
 RUN cd /home/application && bundle install --path=vendor/bundle
 
+#RUN cd /home/application && (grep -rl "ActiveRecord::Migration" vendor/bundle | xargs -I{} sed -i "" "s/ActiveRecord::Migration/ActiveRecord::Migration[6.0]/g" {})
+
 COPY [".", "/home/application"]
 
 #COPY lib /home/application/lib/

@@ -37,5 +37,8 @@
 #run app
 
 require './risingcode'
+require './boot'
+
+use Rack::Static, :urls => [""], :root => 'public', :cascade => true
 
 run RisingCode
