@@ -355,18 +355,12 @@ module RisingCode::Models
 end
 
 module RisingCode::Controllers
-  #class Index < R('/', '/(articles)', '/([a-zA-Z0-9 ]+)/(\d*)', '/(\d+)/(\d+)/(\d+)', '/(\w+)/(\w+)/(\w+)/([\w-]+)')
-  #  def get(*args)
-  #    render :index
-  #  end
-  #end
   class Index < R('/', '/(articles)', '/([a-zA-Z0-9 ]+)/(\d*)', '/(\d+)/(\d+)/(\d+)', '/(\w+)/(\w+)/(\w+)/([\w-]+)')
     def get(*args)
       @limit = 5
       @offset = 0
       @use_page_navigation = false
       @use_date_navigation = false
-      #@include_openid_delegation = false
       @tags = Tag.all #(true)
       @active_tab = "risingcode"
       if args.empty? then
@@ -375,7 +369,6 @@ module RisingCode::Controllers
         @permalink = "%"
         @now = Time.now
         @use_date_navigation = true
-        #@include_openid_delegation = true
       elsif args.length == 1 then
         @articles = Article.order("published_on asc").all
         @use_date_navigation = true
@@ -797,11 +790,70 @@ end
 
 module RisingCode::Views
   def index
-    h1 {
-      "Index"
-    }
-    pre {
-      @articles.inspect
+    div {
+      @articles.each_with_index { |article, i|
+        ul {
+          li {
+            h2 {
+              a(:href => article.permalink) {
+                text(article.title)
+              }
+            }
+          }
+          li {
+            h3 {
+              text(" on ")
+              text(article.published_on.strftime("%B %d %Y"))
+              text(" I wondered... ")
+            }
+          }
+          li {
+            h3 {
+              text("tagged: ")
+              article.tags.reverse.each_with_index { |tag, i|
+                text(",") if i > 0
+                a(:href => R(Index, tag.name, nil)) {
+                  text(tag.name)
+                }
+              }
+            }
+          } if article.tags.length > 0
+          li {
+            if @single and not article.excerpt.blank? then
+              #text {
+                article.excerpt.textilize + article.body.textilize
+              #}
+              #text {
+              #}
+            elsif not @single and not article.excerpt.blank? then
+              #text {
+                article.excerpt.textilize
+              #}
+            else
+              #text {
+                article.body.textilize
+              #}
+            end
+          }
+        }
+      }
+      if @use_date_navigation and (@old_ranger or @new_ranger) then
+        h2 {
+          "More articles dated"
+        }
+        ul.rangers_list {
+          li {
+            a(:href => R(Index, @old_ranger.published_on.year, @old_ranger.published_on.month, @old_ranger.published_on.day)) {
+              @old_ranger.published_on.strftime("%B %d %Y")
+            }
+          } if @old_ranger
+          li {
+            a(:href => R(Index, @new_ranger.published_on.year, @new_ranger.published_on.month, @new_ranger.published_on.day)) {
+              @new_ranger.published_on.strftime("%B %d %Y")
+            }
+          } if @new_ranger
+        }
+      end
     }
   end
 
@@ -1904,66 +1956,6 @@ module RisingCode::Views
         }
         }
       }
-    }
-  end
-  def index
-    div {
-      @articles.each_with_index { |article, i|
-        ul {
-          li {
-            h2 {
-              a(:href => article.permalink) {
-                text(article.title)
-              }
-            }
-          }
-          li {
-            h3 {
-              text(" on ")
-              text(article.published_on.strftime("%B %d %Y"))
-              text(" I wondered... ")
-            }
-          }
-          li {
-            h3 {
-              text("tagged: ")
-              article.tags.reverse.each_with_index { |tag, i|
-                text(",") if i > 0
-                a(:href => R(Index, tag.name, nil)) {
-                  text(tag.name)
-                }
-              }
-            }
-          } if article.tags.length > 0
-          li {
-            if @single and not article.excerpt.blank? then
-              text(article.excerpt.textilize)
-              text(article.body.textilize)
-            elsif not @single and not article.excerpt.blank? then
-              text(article.excerpt.textilize)
-            else
-              text(article.body.textilize)
-            end
-          }
-        }
-      }
-      if @use_date_navigation and (@old_ranger or @new_ranger) then
-        h2 {
-          "More articles dated"
-        }
-        ul.rangers_list {
-          li {
-            a(:href => R(Index, @old_ranger.published_on.year, @old_ranger.published_on.month, @old_ranger.published_on.day)) {
-              @old_ranger.published_on.strftime("%B %d %Y")
-            }
-          } if @old_ranger
-          li {
-            a(:href => R(Index, @new_ranger.published_on.year, @new_ranger.published_on.month, @new_ranger.published_on.day)) {
-              @new_ranger.published_on.strftime("%B %d %Y")
-            }
-          } if @new_ranger
-        }
-      end
     }
   end
 =end
