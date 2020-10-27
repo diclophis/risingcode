@@ -39,6 +39,6 @@
 require './risingcode'
 require './boot'
 
-use Rack::Static, :urls => [""], :root => 'public', :cascade => true
+use Rack::Static, :urls => ["/favicon.ico", "/images", "/robots.txt", "/stylesheets"], :root => 'public'
 
 run RisingCode

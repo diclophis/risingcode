@@ -160,6 +160,11 @@ module RisingCode
   def user_logged_in
     @state.authenticated == true
   end
+
+  def log_user_out
+    @state.authenticated = false
+  end
+
   def view_images
     @viewing_images = true
     yield
@@ -335,7 +340,7 @@ module RisingCode::Models
     cattr_accessor :destroy_unused
     self.destroy_unused = false
     def self.find_or_create_with_like_by_name(name)
-      find(:first, :conditions => ["name LIKE ?", name]) || create(:name => name)
+      where("name LIKE ?", name).first || create(:name => name)
     end
     def ==(object)
       super || (object.is_a?(Tag) && name == object.name)
@@ -350,8 +355,68 @@ module RisingCode::Models
 end
 
 module RisingCode::Controllers
+  #class Index < R('/', '/(articles)', '/([a-zA-Z0-9 ]+)/(\d*)', '/(\d+)/(\d+)/(\d+)', '/(\w+)/(\w+)/(\w+)/([\w-]+)')
+  #  def get(*args)
+  #    render :index
+  #  end
+  #end
   class Index < R('/', '/(articles)', '/([a-zA-Z0-9 ]+)/(\d*)', '/(\d+)/(\d+)/(\d+)', '/(\w+)/(\w+)/(\w+)/([\w-]+)')
     def get(*args)
+      @limit = 5
+      @offset = 0
+      @use_page_navigation = false
+      @use_date_navigation = false
+      #@include_openid_delegation = false
+      @tags = Tag.all #(true)
+      @active_tab = "risingcode"
+      if args.empty? then
+        @limit = 1
+        @current_action = :index
+        @permalink = "%"
+        @now = Time.now
+        @use_date_navigation = true
+        #@include_openid_delegation = true
+      elsif args.length == 1 then
+        @articles = Article.order("published_on asc").all
+        @use_date_navigation = true
+        return render(:articles)
+      elsif args.length == 2 then
+        @permalink = "%"
+        @now = Time.now
+        @tag = args[0]
+        @page = args[1].to_i
+        @offset = (@page - 1) * @limit if @page > 0
+        @articles = Article.find_tagged_with(
+          @tag,
+          :limit => @limit, 
+          :offset => @offset,
+          :conditions => ["permalink like ? and (date(published_on) <= ?)", @permalink, @now], 
+          :order => "published_on desc")
+        @current_action = @tag.to_s.intern
+        @use_page_navigation = true
+      elsif args.length == 3 then
+        @permalink = "%"
+        @now = Date.parse(args.join("/")) 
+        @limit = 99;
+        @use_date_navigation = true
+      else
+        @permalink = "/" + args.join("/")
+        @now = Time.now
+        @limit = 1
+        @use_date_navigation = true
+      end
+      @articles = Article.where("permalink like ? and (date(published_on) <= ? or ?)", @permalink, @now, user_logged_in).order("published_on desc") if @articles.nil?
+      #@old_ranger = Article.find(
+      #  :first,
+      #  :conditions => ["date(published_on) <= ? and id < ?", Time.now, @articles.last.id],
+      #  :limit => @limit,
+      #  :order => "published_on asc") if @articles.length > 0
+      #@new_ranger = Article.find(
+      #  :first,
+      #  :conditions => ["date(published_on) <= ? and id > ?", Time.now, @articles.first.id],
+      #  :limit => @limit,
+      #  :order => "published_on desc") if @articles.length > 0
+      #@single = @articles.length == 1
       render :index
     end
   end
@@ -378,7 +443,6 @@ module RisingCode::Controllers
          primes << i unless (state == 0)
       }
       random_primes = primes.sort_by { rand }
-      #@tags = Tag.find_all_by_include_in_header(true)
       @state.contact_me_token = SecureRandom.hex.to_s
       @state.authentication_token = "#{primes[0]}x#{primes[1]}"
       @large_factor = primes[0] * primes[1]
@@ -386,7 +450,7 @@ module RisingCode::Controllers
     end
     def post(*args)
       begin
-        Lockfile.new('/tmp/email.lock') do
+        Lockfile.new('/home/application/db/lock') do
           sleep 5
           if @input.agree_to_tos.nil? and @input.i_am_not_a_robot == @state.contact_me_token and @input.authentication_token == @state.authentication_token then
             @state.contact_me_token = SecureRandom.hex.to_s
@@ -425,41 +489,23 @@ module RisingCode::Controllers
     end
   end
 
-=begin
   class Login < R("/dashboard/login(.*)")
     def get(*args)
-      if (@input.has_key?("openid.mode")) then
-        this_url = @@realm + R(Login, nil)
-        @state.authenticated = true
-        return redirect(R(Dashboard))
-
-        #store = ::OpenID::Store::Filesystem.new("/tmp")
-        #openid_consumer = ::OpenID::Consumer.new(@state, store)
-        #openid_response = openid_consumer.complete(@input, this_url)
-        #if openid_response.status == :success and openid_response.identity_url == "http://diclophis.pip.verisignlabs.com/" then
-        #  @state.authenticated = true
-        #  return redirect(R(Dashboard))
-        #end
-      end
       other_layout {
         render :login
       }
     end
+
     def post(*args)
-      raise "wtf"
-      #if @input.identity_url == @@identity_url then
-      #  #store = ::OpenID::Store::Filesystem.new("/tmp")
-      #  #openid_consumer = ::OpenID::Consumer.new(@state, store)
-      #  #check_id_request = openid_consumer.begin(@input.identity_url)
-      #  #openid_sreg = ::OpenID::SReg::Request.new(['nickname'])
-      #  #check_id_request.add_extension(openid_sreg)
-      #  #url = check_id_request.redirect_url(@@realm, @@realm + R(Login, nil))
-      #  #redirect(url)
-      #else
-      #  raise "wtf"
-      #end
+      if @input.identity_url == "foobarbaz" then #TODO: !!! real security !!!
+        @state.authenticated = true
+        return redirect(R(Dashboard))
+      else
+        raise "wtf"
+      end
     end
   end
+
   class Dashboard < R("/dashboard")
     def get
       administer { 
@@ -467,6 +513,8 @@ module RisingCode::Controllers
       }
     end
   end
+
+=begin
   class Images < R('/imagery')
     def get (*args)
       if args.length == 0 then
@@ -606,81 +654,16 @@ module RisingCode::Controllers
       }
     end
   end
-  class Index < R('/', '/(articles)', '/([a-zA-Z0-9 ]+)/(\d*)', '/(\d+)/(\d+)/(\d+)', '/(\w+)/(\w+)/(\w+)/([\w-]+)')
-    def get(*args)
-      @limit = 5
-      @offset = 0
-      @use_page_navigation = false
-      @use_date_navigation = false
-      #@include_openid_delegation = false
-      @tags = Tag.find_all_by_include_in_header(true)
-      @active_tab = "risingcode"
-      if args.empty? then
-        @limit = 1
-        @current_action = :index
-        @permalink = "%"
-        @now = Time.now
-        @use_date_navigation = true
-        #@include_openid_delegation = true
-      elsif args.length == 1 then
-        @articles = Article.find(
-          :all,
-          :order => "published_on asc")
-        @use_date_navigation = true
-        return render(:articles)
-      elsif args.length == 2 then
-        @permalink = "%"
-        @now = Time.now
-        @tag = args[0]
-        @page = args[1].to_i
-        @offset = (@page - 1) * @limit if @page > 0
-        @articles = Article.find_tagged_with(
-          @tag,
-          :limit => @limit, 
-          :offset => @offset,
-          :conditions => ["permalink like ? and (date(published_on) <= ?)", @permalink, @now], 
-          :order => "published_on desc")
-        @current_action = @tag.to_s.intern
-        @use_page_navigation = true
-      elsif args.length == 3 then
-        @permalink = "%"
-        @now = Date.parse(args.join("/")) 
-        @limit = 99;
-        @use_date_navigation = true
-      else
-        @permalink = "/" + args.join("/")
-        @now = Time.now
-        @limit = 1
-        @use_date_navigation = true
-      end
-      @articles = Article.find(
-        :all, 
-        :include => :tags,
-        :limit => @limit, 
-        :offset => @offset,
-        :conditions => ["permalink like ? and (date(published_on) <= ? or ?)", @permalink, @now, user_logged_in], 
-        :order => "published_on desc") if @articles.nil?
-      @old_ranger = Article.find(
-        :first,
-        :conditions => ["date(published_on) <= ? and id < ?", Time.now, @articles.last.id],
-        :limit => @limit,
-        :order => "published_on asc") if @articles.length > 0
-      @new_ranger = Article.find(
-        :first,
-        :conditions => ["date(published_on) <= ? and id > ?", Time.now, @articles.first.id],
-        :limit => @limit,
-        :order => "published_on desc") if @articles.length > 0
-      @single = @articles.length == 1
-      render :index
-    end
-  end
+=end
+
   class RetrieveArticles < R("/dashboard/articles")
     def get
       administer { 
-        @articles = Article.find(:all)
+        @articles = Article.all
         render :list_articles
       }
     end
+
     def post
       @input.article_ids.each { |article_id|
         article = Article.find(article_id)
@@ -689,25 +672,11 @@ module RisingCode::Controllers
       redirect(R(RetrieveArticles))
     end
   end
-  class RetrieveImages < R("/dashboard/images")
-    def get
-      administer { 
-        @images = Image.find(:all)
-        render :list_images
-      }
-    end
-    def post
-      @input.image_ids.each { |image_id|
-        image = Image.find(image_id)
-        image.destroy
-      }
-      redirect(R(RetrieveImages))
-    end
-  end
+
   class RetrieveTags < R("/dashboard/tags")
     def get
       administer { 
-        @tags = Tag.find(:all)
+        @tags = Tag.all
         render :list_tags
       }
     end
@@ -719,6 +688,7 @@ module RisingCode::Controllers
       redirect(R(RetrieveTags))
     end
   end
+
   class CreateOrUpdateTag < R('/dashboard/tag/(\d*)')
     def get (tag_id)
       administer {
@@ -748,11 +718,12 @@ module RisingCode::Controllers
       }
     end
   end
+
   class CreateOrUpdateArticle < R('/dashboard/article/(\d*)')
     def get (article_id)
       administer {
         unless article_id.blank?
-          @article = Article.find_by_id(article_id)
+          @article = Article.find(article_id)
         else
           @article = Article.new
           @article.autopop
@@ -764,7 +735,7 @@ module RisingCode::Controllers
     def post (article_id)
       administer {
         unless article_id.blank?
-          @article = Article.find_by_id(article_id)
+          @article = Article.find(article_id)
         else
           @article = Article.new
         end
@@ -776,6 +747,23 @@ module RisingCode::Controllers
         @article.tag_list = @input.tag_list
         redirect(CreateOrUpdateArticle, @article.id) if @article.save!
       }
+    end
+  end
+
+=begin
+  class RetrieveImages < R("/dashboard/images")
+    def get
+      administer { 
+        @images = Image.find(:all)
+        render :list_images
+      }
+    end
+    def post
+      @input.image_ids.each { |image_id|
+        image = Image.find(image_id)
+        image.destroy
+      }
+      redirect(R(RetrieveImages))
     end
   end
   class CreateOrUpdateImage < R('/dashboard/image/(\d*)')
@@ -811,6 +799,9 @@ module RisingCode::Views
   def index
     h1 {
       "Index"
+    }
+    pre {
+      @articles.inspect
     }
   end
 
@@ -903,7 +894,7 @@ module RisingCode::Views
 
     html {
       head {
-        meta("http-equiv" => "Content-Type", :content => "text/html;charset=utf-8")
+        meta("charset" => "utf-8")
         title {
           @title or "Land of the Rising Code"
         }
@@ -946,54 +937,54 @@ module RisingCode::Views
                       }
                     }
                     li {
-                      a(:href => R(Dashboard), :class => ((@current_action == :dashboard) ? :current : nil)) {
-                        h1 {
+                      h1 {
+                        a(:href => R(Dashboard), :class => ((@current_action == :dashboard) ? :current : nil)) {
                           "Dashboard"
                         }
                       }
                     }
                     li {
-                      a(:href => R(RetrieveArticles), :class => ((@current_action == :articles) ? :current : nil)) {
-                        h1 {
+                      h1 {
+                        a(:href => R(RetrieveArticles), :class => ((@current_action == :articles) ? :current : nil)) {
                           "Articles"
                         }
                       }
                     }
+                    #li {
+                    #  a(:href => R(RetrieveImages), :class => ((@current_action == :images) ? :current : nil)) {
+                    #    h1 {
+                    #      "Images"
+                    #    }
+                    #  }
+                    #}
                     li {
-                      a(:href => R(RetrieveImages), :class => ((@current_action == :images) ? :current : nil)) {
-                        h1 {
-                          "Images"
-                        }
-                      }
-                    }
-                    li {
-                      a(:href => R(RetrieveTags), :class => ((@current_action == :tags) ? :current : nil)) {
-                        h1 {
+                      h1 {
+                        a(:href => R(RetrieveTags), :class => ((@current_action == :tags) ? :current : nil)) {
                           "Tags"
                         }
                       }
                     }
                     li {
-                      a(:href => R(CreateOrUpdateArticle, nil)) {
-                        h2 {
+                      h2 {
+                        a(:href => R(CreateOrUpdateArticle, nil)) {
                           text("new article")
                         }
                       }
                     }
                     li {
-                      a(:href => R(CreateOrUpdateTag, nil)) {
-                        h2 {
+                      h2 {
+                        a(:href => R(CreateOrUpdateTag, nil)) {
                           text("new tag")
                         }
                       }
                     }
-                    li {
-                      a(:href => R(CreateOrUpdateImage, nil)) {
-                        h2 {
-                          text("new image")
-                        }
-                      }
-                    }
+                    #li {
+                    #  a(:href => R(CreateOrUpdateImage, nil)) {
+                    #    h2 {
+                    #      text("new image")
+                    #    }
+                    #  }
+                    #}
                   }
                 }
               }
@@ -1249,13 +1240,13 @@ module RisingCode::Views
             img(:src => "/images/facebook_logo.gif")
           }
         }
-        #li {
-        #  a(:href => "http://upcoming.yahoo.com/user/70266/", :rel => :me) {
-        #    img(:src => "/images/upcoming.png")
-        #  }
-        #}
         li {
-          a(:href => "http://freshmeat.net/~jbardin/", :rel => :me) {
+          a(:href => "https://web.archive.org/web/20130423144543/http://upcoming.yahoo.com/user/70266/", :rel => :me) {
+            img(:src => "/images/upcoming.png")
+          }
+        }
+        li {
+          a(:href => "https://web.archive.org/web/20090824114341/http://freshmeat.net/users/jbardin/", :rel => :me) {
             img(:src => "/images/freshmeat.gif")
           }
         }
@@ -1274,18 +1265,15 @@ module RisingCode::Views
         "You can ask me anything about..."
       }
       img(:src => "/images/wordcloud.png", :width => 699, :usemap => "#wordcloud_map")
-      #text('
-      #<map id="wordcloud_map" name="wordcloud_map"><area shape="rectangle" alt="programming" title="" coords="234,65,694,125" href="/bookmarks/tagged/programming" target="" /><area shape="rectangle" alt="web2.0" title="" coords="315,50,358,64" href="/bookmarks/tagged/web2.0" target="" /><area shape="rectangle" alt="design" title="" coords="387,28,461,57" href="/bookmarks/tagged/design" target="" /><area shape="rectangle" alt="api" title="" coords="463,29,488,56" href="/bookmarks/tagged/api" target="" /><area shape="rectangle" alt="articles" title="" coords="499,36,579,62" href="/bookmarks/tagged/article" target="" /><area shape="rectangle" alt="art" title="" coords="486,154,522,183" href="/bookmarks/tagged/art" target="" /><area shape="rectangle" alt="development" title="" coords="426,123,549,156" href="/bookmarks/tagged/development" target="" /><area shape="rectangle" alt="css" title="" coords="558,126,577,139" href="/bookmarks/tagged/css" target="" /><area shape="rectangle" alt="game" title="" coords="268,129,334,153" href="/bookmarks/tagged/game" target="" /><area shape="rectangle" alt="cocoa" title="" coords="233,155,296,177" href="/bookmarks/tagged/cocoa" target="" /><area shape="rectangle" alt="ruby" title="" coords="127,116,223,175" href="/bookmarks/tagged/ruby" target="" /><area shape="rectangle" alt="javascript" title="" coords="125,94,183,111" href="/bookmarks/tagged/javascript" target="" /><area shape="rectangle" alt="tutorial" title="" coords="138,78,187,93" href="/bookmarks/tagged/tutorial" target="" /><area shape="rectangle" alt="funny" title="" coords="192,78,210,92" href="/bookmarks/tagged/funny" target="" /><area shape="rectangle" alt="voip" title="" coords="360,38,376,49" href="/bookmarks/tagged/voip" target="" /><area shape="rectangle" alt="interesting" title="" coords="402,16,439,25" href="/bookmarks/tagged/interesting" target="" /><area shape="rectangle" alt="iphone" title="" coords="28,3,173,58" href="/bookmarks/tagged/iphone" target="" /><area shape="rectangle" alt="howto" title="" coords="73,56,115,80" href="/bookmarks/tagged/howto" target="" /><area shape="rectangle" alt="blog" title="" coords="29,79,122,127" href="/bookmarks/tagged/blog" target="" /><area shape="rectangle" alt="video" title="" coords="38,125,87,151" href="/bookmarks/tagged/video" target="" /><area shape="rectangle" alt="photography" title="" coords="126,63,166,75" href="/bookmarks/tagged/photography" target="" /><area shape="rectangle" alt="architecture" title="" coords="395,126,424,141" href="/bookmarks/tagged/architecture" target="" /><area shape="rectangle" alt="awesome" title="" coords="208,98,233,105" href="/bookmarks/tagged/awesome" target="" /><area shape="rectangle" alt="humour" title="" coords="216,91,233,95" href="/bookmarks/tagged/humour" target="" /><area shape="rectangle" alt="arduino" title="" coords="173,62,191,76" href="/bookmarks/tagged/arduino" target="" /><area shape="rectangle" alt="flash" title="" coords="3,96,27,110" href="/bookmarks/tagged/flash" target="" /><area shape="rectangle" alt="barcode" title="" coords="7,113,25,125" href="/bookmarks/tagged/barcode" target="" /></map>
-      #')
     }
   end
   def resume
     div {
       h1 {
         text("Jon Bardin")
-        #a(:href => R(Contact), :class => :unprintable) {
-        #  text("&nbsp;contact me if you are not a robot")
-        #}
+        a(:href => R(Contact), :class => :unprintable) {
+          text("&nbsp;contact me if you are not a robot")
+        }
       }
     }
     div {
@@ -1978,6 +1966,8 @@ module RisingCode::Views
       end
     }
   end
+=end
+
   def login
     form(:method => :post) {
       ul {
@@ -2045,6 +2035,7 @@ module RisingCode::Views
       }
     }
   end
+=begin
   def list_images
     div {
       form(:method => :post, :enctype => "multipart/form-data") {
@@ -2067,6 +2058,7 @@ module RisingCode::Views
       }
     }
   end
+=end
   def create_or_update_article
     div {
       form(:method => :post) {
@@ -2167,5 +2159,4 @@ module RisingCode::Views
       }
     }
   end
-=end
 end
