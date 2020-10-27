@@ -4,6 +4,8 @@ source 'https://rubygems.org' do
 
   gem 'ruby2ruby'
 
+  gem 'ParseTree'
+
   gem 'RedCloth'
 
   gem 'camping'

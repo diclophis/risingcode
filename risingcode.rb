@@ -11,6 +11,8 @@ require 'redcloth'
 require 'digest/md5'
 require 'ruby2ruby'
 require 'ruby_parser'
+require 'parse_tree'
+
 require 'drb'
 
 require 'net/smtp'
@@ -77,7 +79,8 @@ class DocumentationServer
     #    puts "Wtf"
     #    return "unknown"
     #else
-      translated = Ruby2Ruby.new.process(RubyParser.new.parse(class_name.to_s))
+      translated = Ruby2Ruby.new.process(SexpProcessor.new.process(ParseTree.translate(class_name)))
+      #translated = Ruby2Ruby.new.process(RubyParser.new.parse(class_name.to_s))
       #Ruby2Ruby.new.process(ParseTree.translate(class_name))
       #Ruby2Ruby.translate(class_name)
       return highlight(
