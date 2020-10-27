@@ -34,8 +34,23 @@ spec:
       - name: risingcode
         image: risingcode:latest
         imagePullPolicy: IfNotPresent
-        #command: ["bundle", "exec", "camping", "-h", "0.0.0.0", "-s", "falcon", "risingcode.rb"]
         command: ["bundle", "exec", "falcon", "-b", "tcp://0.0.0.0", "-p", "3000"]
+        volumeMounts:
+        - name: sharedfs
+          mountPath: /home/application/db
+        ports:
+        - containerPort: 3000
+        resources:
+          limits:
+            memory: 4G
+            cpu: 1
+          requests:
+            memory: 100M
+            cpu: 100m
+      - name: documentation
+        image: risingcode:latest
+        imagePullPolicy: IfNotPresent
+        command: ["bundle", "exec", "ruby", "documentation_server.rb"]
         volumeMounts:
         - name: sharedfs
           mountPath: /home/application/db
