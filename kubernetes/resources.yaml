@@ -17,7 +17,9 @@ spec:
     spec:
       volumes:
       - name: sharedfs
-        emptyDir: {}
+        hostPath:
+          path: /mnt/gaia/risingcode-db
+          type: DirectoryOrCreate
       initContainers:
       - name: schema
         image: risingcode:latest

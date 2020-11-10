@@ -1000,7 +1000,6 @@ module RisingCode::Views
         title {
           @title or "Land of the Rising Code"
         }
-        link(:rel => "stylesheet", :type => "text/css", :href => "/stylesheets/vanilla.css")
       }
       body {
         div.wrap!(:class => @content_class) {
@@ -1098,6 +1097,8 @@ module RisingCode::Views
           div.sidebar! {
           } unless (administering or viewing_images or no_sidebar) 
         }
+      
+        style(:type => "text/css") { File.read("public/stylesheets/vanilla.css") }
       }
     }
   end
@@ -1433,8 +1434,8 @@ module RisingCode::Views
               My primary responsibility was developing an animation system used during the main 'card-combat' scenes in the game.
               This was accomplished using CSS3 keyframe animations and Javascript.
             "}
-            a.unprintable(:href => "https://itunes.apple.com/us/app/nfl-shuffle/id572960605?mt=8") {
-              "NFL Shuffle on iTunes"
+            a.unprintable(:href => "https://www.youtube.com/watch?v=VEMYLaru_O4") {
+              "NFL Shuffle on YouTube"
             }
           }
         }
@@ -1857,7 +1858,7 @@ module RisingCode::Views
           }
           li {
             h5 {
-              a(:href => "http://risingcode.com") {
+              a(:href => "https://github.com/diclophis/risingcode") {
                 "RisingCode.com"
               }
             }
@@ -1927,18 +1928,22 @@ module RisingCode::Views
           }
           li {
             h5 {
-              "SiG Reloaded"
+              a(:href => "https://github.com/diclophis/gears") {
+                "Gears"
+              }
             }
             p {"
-              PHP5 Web Application Framework
+              PHP Web Application Framework
             "}
           }
           li {
             h5 {
-              "SiG Information Generator"
+              a(:href => "https://github.com/diclophis/sig") {
+                "SiG"
+              }
             }
             p {"
-              PHP4 Web Application Framework
+              PHP Web Application Framework
             "}
           }
         }
