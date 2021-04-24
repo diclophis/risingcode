@@ -7,6 +7,8 @@ metadata:
     app: risingcode
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: risingcode
@@ -49,6 +51,12 @@ spec:
           requests:
             memory: 100M
             cpu: 100m
+        env:
+        - name: SECRET_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: risingcode-secret-password
+              key: secret-password
       - name: documentation
         image: risingcode:latest
         imagePullPolicy: IfNotPresent
@@ -65,7 +73,6 @@ spec:
           requests:
             memory: 100M
             cpu: 100m
-
 ---
 apiVersion: v1
 kind: Service

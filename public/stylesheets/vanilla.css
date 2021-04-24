@@ -22,3 +22,8 @@ span.snippet { margin: 0.25em 0 1em 0; display: block; overflow: auto; white-spa
 .Type { color: #00ff00; }
 
 ul, ol { list-style: none; padding: 0; margin: 0; }
+
+input, button { vertical-align: middle; margin: 1em; }
+textarea { vertical-align: middle; width: 80em; height: 20em; margin: 1.25em; padding: 0.5em; }
+
+label { display: grid; }

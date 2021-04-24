@@ -7,7 +7,7 @@ ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update && apt-get install -yy libwxsqlite3-3.0-dev ruby2.5 ruby-bundler ruby-dev build-essential vim
 
-RUN useradd --create-home --uid 1001 application
+RUN useradd --create-home --uid 1000 application
 
 COPY Gemfile /home/application/
 

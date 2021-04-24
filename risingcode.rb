@@ -575,7 +575,7 @@ module RisingCode::Controllers
     end
 
     def post(*args)
-      if @input.identity_url == "foobarbaz" then #TODO: !!! real security !!!
+      if @input.identity_url == ENV['SECRET_PASSWORD'] then #TODO: !!! real security !!!
         @state.authenticated = true
         return redirect(R(Dashboard))
       else
@@ -801,7 +801,6 @@ module RisingCode::Controllers
     end
   end
 
-=begin
   class RetrieveImages < R("/dashboard/images")
     def get
       administer { 
@@ -843,7 +842,6 @@ module RisingCode::Controllers
       }
     end
   end
-=end
 end
 
 module RisingCode::Views
@@ -1038,54 +1036,33 @@ module RisingCode::Views
                       }
                     }
                     li {
-                      h1 {
+                      h2 {
                         a(:href => R(Dashboard), :class => ((@current_action == :dashboard) ? :current : nil)) {
                           "Dashboard"
                         }
                       }
                     }
                     li {
-                      h1 {
+                      h2 {
                         a(:href => R(RetrieveArticles), :class => ((@current_action == :articles) ? :current : nil)) {
-                          "Articles"
+                          "List Articles"
                         }
                       }
                     }
-                    #li {
-                    #  a(:href => R(RetrieveImages), :class => ((@current_action == :images) ? :current : nil)) {
-                    #    h1 {
-                    #      "Images"
-                    #    }
-                    #  }
-                    #}
                     li {
-                      h1 {
+                      h3 {
                         a(:href => R(RetrieveTags), :class => ((@current_action == :tags) ? :current : nil)) {
-                          "Tags"
+                          "List Tags"
                         }
                       }
                     }
                     li {
-                      h2 {
+                      h4 {
                         a(:href => R(CreateOrUpdateArticle, nil)) {
-                          text("new article")
+                          text("Create Article")
                         }
                       }
                     }
-                    li {
-                      h2 {
-                        a(:href => R(CreateOrUpdateTag, nil)) {
-                          text("new tag")
-                        }
-                      }
-                    }
-                    #li {
-                    #  a(:href => R(CreateOrUpdateImage, nil)) {
-                    #    h2 {
-                    #      text("new image")
-                    #    }
-                    #  }
-                    #}
                   }
                 }
               }
@@ -1104,25 +1081,6 @@ module RisingCode::Views
   end
 
 =begin
-  def images
-    div {
-      ul {
-        @images.each { |image|
-          li {
-            h2 {
-              image.created_at.strftime("%B %d %Y")
-            }
-            a(:href => image.full_permalink) {
-              img(:src => image.thumb_permalink)
-            }
-          }
-        }
-      }
-    }
-  end
-  def coming_soon
-    h3 { "Coming Soon" }
-  end
   def bookmarks_by_tag
     div {
       ul.bookmarks {
@@ -2045,31 +2003,6 @@ module RisingCode::Views
       }
     }
   end
-
-=begin
-  def list_images
-    div {
-      form(:method => :post, :enctype => "multipart/form-data") {
-        ul {
-          @images.each { |image|
-            li {
-              input(:type => :checkbox, :name => "image_ids[]", :value => image.id)
-              a(:href => R(CreateOrUpdateImage, image.id)) {
-                h2 {
-                  image.permalink
-                }
-                img(:src => image.icon_permalink)
-              }
-            }
-          }
-          li {
-            input(:type => :submit, :value => "delete selected images")
-          } if @images.length > 0
-        }
-      }
-    }
-  end
-=end
 
   def create_or_update_article
     div {

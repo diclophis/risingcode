@@ -43,7 +43,7 @@ class TagList < Array
     
     map do |name|
       name.include?(delimiter) ? "\"#{name}\"" : name
-    end.join(delimiter.ends_with?(" ") ? delimiter : "#{delimiter} ")
+    end.join(delimiter.end_with?(" ") ? delimiter : "#{delimiter} ")
   end
   
  private
