@@ -46,11 +46,11 @@ spec:
         - containerPort: 3000
         resources:
           limits:
-            memory: 4G
-            cpu: 1
+            memory: 200M
+            cpu: 50m
           requests:
             memory: 100M
-            cpu: 100m
+            cpu: 10m
         env:
         - name: SECRET_PASSWORD
           valueFrom:
@@ -68,11 +68,11 @@ spec:
         - containerPort: 3000
         resources:
           limits:
-            memory: 4G
-            cpu: 1
+            memory: 200M
+            cpu: 50m
           requests:
             memory: 100M
-            cpu: 100m
+            cpu: 10m
 ---
 apiVersion: v1
 kind: Service
