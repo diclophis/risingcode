@@ -16,6 +16,9 @@ require 'net/smtp'
 
 require "active_record"
 
+require "rack"
+require "rack/session"
+
 require "camping"
 require 'camping/session'
 
@@ -54,12 +57,6 @@ class DocumentationServer
         if worker == nil
           ready = nil
           cmd = "/home/application/tohtml #{input_buffer} #{output_buffer}"
-
-          cache_content = cmd
-          cache = File.new(cache_buffer, 'w')
-          cache.write(cache_content)
-          cache.close
-          cache = nil
 
           if system(cmd) then
             begin
@@ -227,21 +224,23 @@ end
 
 class String
   def textilize
-    wang = RedCloth.new(self, [:no_span_caps]).extend(::RisingCodeTags).to_html
+    wang = RedCloth.new(self, [:no_span_caps, :filter_html]).extend(::RisingCodeTags).to_html
     wang
   end
 end
 
 module RisingCode
-  set :secret, "sql"
+  #set :secret, "sql"
   include Camping::Session 
 
   def user_logged_in
     @state.authenticated == true
+    #false
   end
 
   def log_user_out
     @state.authenticated = false
+    true
   end
 
   def view_images
@@ -467,7 +466,7 @@ module RisingCode::Controllers
           @tag,
           :limit => @limit, 
           :offset => @offset,
-          :conditions => ["permalink like ? and (date(published_on) <= ?)", @permalink, @now], 
+          :conditions => ["permalink like ? and (date(published_on) <= ?)", @permalink, @now],
           :order => "published_on desc")
         @current_action = @tag.to_s.intern
         @use_page_navigation = true
@@ -509,7 +508,7 @@ module RisingCode::Controllers
     def get
       primes = []
       state = Numeric.new
-      (2300..3500).each { |i|
+      (10000..15000).each { |i|
          (2..(Math.sqrt(i).ceil)).each { |thing|
             state = 1
             if (i.divmod(thing)[1] == 0)
@@ -527,25 +526,34 @@ module RisingCode::Controllers
     end
 
     def post(*args)
-      begin
-        Lockfile.new('/home/application/db/lock') do
-          sleep 5
+      #begin
+        #Lockfile.new('/home/application/db/lock') do
+        #  sleep 5
           if @input.agree_to_tos.nil? and @input.i_am_not_a_robot == @state.contact_me_token and @input.authentication_token == @state.authentication_token then
             @state.contact_me_token = SecureRandom.hex.to_s
-            Net::SMTP.start('localhost') do |smtp|
-              smtp.sendmail("Subject: Contact Form Submission\n\n#{@input.inspect}", "www-data", "Jon Bardin <diclophis@gmail.com>")
-            end
+            ##Net::SMTP.start('smtp.gmail.com', 25) do |smtp|
+            ##smtp = Net::SMTP.new('aspmx.l.google.com', 25)
+            ##smtp = Net::SMTP.new('smtp.gmail.com', 587)
+            #smtp = Net::SMTP.new('gmail-smtp-in.l.google.com', 25)
+            #smtp.enable_starttls
+            #smtp.enable_starttls_auto
+            #smtp.start('risingcode.com') do
+            #  #smtp.mailfrom('www-data@risingcode.com')
+            #  #smtp.rcptto('diclophis@gmail.com')
+            #  smtp.send_message("From: www-data@risingcode.com\r\nTo: diclophis@gmail.com\r\nSubject: Contact Form Submission\r\n\r\n#{@input.inspect}", "www-data@risingcode.com", "diclophis@gmail.com")
+            #end
             other_layout {
+              exit(1)
               return render :thanks
             }
           else
             @state.contact_me_token = SecureRandom.hex.to_s
             return "<a href=\"#{R(Contact)}\">try again</a>"
           end
-        end
-      rescue => problem
-        return "really, don't do that"
-      end
+        #end
+      #rescue => problem
+      #  return "really, don't do that #{problem.class} #{problem.inspect} #{problem}"
+      #end
     end
   end
 

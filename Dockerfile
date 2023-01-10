@@ -1,11 +1,11 @@
-FROM ubuntu:bionic-20180526
+FROM ubuntu:jammy-20221101
 
 ENV LC_ALL C.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US.UTF-8
 ENV DEBIAN_FRONTEND noninteractive
 
-RUN apt-get update && apt-get install -yy libwxsqlite3-3.0-dev ruby2.5 ruby-bundler ruby-dev build-essential vim
+RUN apt-get update && apt-get install -yy git vim vim-runtime ruby ruby-bundler ruby-dev libsqlite3-dev libssl-dev build-essential --no-install-recommends
 
 RUN useradd --create-home --uid 1000 application
 

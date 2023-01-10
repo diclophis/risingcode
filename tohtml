@@ -6,7 +6,7 @@
  -c ":let html_no_pre = 1" \
  -c ":let use_xhtml = 1" \
  -c ":let html_use_css = 1" \
- -c ":so /usr/share/vim/vim80/syntax/2html.vim" \
+ -c ":so /usr/share/vim/vim82/syntax/2html.vim" \
  -c "%s/<C-k>6'\|<C-k>9'/'/g" \
  -c ":w $2" \
  -c ':q!' \

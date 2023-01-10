@@ -41,6 +41,6 @@ require './boot'
 
 RisingCode::Models::Tagging.connection
 
-use Rack::Static, :urls => ["/favicon.ico", "/images", "/robots.txt", "/stylesheets"], :root => 'public'
+use Rack::Static, :urls => ["/favicon.ico", "/images", "/robots.txt", "/stylesheets", "/javascripts"], :root => 'public'
 
 run RisingCode

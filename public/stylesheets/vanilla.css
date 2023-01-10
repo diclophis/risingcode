@@ -27,3 +27,6 @@ input, button { vertical-align: middle; margin: 1em; }
 textarea { vertical-align: middle; width: 80em; height: 20em; margin: 1.25em; padding: 0.5em; }
 
 label { display: grid; }
+
+table { border: 4px ridge rgb(202, 202, 202); }
+td, th { border: 2px ridge rgb(202, 202, 202); }
